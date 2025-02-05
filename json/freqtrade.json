@@ -1,0 +1,34 @@
+{
+    "name": "Freqtrade",
+    "slug": "freqtrade",
+    "categories": [
+        22
+    ],
+    "date_created": "2025-02-05",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": DEFAULT-PORT,
+    "documentation": null,
+    "website": "https://www.freqtrade.io/",
+    "logo": "https://www.freqtrade.io/en/stable/images/logo.png",
+    "description": "Freqtrade is a free and open source crypto trading bot written in Python. It is designed to support all major exchanges and be controlled via Telegram or webUI",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/freqtrade.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 4,
+                "os": "debian",
+                "version": "12"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": []
+}
