@@ -8,7 +8,7 @@ source <(curl -s https://raw.githubusercontent.com/tremor021/ProxmoxVE/refs/head
 APP="Freqtrade"
 TAGS="bot"
 var_cpu="8"
-var_ram="1024"
+var_ram="2048"
 var_disk="8"
 var_os="debian"
 var_version="12"
