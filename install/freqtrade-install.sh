@@ -28,8 +28,8 @@ tar xvzf ta-lib-0.4.0-src.tar.gz
 cd ta-lib
 sed -i.bak "s|0.00000001|0.000000000000000001 |g" src/ta_func/ta_utility.h
 ./configure --prefix=/usr/local
-make
-make install
+make -j"$("nproc --ignore=2)"
+make install -j"$("nproc --ignore=2)"
 ldconfig
 msg_ok "Installed Dependencies"
 
@@ -41,9 +41,9 @@ cd /opt/freqtrade
 $STD git checkout stable
 python3 -m venv .venv
 source .venv/bin/activate
-$STD python3 -m pip install --upgrade pip
-$STD python3 -m pip install -r requirements.txt
-$STD python3 -m pip install -e
+python3 -m pip install --upgrade pip
+python3 -m pip install -r requirements.txt
+python3 -m pip install -e
 msg_ok "Done setting up Freqtrade"
 
 msg_info "Creating Service"
