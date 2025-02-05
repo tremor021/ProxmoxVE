@@ -28,8 +28,8 @@ tar xvzf ta-lib-0.4.0-src.tar.gz
 cd ta-lib
 sed -i.bak "s|0.00000001|0.000000000000000001 |g" src/ta_func/ta_utility.h
 ./configure --prefix=/usr/local
-make -j"$("nproc --ignore=2)"
-make install -j"$("nproc --ignore=2)"
+make -j8
+make install -j8
 ldconfig
 msg_ok "Installed Dependencies"
 
