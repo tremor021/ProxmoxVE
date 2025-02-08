@@ -24,6 +24,7 @@ echo "deb [signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg] http://repo.mon
 $STD apt-get update
 $STD apt-get install mongodb-org -y
 systemctl enable -q --now mongod
+sleep 2
 MONGO_ADMIN_USER="admin"
 MONGO_ADMIN_PWD="$(openssl rand -base64 18 | cut -c1-13)"
 $STD mongosh <<EOF
@@ -35,6 +36,7 @@ db.createUser({
 })
 quit()
 EOF
+
 }
     echo "MongoDB Credentials"
     echo "Mongo Database User: $MONGO_ADMIN_USER"
