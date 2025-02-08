@@ -33,7 +33,7 @@ function update_script() {
         wget -q "https://github.com/YuukanOO/seelf/archive/refs/tags/v${RELEASE}.tar.gz"
         tar -xzf v${RELEASE}.tar.gz
         rm -rf /opt/astroluma
-        mv -f Astroluma-v${RELEASE} /opt/astroluma
+        mv -f Astroluma-${RELEASE} /opt/astroluma
         cd /opt/astroluma
         npm install
         cd client
