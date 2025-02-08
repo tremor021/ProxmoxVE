@@ -8,7 +8,7 @@ source <(curl -s https://raw.githubusercontent.com/tremor021/ProxmoxVE/refs/head
 # App Default Values
 APP="Astroluma"
 var_tags="dashboard"
-var_cpu="1"
+var_cpu="2"
 var_ram="2048"
 var_disk="8"
 var_os="debian"
