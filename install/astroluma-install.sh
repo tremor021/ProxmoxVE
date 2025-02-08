@@ -58,7 +58,7 @@ cd client
 npm run build
 cd ../server
 SECRET=$(openssl rand -hex 16)
-}
+{
     echo "MONGODB_URI=mongodb://127.0.0.1"
     echo "SECRET_KEY=$SECRET"
 } >> .env
