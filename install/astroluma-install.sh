@@ -26,22 +26,23 @@ $STD apt-get update
 $STD apt-get install mongodb-org -y
 systemctl enable -q --now mongod
 sleep 2
-MONGO_ADMIN_USER="admin"
-MONGO_ADMIN_PWD="$(openssl rand -base64 18 | cut -c1-13)"
-$STD mongosh <<EOF
-use admin
-db.createUser({
-  user: "$MONGO_ADMIN_USER",
-  pwd: "$MONGO_ADMIN_PWD",
-  roles: [{ role: "root", db: "admin" }]
-})
-quit()
-EOF
-{
-    echo "MongoDB Credentials"
-    echo "Mongo Database User: $MONGO_ADMIN_USER"
-    echo "Mongo Database Password: $MONGO_ADMIN_PWD"
-} >> ~/astroluma.creds
+# MONGO_ADMIN_USER="admin"
+#MONGO_ADMIN_PWD="$(openssl rand -base64 18 | cut -c1-13)"
+#$STD mongosh <<EOF
+#use admin
+#db.createUser({
+#  user: "$MONGO_ADMIN_USER",
+#  pwd: "$MONGO_ADMIN_PWD",
+#  roles: [{ role: "root", db: "admin" }]
+#})
+#quit()
+#EOF
+#{
+#    echo "MongoDB Credentials"
+#    echo "Mongo Database User: $MONGO_ADMIN_USER"
+#    echo "Mongo Database Password: $MONGO_ADMIN_PWD"
+#} >> ~/astroluma.creds
+#
 curl -s -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash &> /dev/null
 source ~/.bashrc
 $STD nvm install node
