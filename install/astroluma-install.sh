@@ -36,8 +36,7 @@ db.createUser({
 })
 quit()
 EOF
-
-}
+{
     echo "MongoDB Credentials"
     echo "Mongo Database User: $MONGO_ADMIN_USER"
     echo "Mongo Database Password: $MONGO_ADMIN_PWD"
