@@ -50,7 +50,7 @@ msg_ok "Installed Dependencies"
 msg_info "Setting up Astroluma. Patience"
 RELEASE=$(curl -s https://api.github.com/repos/Sanjeet990/Astroluma/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 wget -q "https://github.com/Sanjeet990/Astroluma/archive/refs/tags/v${RELEASE}.tar.gz"
-tar -xzf v${RELEASE}.tar.gz
+tar xzf v${RELEASE}.tar.gz
 mv Astroluma-${RELEASE} /opt/astroluma
 cd /opt/astroluma
 npm install
