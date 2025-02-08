@@ -20,10 +20,8 @@ $STD apt-get install -y \
   mc \
   gnupg \
   git
-curl -sSL https://www.mongodb.org/static/pgp/server-6.0.asc  -o mongoserver.asc
-gpg --no-default-keyring --keyring ./mongo_key_temp.gpg --import ./mongoserver.asc
-gpg --no-default-keyring --keyring ./mongo_key_temp.gpg --export > ./mongoserver_key.gpg
-mv mongoserver_key.gpg /etc/apt/trusted.gpg.d/
+wget -qO- https://www.mongodb.org/static/pgp/server-8.0.asc | gpg --dearmor >/usr/share/keyrings/mongodb-server-8.0.gpg
+echo "deb [signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg] http://repo.mongodb.org/apt/debian $(grep '^VERSION_CODENAME=' /etc/os-release | cut -d'=' -f2)/mongodb-org/8.0 main" >/etc/apt/sources.list.d/mongodb-org-8.0.list
 $STD apt-get update
 $STD apt-get install mongodb-org -y
 systemctl enable -q --now mongod
@@ -59,11 +57,10 @@ npm install
 npm install pm2 -g
 cd client
 npm run build
-mv dist ../server
 cd ../server
 SECRET=$(openssl rand -hex 16)
 {
-    echo "MONGODB_URI=mongodb://127.0.0.1"
+    echo "MONGODB_URI=mongodb://localhost:27017/astroluma"
     echo "SECRET_KEY=$SECRET"
 } >> .env
 msg_ok "Done setting up seelf"
@@ -71,7 +68,7 @@ msg_ok "Done setting up seelf"
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/astroluma.service
 [Unit]
-Description=Astroluma Service
+Description=seelf Service
 After=network.target
 
 [Service]
