@@ -20,8 +20,8 @@ $STD apt-get install -y \
   mc \
   gnupg \
   git
-wget -qO- https://www.mongodb.org/static/pgp/server-8.0.asc | gpg --dearmor >/usr/share/keyrings/mongodb-server-8.0.gpg
-echo "deb [signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg] http://repo.mongodb.org/apt/debian $(grep '^VERSION_CODENAME=' /etc/os-release | cut -d'=' -f2)/mongodb-org/8.0 main" >/etc/apt/sources.list.d/mongodb-org-8.0.list
+echo "deb http://repo.mongodb.org/apt/debian bullseye/mongodb-org/6.0 main" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+wget -qO- https://www.mongodb.org/static/pgp/server-6.0.asc | gpg --dearmor >/usr/share/keyrings/mongodb-server-6.0.gpg
 $STD apt-get update
 $STD apt-get install mongodb-org -y
 systemctl enable -q --now mongod
@@ -57,6 +57,7 @@ npm install
 npm install pm2 -g
 cd client
 npm run build
+mv dist ../server
 cd ../server
 SECRET=$(openssl rand -hex 16)
 {
@@ -68,7 +69,7 @@ msg_ok "Done setting up seelf"
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/astroluma.service
 [Unit]
-Description=seelf Service
+Description=Astroluma Service
 After=network.target
 
 [Service]
@@ -76,7 +77,7 @@ Type=simple
 User=root
 Group=root
 WorkingDirectory=/opt/astroluma/server
-ExecStart=/opt/astroluma/server/pm2 start server.js
+ExecStart=pm2 start /opt/astroluma/server/server.js
 Restart=always
 
 [Install]
