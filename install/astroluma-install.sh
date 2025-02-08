@@ -20,8 +20,10 @@ $STD apt-get install -y \
   mc \
   gnupg \
   git
-echo "deb http://repo.mongodb.org/apt/debian bullseye/mongodb-org/6.0 main" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
-wget -qO- https://www.mongodb.org/static/pgp/server-6.0.asc | gpg --dearmor >/usr/share/keyrings/mongodb-server-6.0.gpg
+curl -sSL https://www.mongodb.org/static/pgp/server-6.0.asc  -o mongoserver.asc
+gpg --no-default-keyring --keyring ./mongo_key_temp.gpg --import ./mongoserver.asc
+gpg --no-default-keyring --keyring ./mongo_key_temp.gpg --export > ./mongoserver_key.gpg
+mv mongoserver_key.gpg /etc/apt/trusted.gpg.d/
 $STD apt-get update
 $STD apt-get install mongodb-org -y
 systemctl enable -q --now mongod
