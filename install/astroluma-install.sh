@@ -18,7 +18,8 @@ $STD apt-get install -y \
   curl \
   sudo \
   mc \
-  gnupg
+  gnupg \
+  git
 wget -qO- https://www.mongodb.org/static/pgp/server-8.0.asc | gpg --dearmor >/usr/share/keyrings/mongodb-server-8.0.gpg
 echo "deb [signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg] http://repo.mongodb.org/apt/debian $(grep '^VERSION_CODENAME=' /etc/os-release | cut -d'=' -f2)/mongodb-org/8.0 main" >/etc/apt/sources.list.d/mongodb-org-8.0.list
 $STD apt-get update
@@ -40,7 +41,7 @@ EOF
     echo "MongoDB Credentials"
     echo "Mongo Database User: $MONGO_ADMIN_USER"
     echo "Mongo Database Password: $MONGO_ADMIN_PWD"
-} >> ~/astoluma.creds
+} >> ~/astroluma.creds
 curl -s -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash &> /dev/null
 source ~/.bashrc
 $STD nvm install node
