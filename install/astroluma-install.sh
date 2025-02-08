@@ -41,7 +41,7 @@ EOF
     echo "Mongo Database User: $MONGO_ADMIN_USER"
     echo "Mongo Database Password: $MONGO_ADMIN_PWD"
 } >> ~/astoluma.creds
-curl -s -o- https://raw.githubusercopontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash &> /dev/null
+curl -s -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash &> /dev/null
 source ~/.bashrc
 $STD nvm install node
 msg_ok "Installed Dependencies"
