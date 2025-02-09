@@ -17,6 +17,22 @@ All LXC instances created using this repository come pre-installed with Midnight
 Do not break established syntax in this file, as it is automatically updated by a Github Workflow
 
 
+## 2025-02-09
+
+### Changed
+
+### ✨ New Scripts
+
+- New Script: pbs_microcode.sh [@DonPablo1010](https://github.com/DonPablo1010) ([#2166](https://github.com/community-scripts/ProxmoxVE/pull/2166))
+
+### 🚀 Updated Scripts
+
+- Keep the same hass_config volume for Home Assistant [@genehand](https://github.com/genehand) ([#2160](https://github.com/community-scripts/ProxmoxVE/pull/2160))
+
+### 🌐 Website
+
+- Fix: Barcode Buddy Logo & Title [@MickLesk](https://github.com/MickLesk) ([#2183](https://github.com/community-scripts/ProxmoxVE/pull/2183))
+
 ## 2025-02-08
 
 ### Changed
@@ -25,9 +41,17 @@ Do not break established syntax in this file, as it is automatically updated by 
 
 - New script: Barcode Buddy [@bvdberg01](https://github.com/bvdberg01) ([#2167](https://github.com/community-scripts/ProxmoxVE/pull/2167))
 
+### 🚀 Updated Scripts
+
+- Fix: Actualbudget - salvage the `.migrate` file when upgrading [@bourquep](https://github.com/bourquep) ([#2173](https://github.com/community-scripts/ProxmoxVE/pull/2173))
+
 ### 🌐 Website
 
 - Update cosmos.json description [@BramSuurdje](https://github.com/BramSuurdje) ([#2162](https://github.com/community-scripts/ProxmoxVE/pull/2162))
+
+### 🧰 Maintenance
+
+- fix typos in CONTRIBUTOR_GUIDE [@thomashondema](https://github.com/thomashondema) ([#2174](https://github.com/community-scripts/ProxmoxVE/pull/2174))
 
 ## 2025-02-07 - 10.000 ⭐
 
