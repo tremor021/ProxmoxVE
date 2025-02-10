@@ -25,7 +25,7 @@ function update_script() {
     header_info
     check_container_storage
     check_container_resources
-    if [[ ! -d /home/tasmota/tasmocompiler ]]; then
+    if [[ ! -d /opt/tasmocompiler ]]; then
         msg_error "No ${APP} Installation Found!"
         exit
     fi
