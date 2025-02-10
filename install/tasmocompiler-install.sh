@@ -42,14 +42,14 @@ tar xzf v${RELEASE}.tar.gz
 mv tasmocompiler-${RELEASE}/ /opt/tasmocompiler/
 cd /opt/tasmocompiler
 export NODE_OPTIONS=--openssl-legacy-provider
-#$STD npm update
+$STD npm update
 $STD npm install
 $STD yarn install
 $STD yarn build
 echo "${RELEASE}" >"/opt/tasmocompiler_version.txt"
 msg_ok "Setup TasmoCompiler"
 
-msg_info "Creating Service"
+msg_info "Creating Service"npm
 cat <<EOF >/etc/systemd/system/tasmocompiler.service
 [Unit]
 Description=TasmoCompiler Service
