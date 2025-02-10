@@ -40,7 +40,7 @@ mkdir /tmp/Tasmota
 RELEASE=$(curl -s https://api.github.com/repos/benzino77/tasmocompiler/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 wget -q https://github.com/benzino77/tasmocompiler/archive/refs/tags/v${RELEASE}.tar.gz
 tar xzf v${RELEASE}.tar.gz
-mv tasmocompiler-${RELEASE} /opt/tasmocompiler
+mv tasmocompiler-${RELEASE}/ /opt/tasmocompiler/
 cd /opt/tasmocompiler
 export NODE_OPTIONS=--openssl-legacy-provider
 $STD yarn install
