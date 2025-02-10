@@ -19,36 +19,35 @@ $STD apt-get install -y \
   curl \
   sudo \
   mc \
-  python3-venv \
-  npm
+  gnupg \
+  git
 curl -fsSL -o get-platformio.py https://raw.githubusercontent.com/platformio/platformio-core-installer/master/get-platformio.py
 $STD python3 get-platformio.py &> /dev/null
 msg_ok "Installed Dependencies"
 
-msg_info "Setup Node.js"
+msg_info "Setup Node.js & yarn"
 mkdir -p /etc/apt/keyrings
 curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
 echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" >/etc/apt/sources.list.d/nodesource.list
 $STD apt-get update
 $STD apt-get install -y nodejs
-msg_ok "Setup Node.js"
+$STD npm install -g yarn
+msg_ok "Setup Node.js & yarn"
 
-msg_info "Setting up TasmoCompiler. Patience"
+msg_info "Setup TasmoCompiler. Patience"
+mkdir /opt/tasmocompiler
+mkdir /tmp/Tasmota
 RELEASE=$(curl -s https://api.github.com/repos/benzino77/tasmocompiler/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-mkdir -p /usr/local/bin
-ln -s ~/.platformio/penv/bin/platformio /usr/local/bin/platformio
-ln -s ~/.platformio/penv/bin/pio /usr/local/bin/pio
-ln -s ~/.platformio/penv/bin/piodebuggdb /usr/local/bin/piodebuggdb
-useradd -m -p $(openssl passwd -1 "") -s /bin/bash -G sudo tasmota
-su - tasmota
-sudo echo "\n" | sudo npm install -g yarn
-git clone https://github.com/benzino77/tasmocompiler
-cd tas*
-yarn install
-yarn build
-echo "${RELEASE}" >"/opt/${APPLICATION}_version.txt"
-exit
-msg_ok "Done setting up TasmoCompiler"
+wget -q https://github.com/benzino77/tasmocompiler/archive/refs/tags/v${RELEASE}.tar.gz
+tar xzf v${RELEASE}.tar.gz
+mv tasmocompiler-${RELEASE} /opt/tasmocompiler
+cd /opt/tasmocompiler
+export NODE_OPTIONS=--openssl-legacy-provider
+$STD yarn install
+$STD yarn build
+echo "${RELEASE}" >"/opt/tasmocompiler_version.txt"
+msg_ok "Setup TasmoCompiler"
+
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/tasmocompiler.service
 [Unit]
@@ -56,14 +55,16 @@ Description=TasmoCompiler Service
 After=multi-user.target
 
 [Service]
-ExecStart=/usr/bin/node /home/tasmota/tasmocompiler/server/app.js &
+Type=simple
+User=root
+ExecStart=/usr/bin/node /opt/tasmocompiler/server/app.js &
 
 [Install]
 WantedBy=multi-user.target
 EOF
-sudo chmod 644 /lib/systemd/system/tasmocompiler.service
 systemctl enable -q --now tasmocompiler.service
 msg_ok "Created Service"
+
 motd_ssh
 customize
 
@@ -71,6 +72,3 @@ msg_info "Cleaning up"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
-
-motd_ssh
-customize
