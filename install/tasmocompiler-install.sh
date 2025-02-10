@@ -23,7 +23,7 @@ $STD apt-get install -y \
   git \
   python3
 curl -fsSL -o get-platformio.py https://raw.githubusercontent.com/platformio/platformio-core-installer/master/get-platformio.py
-python3 get-platformio.py &> /dev/null
+python3 get-platformio.py #&> /dev/null
 msg_ok "Installed Dependencies"
 
 msg_info "Setup Node.js & yarn"
