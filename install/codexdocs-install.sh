@@ -37,7 +37,7 @@ tar zxf v${RELEASE}.tar.gz
 mv codex.docs-${RELEASE}/ /opt/codexdocs
 cd /opt/codexdocs
 touch docs-config.local.yaml
-$STD yarn install
+yarn install
 PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 SECRET=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 cat <<EOF >/opt/codexdocs/docs-config.local.yaml
