@@ -35,7 +35,6 @@ $STD npm install -g yarn
 msg_ok "Setup Node.js & yarn"
 
 msg_info "Setup TasmoCompiler. Patience"
-mkdir /opt/tasmocompiler
 mkdir /tmp/Tasmota
 RELEASE=$(curl -s https://api.github.com/repos/benzino77/tasmocompiler/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 wget -q https://github.com/benzino77/tasmocompiler/archive/refs/tags/v${RELEASE}.tar.gz
