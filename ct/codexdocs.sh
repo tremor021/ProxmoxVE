@@ -8,7 +8,7 @@ source <(curl -s https://raw.githubusercontent.com/tremor021/ProxmoxVE/refs/head
 APP="CodeX Docs"
 TAGS="documentation"
 var_cpu="1"
-var_ram="512"
+var_ram="1024"
 var_disk="8"
 var_os="debian"
 var_version="12"
