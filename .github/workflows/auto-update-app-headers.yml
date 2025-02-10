@@ -17,6 +17,13 @@ jobs:
       pull-requests: write
 
     steps:
+      - name: Generate a token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       # Step 1: Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -71,10 +78,10 @@ jobs:
                        --base main \
                        --label "automated pr"
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
       
       - name: Approve pull request
-        if: steps.verify-diff.outputs.changed == 'true'
+        if: env.changed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -84,7 +91,7 @@ jobs:
           fi
           
       - name: Re-approve pull request after update
-        if: steps.verify-diff.outputs.changed == 'true'
+        if: env.changed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

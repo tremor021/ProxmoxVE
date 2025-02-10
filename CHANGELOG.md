@@ -17,13 +17,109 @@ All LXC instances created using this repository come pre-installed with Midnight
 Do not break established syntax in this file, as it is automatically updated by a Github Workflow
 
 
+## 2025-02-10
+
+### Changed
+
+### 💥 Breaking Changes
+
+- [Fix] Filebrowser - Add Static Path for DB [@MickLesk](https://github.com/MickLesk) ([#2207](https://github.com/community-scripts/ProxmoxVE/pull/2207))
+
+### ✨ New Scripts
+
+- New Script: Zitadel [@dave-yap](https://github.com/dave-yap) ([#2141](https://github.com/community-scripts/ProxmoxVE/pull/2141))
+
+### 🚀 Updated Scripts
+
+- [core] Prevent double spinner [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#2203](https://github.com/community-scripts/ProxmoxVE/pull/2203))
+
+### 🌐 Website
+
+- Fixed URL typo zerotier-one.json [@Divaksh](https://github.com/Divaksh) ([#2206](https://github.com/community-scripts/ProxmoxVE/pull/2206))
+- evcc.json Clarify the config file location [@mvdw](https://github.com/mvdw) ([#2193](https://github.com/community-scripts/ProxmoxVE/pull/2193))
+
+### 🧰 Maintenance
+
+- [core] Fix app-header workflow and add API [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#2204](https://github.com/community-scripts/ProxmoxVE/pull/2204))
+- Fix: "read -p" does not support color formatting [@PhoenixEmik](https://github.com/PhoenixEmik) ([#2191](https://github.com/community-scripts/ProxmoxVE/pull/2191))
+- [API] Add API to vms [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#2021](https://github.com/community-scripts/ProxmoxVE/pull/2021))
+
+## 2025-02-09
+
+### Changed
+
+### ✨ New Scripts
+
+- New Script: pbs_microcode.sh [@DonPablo1010](https://github.com/DonPablo1010) ([#2166](https://github.com/community-scripts/ProxmoxVE/pull/2166))
+
+### 🚀 Updated Scripts
+
+- Keep the same hass_config volume for Home Assistant [@genehand](https://github.com/genehand) ([#2160](https://github.com/community-scripts/ProxmoxVE/pull/2160))
+
+### 🌐 Website
+
+- Website: Set new Logo for Paperless-AI [@MickLesk](https://github.com/MickLesk) ([#2194](https://github.com/community-scripts/ProxmoxVE/pull/2194))
+- Fix: Barcode Buddy Logo & Title [@MickLesk](https://github.com/MickLesk) ([#2183](https://github.com/community-scripts/ProxmoxVE/pull/2183))
+
+## 2025-02-08
+
+### Changed
+
+### ✨ New Scripts
+
+- New script: Barcode Buddy [@bvdberg01](https://github.com/bvdberg01) ([#2167](https://github.com/community-scripts/ProxmoxVE/pull/2167))
+
+### 🚀 Updated Scripts
+
+- Fix: Actualbudget - salvage the `.migrate` file when upgrading [@bourquep](https://github.com/bourquep) ([#2173](https://github.com/community-scripts/ProxmoxVE/pull/2173))
+
+### 🌐 Website
+
+- Update cosmos.json description [@BramSuurdje](https://github.com/BramSuurdje) ([#2162](https://github.com/community-scripts/ProxmoxVE/pull/2162))
+
+### 🧰 Maintenance
+
+- fix typos in CONTRIBUTOR_GUIDE [@thomashondema](https://github.com/thomashondema) ([#2174](https://github.com/community-scripts/ProxmoxVE/pull/2174))
+
+## 2025-02-07 - 10.000 ⭐
+
+### Changed
+
+### 💥 Breaking Changes
+
+- [core]: Enhance LXC template handling and improve error recovery [@MickLesk](https://github.com/MickLesk) ([#2128](https://github.com/community-scripts/ProxmoxVE/pull/2128))
+
+### ✨ New Scripts
+
+- New Script: Cosmos [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#2120](https://github.com/community-scripts/ProxmoxVE/pull/2120))
+- New Script: SearXNG [@MickLesk](https://github.com/MickLesk) ([#2123](https://github.com/community-scripts/ProxmoxVE/pull/2123))
+
+### 🚀 Updated Scripts
+
+- Fix: Trillium Update Function & Harmonize Installation [@MickLesk](https://github.com/MickLesk) ([#2148](https://github.com/community-scripts/ProxmoxVE/pull/2148))
+- Fix: Zerotier-One fixed missing dependency [@tremor021](https://github.com/tremor021) ([#2147](https://github.com/community-scripts/ProxmoxVE/pull/2147))
+- Fix: Openwrt Version checking [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#2137](https://github.com/community-scripts/ProxmoxVE/pull/2137))
+- Fix: PeaNUT Increase HDD & RAM Size [@MickLesk](https://github.com/MickLesk) ([#2127](https://github.com/community-scripts/ProxmoxVE/pull/2127))
+
+### 🌐 Website
+
+- Fix: Zerotier json had a bad script path [@tremor021](https://github.com/tremor021) ([#2144](https://github.com/community-scripts/ProxmoxVE/pull/2144))
+- Fix: Cosmos logo doesnt display on website [@MickLesk](https://github.com/MickLesk) ([#2132](https://github.com/community-scripts/ProxmoxVE/pull/2132))
+- Fix JSON-Editor [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#2121](https://github.com/community-scripts/ProxmoxVE/pull/2121))
+
+### 🧰 Maintenance
+
+- [gh]: Following the trend - add star-history in readme [@MickLesk](https://github.com/MickLesk) ([#2135](https://github.com/community-scripts/ProxmoxVE/pull/2135))
+
 ## 2025-02-06
 
 ### Changed
 
 ### ✨ New Scripts
 
-- Add new LXC: Paperless-AI [@MickLesk](https://github.com/MickLesk) ([#2093](https://github.com/community-scripts/ProxmoxVE/pull/2093))
+- New Script: Duplicati [@tremor021](https://github.com/tremor021) ([#2052](https://github.com/community-scripts/ProxmoxVE/pull/2052))
+- New Script: Paperless-AI [@MickLesk](https://github.com/MickLesk) ([#2093](https://github.com/community-scripts/ProxmoxVE/pull/2093))
+- New Script: Apache Tika [@andygrunwald](https://github.com/andygrunwald) ([#2079](https://github.com/community-scripts/ProxmoxVE/pull/2079))
 
 ### 🚀 Updated Scripts
 
@@ -32,6 +128,11 @@ Do not break established syntax in this file, as it is automatically updated by 
 
 ### 🌐 Website
 
+<<<<<<< HEAD
+=======
+- Refactor JSON generator buttons layout for better alignment and consistency [@BramSuurdje](https://github.com/BramSuurdje) ([#2106](https://github.com/community-scripts/ProxmoxVE/pull/2106))
+- Website: Refactor Footer for improved layout and styling consistency [@BramSuurdje](https://github.com/BramSuurdje) ([#2107](https://github.com/community-scripts/ProxmoxVE/pull/2107))
+>>>>>>> 35547c43161b84cff9bd891f2ff28a0e7075021e
 - Website: Update Footer for Json-Editor & Api [@MickLesk](https://github.com/MickLesk) ([#2100](https://github.com/community-scripts/ProxmoxVE/pull/2100))
 - Website: Add Download for json-editor [@MickLesk](https://github.com/MickLesk) ([#2099](https://github.com/community-scripts/ProxmoxVE/pull/2099))
 - Radicale: Provide additional information about configuration [@tremor021](https://github.com/tremor021) ([#2072](https://github.com/community-scripts/ProxmoxVE/pull/2072))
