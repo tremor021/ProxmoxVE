@@ -32,7 +32,11 @@
     },
     "notes": [
         {
+<<<<<<< HEAD
             "text": "Check documentation on how to configure RustDesk Server. `https://rustdesk.com/docs/en/`",
+=======
+            "text": "Check our configuration guide for help: `https://github.com/community-scripts/ProxmoxVE/discussions/2388`",
+>>>>>>> 8b7349ab905ebdba67397baa7ad023c322985d1f
             "type": "info"
         }
     ]

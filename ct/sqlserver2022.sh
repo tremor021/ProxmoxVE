@@ -5,7 +5,6 @@ source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVE/m
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://www.microsoft.com/en-us/sql-server/sql-server-2022
 
-# App Default Values
 APP="SQL Server 2022"
 var_tags="sql"
 var_cpu="1"
@@ -15,11 +14,7 @@ var_os="ubuntu"
 var_version="22.04"
 var_unprivileged="0"
 
-# App Output & Base Settings
 header_info "$APP"
-base_settings
-
-# Core
 variables
 color
 catch_errors
