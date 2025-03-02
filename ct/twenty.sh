@@ -39,8 +39,8 @@ function update_script() {
     wget -q "https://github.com/twentyhq/twenty/archive/refs/tags/v${RELEASE}.tar.gz" -O $temp_file
     tar zxf $temp_file
     cp -rf twenty-${RELEASE}/* /opt/twenty
-    yarn database:migrate:prod
-    yarn command:prod upgrade-${RELEASE%.[0-9]*}
+    $STD yarn database:migrate:prod
+    $STD yarn command:prod upgrade-${RELEASE%.[0-9]*}
     echo "${RELEASE}" >/opt/${APP}_version.txt
     msg_ok "Updated ${APP}"
 
