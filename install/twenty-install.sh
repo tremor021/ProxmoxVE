@@ -44,7 +44,6 @@ msg_ok "Set up Node.js Repository"
 msg_info "Installing Node.js"
 $STD apt-get update
 $STD apt-get install -y nodejs
-$STD corepack enable
 $STD npm install -g yarn
 msg_ok "Installed Node.js"
 
