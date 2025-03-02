@@ -44,13 +44,13 @@ msg_ok "Set up Node.js Repository"
 msg_info "Installing Node.js"
 $STD apt-get update
 $STD apt-get install -y nodejs
-$STD npm install -g yarn
+$STD npm install -g yarn    
 msg_ok "Installed Node.js"
 
 msg_info "Install/Set up PostgreSQL Database"
 #$STD apt-get install -y postgresql-15 postgresql-15-pgvector
 $STD sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'postgres';"
-#$STD sudo -u postgres psql -c "CREATE DATABASE \"default\";" -c "CREATE DATABASE test;"
+$STD sudo -u postgres psql -c "CREATE DATABASE \"default\";" -c "CREATE DATABASE test;"
 msg_ok "Set up PostgreSQL"
 
 msg_info "Installing Redis"
