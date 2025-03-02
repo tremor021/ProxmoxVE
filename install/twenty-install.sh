@@ -66,7 +66,7 @@ wget -q "https://github.com/twentyhq/twenty/archive/refs/tags/v${RELEASE}.tar.gz
 tar zxf $temp_file
 mv twenty-${RELEASE} /opt/twenty
 cd /opt/twenty
-cat <<EOF >/opt/twenty/packages/twenty-front/.envau
+cat <<EOF >/opt/twenty/packages/twenty-front/.env
 PGHOST='localhost'
 REACT_APP_SERVER_BASE_URL=http://${LOCAL_IP}:3000
 GENERATE_SOURCEMAP=false
