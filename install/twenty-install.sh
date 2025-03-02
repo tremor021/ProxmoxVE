@@ -20,7 +20,8 @@ $STD apt-get install -y \
     sudo \
     mc \
     lsb-release \
-    postgresql
+    postgresql \
+    redis
 msg_ok "Installed Dependencies"
 
 msg_info "Setting up Redis Repository"
@@ -48,9 +49,8 @@ msg_ok "Installed Node.js"
 
 msg_info "Install/Set up PostgreSQL Database"
 #$STD apt-get install -y postgresql-15 postgresql-15-pgvector
-$STD sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'postgres';"
-$STD sudo -u postgres psql -c "CREATE DATABASE default;"
-$STD sudo -u postgres psql -c "CREATE DATABASE test;"
+$STD sudo -u postgres psql postgres -c "ALTER USER postgres WITH PASSWORD 'postgres';"
+$STD sudo -u postgres psql postgres -c "CREATE DATABASE \"default\";" -c "CREATE DATABASE test;"
 msg_ok "Set up PostgreSQL"
 
 msg_info "Installing Redis"
