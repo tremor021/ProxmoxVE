@@ -49,7 +49,7 @@ msg_ok "Installed Node.js"
 msg_info "Install/Set up PostgreSQL Database"
 $STD apt-get install -y postgresql-15 postgresql-15-pgvector
 $STD sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'postgres';"
-$STD sudo -u postgres psql -c "CREATE DATABASE \"default\";" -c "CREATE DATABASE test;"
+$STD sudo -u postgres psql -c "CREATE DATABASE default WITH OWNER postgres;" -c "CREATE DATABASE test WITH OWNER postgres;"
 msg_ok "Set up PostgreSQL"
 
 msg_info "Installing Redis"
@@ -66,7 +66,7 @@ wget -q "https://github.com/twentyhq/twenty/archive/refs/tags/v${RELEASE}.tar.gz
 tar zxf $temp_file
 mv twenty-${RELEASE} /opt/twenty
 cd /opt/twenty
-cat <<EOF >/opt/twenty/packages/twenty-front/.env
+cat <<EOF >/opt/twenty/packages/twenty-front/.envau
 PGHOST='localhost'
 REACT_APP_SERVER_BASE_URL=http://${LOCAL_IP}:3000
 GENERATE_SOURCEMAP=false
