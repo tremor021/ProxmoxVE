@@ -30,5 +30,10 @@
         "username": "tim@apple.dev",
         "password": "Applecar2025"
     },
-    "notes": []
+    "notes": [
+        {
+            "text": "The application takes some time to install and start. If you get blank web page, please wait some minutes.",
+            "type": "info"
+        }
+    ]
 }

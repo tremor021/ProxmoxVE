@@ -73,32 +73,33 @@ cat <<EOF >/opt/twenty/packages/twenty-server/.env
 NODE_ENV=development
 PG_DATABASE_URL=postgres://postgres:postgres@localhost:5432/default
 REDIS_URL=redis://localhost:6379
-APP_SECRET=1777b90c0722d1d7859628f0b8740bb8baf03275ab970cef29353bd47f9d27d3
+APP_SECRET=${APP_SECRET}
 SIGN_IN_PREFILLED=true
 FRONTEND_URL=http://localhost:3001
 EOF
+sed -i '366s/twenty-front/twenty-front --host/g' /opt/twenty/package.json
+$STD yarn
+$STD npx nx database:reset twenty-server
 echo "${RELEASE}" >"/opt/${APPLICATION}_version.txt"
 msg_ok "Setup Twenty"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/twenty.service
 [Unit]
-Description=AdventureLog Backend Service
+Description=Twenty Service
 After=network.target postgresql.service
 
 [Service]
 Type=simple
 User=root
 WorkingDirectory=/opt/twenty
-ExecStart=/usr/bin/npx start
+ExecStart=/usr/bin/npx nx start
 Restart=always
 
 [Install]
 WantedBy=multi-user.target
 EOF
-$STD yarn
-$STD npx nx database:reset twenty-server
-#systemctl enable -q --now twenty
+systemctl enable -q --now twenty
 msg_ok "Created Service"
 
 motd_ssh

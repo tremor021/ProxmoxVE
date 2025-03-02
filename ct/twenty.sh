@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 source <(curl -s https://raw.githubusercontent.com/tremor021/ProxmoxVE/refs/heads/twenty/misc/build.func)
-# Copyright (c) 2021-2025 tteck
-# Author: MickLesk (Canbiz)
+# Copyright (c) 2021-2025 community-scripts ORG
+# Author: Slaviša Arežina (tremor021)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: https://adventurelog.app/
+# Source: https://github.com/twentyhq/twenty
 
 APP="Twenty"
 var_tags="crm"
@@ -50,6 +50,7 @@ function update_script() {
 
     msg_info "Cleaning Up"
     rm -rf $temp_file
+    rm -rf ~/twenty-${RELEASE}
     msg_ok "Cleaned"
     msg_ok "Updated Successfully"
   else
