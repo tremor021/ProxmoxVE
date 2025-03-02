@@ -20,8 +20,8 @@ $STD apt-get install -y \
     sudo \
     mc \
     lsb-release \
-    postgresql \
-    redis
+    git \
+    postgresql
 msg_ok "Installed Dependencies"
 
 msg_info "Setting up Redis Repository"
@@ -36,21 +36,22 @@ curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dea
 echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" >/etc/apt/sources.list.d/nodesource.list
 msg_ok "Set up Node.js Repository"
 
-msg_info "Setting up PostgreSQL Repository"
-curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
-echo "deb https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" >/etc/apt/sources.list.d/pgdg.list
-msg_ok "Set up PostgreSQL Repository"
+#msg_info "Setting up PostgreSQL Repository"
+#curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
+#echo "deb https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" >/etc/apt/sources.list.d/pgdg.list
+#msg_ok "Set up PostgreSQL Repository"
 
 msg_info "Installing Node.js"
 $STD apt-get update
 $STD apt-get install -y nodejs
+$STD corepack enable
 $STD npm install -g yarn
 msg_ok "Installed Node.js"
 
 msg_info "Install/Set up PostgreSQL Database"
 #$STD apt-get install -y postgresql-15 postgresql-15-pgvector
-$STD sudo -u postgres psql postgres -c "ALTER USER postgres WITH PASSWORD 'postgres';"
-$STD sudo -u postgres psql postgres -c "CREATE DATABASE \"default\";" -c "CREATE DATABASE test;"
+$STD sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'postgres';"
+#$STD sudo -u postgres psql -c "CREATE DATABASE \"default\";" -c "CREATE DATABASE test;"
 msg_ok "Set up PostgreSQL"
 
 msg_info "Installing Redis"
@@ -86,7 +87,7 @@ NODE_ENV=development
 PG_DATABASE_URL=postgres://postgres:postgres@localhost:5432/default
 REDIS_URL=redis://localhost:6379
 APP_SECRET=${APP_SECRET}
-SIGN_IN_PREFILLED=true
+# SIGN_IN_PREFILLED=true
 FRONTEND_URL=http://localhost:3001
 EOF
 sed -i '366s/twenty-front/twenty-front --host/g' /opt/twenty/package.json
@@ -100,7 +101,7 @@ msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/twenty.service
 [Unit]
 Description=Twenty Service
-After=network.target postgresql.service
+After=network.target
 
 [Service]
 Type=simple
