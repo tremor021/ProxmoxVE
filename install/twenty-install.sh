@@ -19,8 +19,14 @@ $STD apt-get install -y \
     curl \
     sudo \
     mc \
-    redis
+    lsb-release
 msg_ok "Installed Dependencies"
+
+msg_info "Setting up Redis Repository"
+curl -fsSL https://packages.redis.io/gpg | gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
+chmod 644 /usr/share/keyrings/redis-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" >/etc/apt/sources.list.d/redis.list
+msg_ok "Set up Redis Repository"
 
 msg_info "Setting up Node.js Repository"
 mkdir -p /etc/apt/keyrings
@@ -42,8 +48,14 @@ msg_ok "Installed Node.js"
 msg_info "Install/Set up PostgreSQL Database"
 $STD apt-get install -y postgresql-15 postgresql-15-pgvector
 $STD sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'postgres';"
-$STD sudo -u postgres psql -c "CREATE DATABASE \"default\";" -c "CREATE DATABASE test;"
+$STD sudo -u postgres psql -c "CREATE DATABASE default;"
+$STD sudo -u postgres psql -c "CREATE DATABASE test;"
 msg_ok "Set up PostgreSQL"
+
+msg_info "Installing Redis"
+$STD apt-get install -y redis
+systemctl enable -q --now redis-server
+msg_ok "Set up Redis"
 
 msg_info "Setup Twenty (Patience)"
 LOCAL_IP="$(hostname -I | awk '{print $1}')"
