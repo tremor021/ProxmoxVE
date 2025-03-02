@@ -49,7 +49,7 @@ msg_ok "Installed Node.js"
 msg_info "Install/Set up PostgreSQL Database"
 $STD apt-get install -y postgresql-15 postgresql-15-pgvector
 $STD sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'postgres';"
-$STD sudo -u postgres psql -c "CREATE DATABASE default WITH OWNER postgres;" -c "CREATE DATABASE test WITH OWNER postgres;"
+$STD sudo -u postgres psql -c "CREATE DATABASE \"default\" WITH OWNER postgres;" -c "CREATE DATABASE test WITH OWNER postgres;"
 msg_ok "Set up PostgreSQL"
 
 msg_info "Installing Redis"
