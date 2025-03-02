@@ -47,9 +47,10 @@ $STD npm install -g yarn
 msg_ok "Installed Node.js"
 
 msg_info "Install/Set up PostgreSQL Database"
-$STD apt-get install -y postgresql-15 postgresql-15-pgvector
-$STD sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'postgres';"
-$STD sudo -u postgres psql -c "CREATE DATABASE \"default\" WITH OWNER postgres;" -c "CREATE DATABASE test WITH OWNER postgres;"
+$STD apt-get install -y postgresql-16 postgresql-16-pgvector
+$STD sudo -u postgres psql postgres -c "ALTER USER postgres WITH PASSWORD 'postgres';"
+$STD sudo -u postgres psql postgres -c "CREATE DATABASE \"default\";" -c "CREATE DATABASE test;"
+
 msg_ok "Set up PostgreSQL"
 
 msg_info "Installing Redis"
@@ -85,7 +86,7 @@ NODE_ENV=development
 PG_DATABASE_URL=postgres://postgres:postgres@localhost:5432/default
 REDIS_URL=redis://localhost:6379
 APP_SECRET=${APP_SECRET}
-# SIGN_IN_PREFILLED=true
+SIGN_IN_PREFILLED=true
 FRONTEND_URL=http://localhost:3001
 EOF
 sed -i '366s/twenty-front/twenty-front --host/g' /opt/twenty/package.json
