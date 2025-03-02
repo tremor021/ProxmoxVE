@@ -45,11 +45,10 @@ $STD sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'postgres';"
 $STD sudo -u postgres psql -c "CREATE DATABASE \"default\";" -c "CREATE DATABASE test;"
 msg_ok "Set up PostgreSQL"
 
-msg_info "Setup Twenty"
+msg_info "Setup Twenty (Patience)"
 LOCAL_IP="$(hostname -I | awk '{print $1}')"
 APP_SECRET=$(openssl rand -hex 32)
 temp_file=$(mktemp)
-cd /opt
 RELEASE=$(curl -s https://api.github.com/repos/twentyhq/twenty/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 wget -q "https://github.com/twentyhq/twenty/archive/refs/tags/v${RELEASE}.tar.gz" -O $temp_file
 tar zxf $temp_file
@@ -78,6 +77,7 @@ SIGN_IN_PREFILLED=true
 FRONTEND_URL=http://localhost:3001
 EOF
 sed -i '366s/twenty-front/twenty-front --host/g' /opt/twenty/package.json
+export NODE_OPTIONS="--max-old-space-size=6144"
 $STD yarn
 $STD npx nx database:reset twenty-server
 echo "${RELEASE}" >"/opt/${APPLICATION}_version.txt"
