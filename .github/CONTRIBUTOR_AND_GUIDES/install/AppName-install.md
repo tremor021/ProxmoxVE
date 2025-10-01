@@ -16,6 +16,7 @@
   - [3. **Dependencies**](#3-dependencies)
     - [3.1 **Install all at once**](#31-install-all-at-once)
     - [3.2 **Collapse dependencies**](#32-collapse-dependencies)
+    - [3.3 **Use various helper functions**](#33-use-various-helper-functions)
   - [4. **Paths to application files**](#4-paths-to-application-files)
   - [5. **Version management**](#5-version-management)
     - [5.1 **Install the latest release**](#51-install-the-latest-release)
@@ -133,7 +134,13 @@ instead of
 php8.2-bcmath php8.2-common php8.2-ctype
 ```
 
+### 3.3 **Use various helper functions**
+
+- Use helper functions to install specific dependencies like NodeJS, PHP, MariaDB, etc.
+- Check the `misc/tools.func` file for more examples.
+
 ---
+
 
 ## 4. **Paths to application files**
 
@@ -151,19 +158,19 @@ If possible install the app and all necessary files in `/opt/`
 Example for a git release:
 
 ```bash
-RELEASE=$(curl -fsSL https://api.github.com/repos/snipe/snipe-it/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-curl -fsSL "https://github.com/snipe/snipe-it/archive/refs/tags/v${RELEASE}.zip" -o "v${RELEASE}.zip"
+fetch_and_deploy_gh_release "snipe-it" "snipe/snipe-it" "tarball"
 ```
 
 ### 5.2 **Save the version for update checks**
 
 - Write the installed version into a file.
 - This is used for the update function in **AppName.sh** to check for if a Update is needed.
+- This is automatically done in the `fetch_and_deploy_gh_release` function. It will create `$HOME/.${APPLICATION}` file containing the version.
 
 Example:
 
 ```bash
-echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
+/root/.snipe-it
 ```
 
 ---
