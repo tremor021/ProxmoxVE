@@ -44,6 +44,8 @@ function update_script() {
     systemctl start beszel-hub
     msg_ok "Started Service"
     msg_ok "Updated successfully!"
+  else
+    msg_ok "No update required. ${APP} is already at ${RELEASE}"
   fi
   exit
 }
