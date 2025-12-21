@@ -14,9 +14,6 @@ network_check
 update_os
 
 fetch_and_deploy_gh_release "beszel" "henrygd/beszel" "prebuild" "latest" "/opt/beszel" "beszel_linux_amd64.tar.gz"
-cat <<EOF >/opt/beszel/.env
-
-EOF
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/beszel-hub.service
