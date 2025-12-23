@@ -27,7 +27,10 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-
+  if [[ -f /etc/systemd/system/dns.service ]]; then
+    mv /etc/systemd/system/dns.service /etc/systemd/system/technitium.service
+    systemctl daemon-reload
+  fi
   if is_package_installed "aspnetcore-runtime-8.0"; then
     $STD apt remove -y aspnetcore-runtime-8.0
     [ -f /etc/apt/sources.list.d/microsoft-prod.list ] && rm -f /etc/apt/sources.list.d/microsoft-prod.list
@@ -42,7 +45,7 @@ function update_script() {
   fi
 
   RELEASE=$(curl -fsSL https://technitium.com/dns/ | grep -oP 'Version \K[\d.]+')
-  if [[ ! -f ~/.technitium || "${RELEASE}" != "$(cat ~/.technitium)" ]]; then
+  if [[ ! -f ~/.technitium || ${RELEASE} != "$(cat ~/.technitium)" ]]; then
     msg_info "Updating Technitium DNS"
     curl -fsSL "https://download.technitium.com/dns/DnsServerPortable.tar.gz" -o /opt/DnsServerPortable.tar.gz
     $STD tar zxvf /opt/DnsServerPortable.tar.gz -C /opt/technitium/dns/
