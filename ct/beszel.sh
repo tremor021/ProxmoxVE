@@ -28,8 +28,7 @@ function update_script() {
     exit
   fi
 
-  RELEASE=$(check_for_gh_release "beszel" "henrygd/beszel")
-  if [[ ! -f ~/.beszel ]] || [[ "${RELEASE}" != "$(cat ~/.beszel 2>/dev/null)" ]]; then
+  if check_for_gh_release "beszel" "henrygd/beszel"; then
     msg_info "Stopping Service"
     systemctl stop beszel-hub
     msg_info "Stopped Service"
@@ -37,15 +36,12 @@ function update_script() {
     msg_info "Updating Beszel"
     $STD /opt/beszel/beszel update
     sleep 2 && chmod +x /opt/beszel/beszel
-    echo "${RELEASE}" >~/.beszel
     msg_ok "Updated Beszel"
 
     msg_info "Starting Service"
     systemctl start beszel-hub
     msg_ok "Started Service"
     msg_ok "Updated successfully!"
-  else
-    msg_ok "No update required. ${APP} is already at ${RELEASE}"
   fi
   exit
 }
