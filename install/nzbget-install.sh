@@ -29,6 +29,7 @@ setup_deb822_repo \
 $STD apt install -y nzbget
 sed -i "s|UnrarCmd=unrar|UnrarCmd=unrar-free|g" /var/lib/nzbget/nzbget.conf
 sed -i "s|SevenZipCmd=7zz|SevenZipCmd=7z|g" /var/lib/nzbget/nzbget.conf
+systemctl restart nzbget
 msg_ok "Installed NZBGet"
 
 motd_ssh
