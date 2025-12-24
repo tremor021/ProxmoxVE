@@ -27,9 +27,10 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  msg_info "Updating ${APP}"
+  msg_info "Updating InfluxDB"
   $STD apt update
-  $STD apt -y upgrade
+  $STD apt upgrade -y
+  msg_ok "Updated InfluxDB"
   msg_ok "Updated successfully!"
   exit
 }
