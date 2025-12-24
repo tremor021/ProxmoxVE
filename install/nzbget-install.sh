@@ -22,7 +22,7 @@ msg_ok "Installed Dependencies"
 
 msg_info "Installing NZBGet"
 setup_deb822_repo \
-  "nzbbgetcom" \
+  "nzbgetcom" \
   "https://nzbgetcom.github.io/nzbgetcom.asc" \
   "https://nzbgetcom.github.io/deb" \
   "stable"
