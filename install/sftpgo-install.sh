@@ -17,18 +17,13 @@ msg_info "Installing Dependencies"
 $STD apt install -y sqlite3
 msg_ok "Installed Dependencies"
 
-setup_go
+setup_deb822_repo \
+  "sftpgo" \
+  "https://ftp.osuosl.org/pub/sftpgo/apt/gpg.key" \
+  "https://ftp.osuosl.org/pub/sftpgo/apt" \
+  "trixie"
 
 msg_info "Installing SFTPGo"
-curl -fsSL https://ftp.osuosl.org/pub/sftpgo/apt/gpg.key | gpg --dearmor -o /usr/share/keyrings/sftpgo-archive-keyring.gpg
-cat <<EOF >/etc/apt/sources.list.d/sftpgo.sources
-Types: deb
-URIs: https://ftp.osuosl.org/pub/sftpgo/apt
-Suites: bookworm
-Components: main
-Signed-By: /usr/share/keyrings/sftpgo-archive-keyring.gpg
-EOF
-$STD apt update
 $STD apt install -y sftpgo
 msg_ok "Installed SFTPGo"
 

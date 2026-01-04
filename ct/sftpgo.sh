@@ -27,10 +27,11 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  msg_info "Updating $APP LXC"
+  
+  msg_info "Updating SFTPGo"
   $STD apt update
-  $STD apt -y upgrade
-  msg_ok "Updated $APP LXC"
+  $STD apt upgrade -y
+  msg_ok "Updated SFTPGo"
   msg_ok "Updated successfully!"
   exit
 }
