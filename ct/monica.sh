@@ -27,9 +27,14 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  setup_mariadb
 
+  setup_mariadb
   NODE_VERSION="22" NODE_MODULE="yarn@latest" setup_nodejs
+
+  # Fix for previous versions not having cronjob
+  if ! grep -Fq 'php /opt/monica/artisan schedule:run' /etc/crontab; then
+    echo '* * * * * root php /opt/monica/artisan schedule:run >> /dev/null 2>&1' >>/etc/crontab
+  fi
 
   if check_for_gh_release "monica" "monicahq/monica"; then
     msg_info "Stopping Service"
