@@ -32,13 +32,7 @@ function update_script() {
   systemctl stop sonarr
   msg_ok "Stopped Service"
 
-  msg_info "Updating Sonarr"
-  curl -fsSL "https://services.sonarr.tv/v1/download/main/latest?version=4&os=linux&arch=x64" -o "SonarrV4.tar.gz"
-  tar -xzf SonarrV4.tar.gz
-  rm -rf /opt/Sonarr
-  mv Sonarr /opt
-  rm -rf SonarrV4.tar.gz
-  msg_ok "Updated Sonarr"
+  CLEAN_INSTALL=1 fetch_and_deploy_gh_release "Sonarr" "Sonarr/Sonarr" "prebuild" "latest" "/opt/Sonarr" "Sonarr.main.*.linux-x64.tar.gz"
 
   msg_info "Starting Service"
   systemctl start sonarr
