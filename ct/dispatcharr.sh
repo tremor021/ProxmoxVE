@@ -38,6 +38,10 @@ function update_script() {
     systemctl reload nginx
   fi
 
+  if ! dpkg -s vlc-bin vlc-plugin-base &>/dev/null; then
+    $STD apt update && $STD apt install -y vlc-bin vlc-plugin-base
+  fi
+
   if check_for_gh_release "Dispatcharr" "Dispatcharr/Dispatcharr"; then
     msg_info "Stopping Services"
     systemctl stop dispatcharr-celery
