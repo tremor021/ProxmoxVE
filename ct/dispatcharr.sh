@@ -38,7 +38,7 @@ function update_script() {
     systemctl reload nginx
   fi
 
-  if check_for_gh_release "Dispatcharr" "Dispatcharr/Dispatcharr" "tarball"; then
+  if check_for_gh_release "Dispatcharr" "Dispatcharr/Dispatcharr"; then
     msg_info "Stopping Services"
     systemctl stop dispatcharr-celery
     systemctl stop dispatcharr-celerybeat
