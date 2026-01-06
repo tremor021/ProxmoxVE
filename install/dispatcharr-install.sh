@@ -23,6 +23,8 @@ $STD apt install -y \
   redis-server \
   ffmpeg \
   procps \
+  vlc-bin \ 
+  vlc-plugin-base \
   streamlink
 msg_ok "Installed Dependencies"
 
