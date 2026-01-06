@@ -37,7 +37,7 @@ function update_script() {
     rm -rf /opt/fluid-calendar
     fetch_and_deploy_gh_release "fluid-calendar" "dotnetfactory/fluid-calendar" "tarball"
 
-    msg_info "Updating $APP"
+    msg_info "Updating Fluid Calendar"
     mv /opt/fluid.env /opt/fluid-calendar/.env
     cd /opt/fluid-calendar
     export NEXT_TELEMETRY_DISABLED=1
@@ -45,8 +45,8 @@ function update_script() {
     $STD npm run prisma:generate
     $STD npx prisma migrate deploy
     $STD npm run build:os
-    msg_ok "Updated $APP"
-
+    msg_ok "Updated Fluid Calendar"
+    
     msg_info "Starting Service"
     systemctl start fluid-calendar
     msg_ok "Started Service"
@@ -59,7 +59,7 @@ start
 build_container
 description
 
-msg_ok "Completed Successfully!\n"
+msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:3000${CL}"

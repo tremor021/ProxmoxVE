@@ -37,6 +37,7 @@ function update_script() {
     case $CHOICE in
     1)
       $STD apk -U upgrade
+      msg_ok "Updated successfully!"
       exit
       ;;
     esac
@@ -47,4 +48,4 @@ start
 build_container
 description
 
-msg_ok "Completed Successfully!\n"
+msg_ok "Completed successfully!\n"

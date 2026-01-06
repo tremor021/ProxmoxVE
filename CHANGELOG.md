@@ -18,9 +18,16 @@ Exercise vigilance regarding copycat or coat-tailing sites that seek to exploit 
 
 ### 🚀 Updated Scripts
 
+  - chore: fix update msg [@CrazyWolf13](https://github.com/CrazyWolf13) ([#10593](https://github.com/community-scripts/ProxmoxVE/pull/10593))
+
   - #### 🐞 Bug Fixes
 
     - InspIRCd: Fix release fetching [@tremor021](https://github.com/tremor021) ([#10578](https://github.com/community-scripts/ProxmoxVE/pull/10578))
+
+  - #### 🔧 Refactor
+
+    - Refactor: Sonarr [@tremor021](https://github.com/tremor021) ([#10573](https://github.com/community-scripts/ProxmoxVE/pull/10573))
+    - Refactor: Dispatcharr [@tremor021](https://github.com/tremor021) ([#10599](https://github.com/community-scripts/ProxmoxVE/pull/10599))
 
 ### 💾 Core
 
@@ -34,9 +41,14 @@ Exercise vigilance regarding copycat or coat-tailing sites that seek to exploit 
 
     - iptag: fix syntax error in VM config file parsing [@MickLesk](https://github.com/MickLesk) ([#10598](https://github.com/community-scripts/ProxmoxVE/pull/10598))
 
+  - #### ✨ New Features
+
+    - Update clean-lxcs.sh to support Red Hat compatible distros [@jabofh](https://github.com/jabofh) ([#10583](https://github.com/community-scripts/ProxmoxVE/pull/10583))
+
 ### 📚 Documentation
 
-  - chore: bump copyright to 2026 - happy new year [@CrazyWolf13](https://github.com/CrazyWolf13) ([#10585](https://github.com/community-scripts/ProxmoxVE/pull/10585))
+  - [gh] New Script template update [@tremor021](https://github.com/tremor021) ([#10607](https://github.com/community-scripts/ProxmoxVE/pull/10607))
+- chore: bump copyright to 2026 - happy new year [@CrazyWolf13](https://github.com/CrazyWolf13) ([#10585](https://github.com/community-scripts/ProxmoxVE/pull/10585))
 
 ### 📂 Github
 

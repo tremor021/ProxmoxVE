@@ -42,7 +42,7 @@ function update_script() {
     $STD service rustdesk-server-hbbr start
     rm -rf amd64
     rm -f $temp_file1
-    msg_ok "Updated RustDesk Server successfully"
+    msg_ok "Updated RustDesk Server"
   else
     msg_ok "No update required. ${APP} is already at v${RELEASE}"
   fi
@@ -61,6 +61,7 @@ function update_script() {
   else
     msg_ok "No update required. RustDesk API is already at v${APIRELEASE}"
   fi
+  msg_ok "Updated successfully!"
   exit 0
 }
 
@@ -68,7 +69,7 @@ start
 build_container
 description
 
-msg_ok "Completed Successfully!\n"
+msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following IP:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:21114${CL}"

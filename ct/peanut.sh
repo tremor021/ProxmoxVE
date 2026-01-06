@@ -37,14 +37,14 @@ function update_script() {
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "peanut" "Brandawg93/PeaNUT" "tarball" "latest" "/opt/peanut"
 
-    msg_info "Updating $APP"
+    msg_info "Updating Peanut"
     cd /opt/peanut
     $STD pnpm i
     $STD pnpm run build:local
     cp -r .next/static .next/standalone/.next/
     mkdir -p /opt/peanut/.next/standalone/config
     ln -sf /etc/peanut/settings.yml /opt/peanut/.next/standalone/config/settings.yml
-    msg_ok "Updated $APP"
+    msg_ok "Updated Peanut"
 
     msg_info "Starting Service"
     systemctl start peanut
@@ -58,7 +58,7 @@ start
 build_container
 description
 
-msg_ok "Completed Successfully!\n"
+msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:3000${CL}"

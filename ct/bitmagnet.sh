@@ -62,14 +62,14 @@ function update_script() {
     rm -rf /opt/bitmagnet
     fetch_and_deploy_gh_release "bitmagnet" "bitmagnet-io/bitmagnet" "tarball"
 
-    msg_info "Updating ${APP}"
+    msg_info "Updating Bitmagnet"
     cd /opt/bitmagnet
     VREL=v$(curl -fsSL https://api.github.com/repos/bitmagnet-io/bitmagnet/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
     $STD go build -ldflags "-s -w -X github.com/bitmagnet-io/bitmagnet/internal/version.GitTag=$VREL"
     chmod +x bitmagnet
     [ -f "/opt/.env" ] && cp "/opt/.env" /opt/bitmagnet/
     [ -f "/opt/config.yml" ] && cp "/opt/config.yml" /opt/bitmagnet/
-    msg_ok "Updated $APP"
+    msg_ok "Updated Bitmagnet"
 
     msg_info "Starting Service"
     systemctl start bitmagnet-web
@@ -83,7 +83,7 @@ start
 build_container
 description
 
-msg_ok "Completed Successfully!\n"
+msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:3333${CL}"
