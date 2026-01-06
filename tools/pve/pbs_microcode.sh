@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Copyright (c) 2021-2026 tteck
-# Copyright (c) 2025 DonPablo1010
+# Copyright (c) 2026 DonPablo1010
 # Adapted for the Proxmox Backup Server - Baremetal Only
 # License: MIT
 # This script searches for CPU microcode packages (Intel/AMD) and offers the option to install them.
