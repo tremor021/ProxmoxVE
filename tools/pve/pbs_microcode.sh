@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Copyright (c) 2026 Community Scripts ORG
-# Adapted for the Proxmox Backup Server - Baremetal Only
+# Copyright (c) 2021-2026 community-scripts ORG
 # License: MIT
 # This script searches for CPU microcode packages (Intel/AMD) and offers the option to install them.
 # A system reboot is required to apply the changes.
