@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: DonPablo1010
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
