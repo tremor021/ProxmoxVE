@@ -32,7 +32,7 @@ function update_script() {
     systemctl stop inspircd
     msg_ok "Stopped Service"
 
-    fetch_and_deploy_gh_release "inspircd" "inspircd/inspircd" "binary"
+    fetch_and_deploy_gh_release "inspircd" "inspircd/inspircd" "binary" "latest" "/opt/inspircd" "inspircd_*.deb13u1_amd64.deb"
 
     msg_info "Starting Service"
     systemctl start inspircd
