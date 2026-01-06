@@ -39,7 +39,7 @@ function update_script() {
 
     PHP_APACHE="YES" PHP_MODULE="pgsql,curl" PHP_VERSION="8.3" setup_php
     setup_composer
-    fetch_and_deploy_gh_release "baikal" "sabre-io/Baikal"
+    fetch_and_deploy_gh_release "baikal" "sabre-io/Baikal" "tarball"
 
     msg_info "Configuring Baikal"
     cp -r /opt/baikal-backup/config/baikal.yaml /opt/baikal/config/

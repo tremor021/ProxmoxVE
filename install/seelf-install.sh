@@ -21,7 +21,7 @@ msg_ok "Installed Dependencies"
 
 setup_go
 NODE_VERSION="22" setup_nodejs
-fetch_and_deploy_gh_release "seelf" "YuukanOO/seelf"
+fetch_and_deploy_gh_release "seelf" "YuukanOO/seelf" "tarball"
 
 msg_info "Setting up seelf. Patience"
 cd /opt/seelf

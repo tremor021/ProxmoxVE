@@ -34,7 +34,7 @@ function update_script() {
     msg_info "Stopped Service"
 
     rm -rf /opt/excalidraw
-    fetch_and_deploy_gh_release "excalidraw" "excalidraw/excalidraw"
+    fetch_and_deploy_gh_release "excalidraw" "excalidraw/excalidraw" "tarball"
 
     msg_info "Updating $APP"
     cd /opt/excalidraw

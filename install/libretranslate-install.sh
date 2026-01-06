@@ -34,7 +34,7 @@ $STD apt install -y \
 msg_ok "Setup Python3"
 
 PYTHON_VERSION="3.12" setup_uv
-fetch_and_deploy_gh_release "libretranslate" "LibreTranslate/LibreTranslate"
+fetch_and_deploy_gh_release "libretranslate" "LibreTranslate/LibreTranslate" "tarball"
 
 msg_info "Setup LibreTranslate (Patience)"
 TORCH_VERSION=$(grep -Eo '"torch ==[0-9]+\.[0-9]+\.[0-9]+' /opt/libretranslate/pyproject.toml |

@@ -38,7 +38,7 @@ $STD sudo -u postgres psql -c "ALTER USER $DB_USER WITH SUPERUSER;"
 } >>~/$APPLICATION.creds
 msg_ok "Set up Postgresql Database"
 
-fetch_and_deploy_gh_release "fluid-calendar" "dotnetfactory/fluid-calendar"
+fetch_and_deploy_gh_release "fluid-calendar" "dotnetfactory/fluid-calendar" "tarball"
 
 msg_info "Configuring ${APPLICATION}"
 cat <<EOF >/opt/fluid-calendar/.env

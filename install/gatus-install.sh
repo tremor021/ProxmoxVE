@@ -20,7 +20,7 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 setup_go
-fetch_and_deploy_gh_release "gatus" "TwiN/gatus"
+fetch_and_deploy_gh_release "gatus" "TwiN/gatus" "tarball"
 
 msg_info "Configuring gatus"
 cd /opt/gatus

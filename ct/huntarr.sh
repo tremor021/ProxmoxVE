@@ -36,7 +36,7 @@ function update_script() {
     systemctl stop huntarr
     msg_ok "Stopped Service"
 
-    fetch_and_deploy_gh_release "huntarr" "plexguide/Huntarr.io"
+    fetch_and_deploy_gh_release "huntarr" "plexguide/Huntarr.io" "tarball"
 
     msg_info "Updating Huntarr"
     cd /opt/huntarr

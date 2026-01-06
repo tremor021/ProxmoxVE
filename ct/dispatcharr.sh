@@ -69,7 +69,7 @@ function update_script() {
     $STD tar -czf "$BACKUP_FILE" -C /opt dispatcharr /tmp/dispatcharr_db_*.sql
     msg_ok "Backup created: $BACKUP_FILE"
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "dispatcharr" "Dispatcharr/Dispatcharr"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "dispatcharr" "Dispatcharr/Dispatcharr" "tarball"
 
     msg_info "Updating Dispatcharr Backend"
     if [[ -f /tmp/dispatcharr.env.backup ]]; then

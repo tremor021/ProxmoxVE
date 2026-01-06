@@ -40,7 +40,7 @@ function update_script() {
 
     mv /opt/gatus/config/config.yaml /opt
     rm -rf /opt/gatus
-    fetch_and_deploy_gh_release "gatus" "TwiN/gatus"
+    fetch_and_deploy_gh_release "gatus" "TwiN/gatus" "tarball"
 
     msg_info "Updating Gatus"
     cd /opt/gatus

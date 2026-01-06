@@ -37,7 +37,7 @@ function update_script() {
     cp -r /opt/paperless-ai/data /opt/paperless-ai-data-backup
     msg_ok "Backed up data"
 
-    fetch_and_deploy_gh_release "paperless-ai" "clusterzx/paperless-ai"
+    fetch_and_deploy_gh_release "paperless-ai" "clusterzx/paperless-ai" "tarball"
 
     msg_info "Restoring data"
     cp -r /opt/paperless-ai-data-backup/* /opt/paperless-ai/data/

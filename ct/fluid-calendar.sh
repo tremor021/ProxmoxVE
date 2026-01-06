@@ -35,7 +35,7 @@ function update_script() {
 
     cp /opt/fluid-calendar/.env /opt/fluid.env
     rm -rf /opt/fluid-calendar
-    fetch_and_deploy_gh_release "fluid-calendar" "dotnetfactory/fluid-calendar"
+    fetch_and_deploy_gh_release "fluid-calendar" "dotnetfactory/fluid-calendar" "tarball"
 
     msg_info "Updating $APP"
     mv /opt/fluid.env /opt/fluid-calendar/.env

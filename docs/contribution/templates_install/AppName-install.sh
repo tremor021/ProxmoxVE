@@ -53,7 +53,7 @@ msg_ok "Installed Dependencies"
 # setup_mongodb                            # Install MongoDB
 #
 # --- GitHub Release (PREFERRED METHOD) ---
-# fetch_and_deploy_gh_release "appname" "owner/repo"  # Downloads, extracts, tracks version
+# fetch_and_deploy_gh_release "appname" "owner/repo" "tarball"  # Downloads, extracts, tracks version
 # fetch_and_deploy_gh_release "appname" "owner/repo" "tarball" "latest" "/opt/appname"
 # fetch_and_deploy_gh_release "appname" "owner/repo" "prebuild" "latest" "/opt/appname" "app-*.tar.gz"
 #

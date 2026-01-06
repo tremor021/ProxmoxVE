@@ -53,7 +53,7 @@ function update_script() {
       msg_ok "Installed Dependencies"
 
       NODE_VERSION="22" setup_nodejs
-      fetch_and_deploy_gh_release "cronicle" "jhuckaby/Cronicle"
+      fetch_and_deploy_gh_release "cronicle" "jhuckaby/Cronicle" "tarball"
 
       msg_info "Configuring Cronicle Worker"
       cd /opt/cronicle

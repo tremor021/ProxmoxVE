@@ -38,7 +38,7 @@ function update_script() {
     mv /opt/booklore /opt/booklore_bak
     msg_ok "backup done"
 
-    fetch_and_deploy_gh_release "booklore" "booklore-app/BookLore"
+    fetch_and_deploy_gh_release "booklore" "booklore-app/BookLore" "tarball"
 
     msg_info "Building Frontend"
     cd /opt/booklore/booklore-ui

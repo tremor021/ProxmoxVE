@@ -42,7 +42,7 @@ function update_script() {
     rm -rf /opt/adventurelog
     msg_ok "Backup done"
 
-    fetch_and_deploy_gh_release "adventurelog" "seanmorley15/adventurelog"
+    fetch_and_deploy_gh_release "adventurelog" "seanmorley15/adventurelog" "tarball"
     PYTHON_VERSION="3.13" setup_uv
 
     msg_info "Ensuring PostgreSQL Extensions"

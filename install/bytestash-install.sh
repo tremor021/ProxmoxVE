@@ -14,7 +14,7 @@ network_check
 update_os
 
 NODE_VERSION="22" setup_nodejs
-fetch_and_deploy_gh_release "bytestash" "jordan-dalby/ByteStash"
+fetch_and_deploy_gh_release "bytestash" "jordan-dalby/ByteStash" "tarball"
 
 msg_info "Installing ByteStash"
 JWT_SECRET=$(openssl rand -base64 32 | tr -d '/+=')

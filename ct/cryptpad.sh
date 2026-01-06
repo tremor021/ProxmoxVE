@@ -37,7 +37,7 @@ function update_script() {
     [ -f /opt/cryptpad/config/config.js ] && mv /opt/cryptpad/config/config.js /opt/
     msg_ok "Backed up configuration"
 
-    fetch_and_deploy_gh_release "cryptpad" "cryptpad/cryptpad"
+    fetch_and_deploy_gh_release "cryptpad" "cryptpad/cryptpad" "tarball"
 
     msg_info "Updating $APP"
     cd /opt/cryptpad

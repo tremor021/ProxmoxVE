@@ -43,7 +43,7 @@ setup_mariadb
 setup_composer
 PYTHON_VERSION="3.13" setup_uv
 MARIADB_DB_NAME="librenms" MARIADB_DB_USER="librenms" MARIADB_DB_PASS="$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)" setup_mariadb_db
-fetch_and_deploy_gh_release "librenms" "librenms/librenms"
+fetch_and_deploy_gh_release "librenms" "librenms/librenms" "tarball"
 
 msg_info "Configuring LibreNMS"
 $STD useradd librenms -d /opt/librenms -M -r -s "$(which bash)"

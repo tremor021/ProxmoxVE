@@ -38,7 +38,7 @@ function update_script() {
     rm -rf /opt/mafl
     msg_ok "Backup complete"
 
-    fetch_and_deploy_gh_release "mafl" "hywax/mafl"
+    fetch_and_deploy_gh_release "mafl" "hywax/mafl" "tarball"
 
     msg_info "Updating Mafl"
     cd /opt/mafl

@@ -26,7 +26,7 @@ NODE_VERSION="22" NODE_MODULE="pnpm@$(curl -s https://raw.githubusercontent.com/
 PG_VERSION="17" setup_postgresql
 PG_DB_NAME="tianji_db" PG_DB_USER="tianji" setup_postgresql_db
 PYTHON_VERSION="3.13" setup_uv
-fetch_and_deploy_gh_release "tianji" "msgbyte/tianji"
+fetch_and_deploy_gh_release "tianji" "msgbyte/tianji" "tarball"
 
 msg_info "Setting up Tianji"
 cd /opt/tianji

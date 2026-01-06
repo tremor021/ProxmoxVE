@@ -40,7 +40,7 @@ function update_script() {
     rm -rf /opt/linkwarden
     msg_ok "Backed up data"
 
-    fetch_and_deploy_gh_release "linkwarden" "linkwarden/linkwarden"
+    fetch_and_deploy_gh_release "linkwarden" "linkwarden/linkwarden" "tarball"
 
     msg_info "Updating Linkwarden"
     cd /opt/linkwarden

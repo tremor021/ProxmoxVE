@@ -14,7 +14,7 @@ network_check
 update_os
 
 PYTHON_VERSION="3.13" setup_uv
-fetch_and_deploy_gh_release "kometa" "Kometa-Team/Kometa"
+fetch_and_deploy_gh_release "kometa" "Kometa-Team/Kometa" "tarball"
 
 msg_info "Setup Kometa"
 cd /opt/kometa

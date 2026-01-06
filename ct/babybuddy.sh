@@ -41,7 +41,7 @@ function update_script() {
     find . -mindepth 1 -maxdepth 1 ! -name '.venv' -exec rm -rf {} +
     msg_ok "Cleaned old files"
 
-    fetch_and_deploy_gh_release "babybuddy" "babybuddy/babybuddy"
+    fetch_and_deploy_gh_release "babybuddy" "babybuddy/babybuddy" "tarball"
 
     msg_info "Updating ${APP}"
     cd /opt/babybuddy

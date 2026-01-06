@@ -36,7 +36,7 @@ $STD mariadb -u root -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'local
 } >>~/hortusfox.creds
 msg_ok "Set up database"
 
-fetch_and_deploy_gh_release "hortusfox" "danielbrendel/hortusfox-web"
+fetch_and_deploy_gh_release "hortusfox" "danielbrendel/hortusfox-web" "tarball"
 
 msg_info "Configuring .env"
 cp /opt/hortusfox/.env.example /opt/hortusfox/.env

@@ -38,7 +38,7 @@ function update_script() {
     msg_ok "Created backup"
 
     NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "web-check" "CrazyWolf13/web-check"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "web-check" "CrazyWolf13/web-check" "tarball"
 
     msg_info "Restoring backup"
     mv /opt/.env /opt/web-check

@@ -37,7 +37,7 @@ function update_script() {
     rm -rf /opt/${APP}
     NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
     setup_uv
-    fetch_and_deploy_gh_release "streamlink-webui" "CrazyWolf13/streamlink-webui"
+    fetch_and_deploy_gh_release "streamlink-webui" "CrazyWolf13/streamlink-webui" "tarball"
 
     msg_info "Updating $APP"
     $STD uv venv /opt/"${APP}"/backend/src/.venv

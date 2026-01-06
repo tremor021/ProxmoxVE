@@ -37,7 +37,7 @@ function update_script() {
       msg_ok "Services Stopped"
 
       rm -rf /opt/bytestash
-      fetch_and_deploy_gh_release "bytestash" "jordan-dalby/ByteStash"
+      fetch_and_deploy_gh_release "bytestash" "jordan-dalby/ByteStash" "tarball"
 
       msg_info "Configuring ByteStash"
       cd /opt/bytestash/server

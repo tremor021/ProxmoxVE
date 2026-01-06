@@ -33,7 +33,7 @@ function update_script() {
     systemctl stop snowshare
     msg_ok "Stopped Service"
 
-    fetch_and_deploy_gh_release "snowshare" "TuroYT/snowshare"
+    fetch_and_deploy_gh_release "snowshare" "TuroYT/snowshare" "tarball"
 
     msg_info "Updating Snowshare"
     cd /opt/snowshare

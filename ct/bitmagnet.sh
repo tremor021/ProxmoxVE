@@ -60,7 +60,7 @@ function update_script() {
     msg_ok "Data backed up"
 
     rm -rf /opt/bitmagnet
-    fetch_and_deploy_gh_release "bitmagnet" "bitmagnet-io/bitmagnet"
+    fetch_and_deploy_gh_release "bitmagnet" "bitmagnet-io/bitmagnet" "tarball"
 
     msg_info "Updating ${APP}"
     cd /opt/bitmagnet

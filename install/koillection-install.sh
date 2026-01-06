@@ -32,7 +32,7 @@ $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER TEMP
 } >>~/koillection.creds
 msg_ok "Set up PostgreSQL"
 
-fetch_and_deploy_gh_release "koillection" "benjaminjonard/koillection"
+fetch_and_deploy_gh_release "koillection" "benjaminjonard/koillection" "tarball"
 
 msg_info "Configuring Koillection"
 cd /opt/koillection

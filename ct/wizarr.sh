@@ -42,7 +42,7 @@ function update_script() {
     rm -rf /opt/wizarr/migrations/versions/*
     msg_ok "Backup Created"
 
-    fetch_and_deploy_gh_release "wizarr" "wizarrrr/wizarr"
+    fetch_and_deploy_gh_release "wizarr" "wizarrrr/wizarr" "tarball"
 
     msg_info "Updating Wizarr"
     cd /opt/wizarr

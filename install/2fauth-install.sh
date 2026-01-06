@@ -23,7 +23,7 @@ setup_composer
 setup_mariadb
 MARIADB_DB_NAME="2fauth_db" MARIADB_DB_USER="2fauth" setup_mariadb_db
 import_local_ip
-fetch_and_deploy_gh_release "2fauth" "Bubka/2FAuth"
+fetch_and_deploy_gh_release "2fauth" "Bubka/2FAuth" "tarball"
 
 msg_info "Setup 2FAuth"
 cd /opt/2fauth

@@ -38,7 +38,7 @@ function update_script() {
     mv /opt/hortusfox/ /opt/hortusfox-backup
     msg_ok "Backed up current HortusFox installation"
 
-    fetch_and_deploy_gh_release "hortusfox" "danielbrendel/hortusfox-web"
+    fetch_and_deploy_gh_release "hortusfox" "danielbrendel/hortusfox-web" "tarball"
 
     msg_info "Updating HortusFox"
     cd /opt/hortusfox

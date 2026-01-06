@@ -49,7 +49,7 @@ function update_script() {
     [ -f /opt/kimai/config/packages/local.yaml ] && cp /opt/kimai/config/packages/local.yaml "$BACKUP_DIR/"
     msg_ok "Backup completed"
 
-    fetch_and_deploy_gh_release "kimai" "kimai/kimai"
+    fetch_and_deploy_gh_release "kimai" "kimai/kimai" "tarball"
 
     msg_info "Updating Kimai"
     [ -d "$BACKUP_DIR/var" ] && cp -r "$BACKUP_DIR/var" /opt/kimai/

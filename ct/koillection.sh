@@ -36,7 +36,7 @@ function update_script() {
     mv /opt/koillection/ /opt/koillection-backup
     msg_ok "Backup created"
 
-    fetch_and_deploy_gh_release "koillection" "benjaminjonard/koillection"
+    fetch_and_deploy_gh_release "koillection" "benjaminjonard/koillection" "tarball"
 
     msg_info "Updating Koillection"
     cd /opt/koillection

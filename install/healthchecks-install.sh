@@ -43,7 +43,7 @@ ADMIN_PASSWORD="$PG_DB_PASS"
 } >>~/healthchecks.creds
 msg_ok "Set up Keys"
 
-fetch_and_deploy_gh_release "healthchecks" "healthchecks/healthchecks"
+fetch_and_deploy_gh_release "healthchecks" "healthchecks/healthchecks" "tarball"
 
 msg_info "Installing Healthchecks (venv)"
 cd /opt/healthchecks

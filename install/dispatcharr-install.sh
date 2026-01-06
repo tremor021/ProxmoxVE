@@ -48,7 +48,7 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 } >>~/dispatcharr.creds
 msg_ok "Created PostgreSQL Database"
 
-fetch_and_deploy_gh_release "dispatcharr" "Dispatcharr/Dispatcharr"
+fetch_and_deploy_gh_release "dispatcharr" "Dispatcharr/Dispatcharr" "tarball"
 
 msg_info "Installing Python Dependencies with uv"
 cd /opt/dispatcharr

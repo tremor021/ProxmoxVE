@@ -30,7 +30,7 @@ $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER TEMP
 } >>~/freshrss.creds
 msg_ok "Set up PostgreSQL"
 
-fetch_and_deploy_gh_release "freshrss" "FreshRSS/FreshRSS"
+fetch_and_deploy_gh_release "freshrss" "FreshRSS/FreshRSS" "tarball"
 
 msg_info "Configuring FreshRSS"
 cd /opt/freshrss

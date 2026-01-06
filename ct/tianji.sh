@@ -40,7 +40,7 @@ function update_script() {
     mv /opt/tianji /opt/tianji_bak
     msg_ok "Backed up data"
 
-    fetch_and_deploy_gh_release "tianji" "msgbyte/tianji"
+    fetch_and_deploy_gh_release "tianji" "msgbyte/tianji" "tarball"
 
     msg_info "Updating Tianji"
     cd /opt/tianji

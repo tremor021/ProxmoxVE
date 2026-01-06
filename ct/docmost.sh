@@ -42,7 +42,7 @@ function update_script() {
     rm -rf /opt/docmost
     msg_ok "Data backed up"
 
-    fetch_and_deploy_gh_release "docmost" "docmost/docmost"
+    fetch_and_deploy_gh_release "docmost" "docmost/docmost" "tarball"
 
     msg_info "Updating ${APP}"
     cd /opt/docmost

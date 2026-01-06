@@ -24,7 +24,7 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 setup_uv
-fetch_and_deploy_gh_release "babybuddy" "babybuddy/babybuddy"
+fetch_and_deploy_gh_release "babybuddy" "babybuddy/babybuddy" "tarball"
 
 msg_info "Installing Babybuddy"
 mkdir -p /opt/data

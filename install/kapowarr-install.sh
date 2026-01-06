@@ -18,7 +18,7 @@ $STD apt install -y python3-pip
 msg_ok "Installed Dependencies"
 
 PYTHON_VERSION="3.12" setup_uv
-fetch_and_deploy_gh_release "kapowarr" "Casvt/Kapowarr"
+fetch_and_deploy_gh_release "kapowarr" "Casvt/Kapowarr" "tarball"
 
 msg_info "Setup Kapowarr"
 cd /opt/kapowarr

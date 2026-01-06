@@ -39,7 +39,7 @@ function update_script() {
     cp -a /opt/healthchecks "$BACKUP"
     msg_ok "Backup created at $BACKUP"
 
-    fetch_and_deploy_gh_release "healthchecks" "healthchecks/healthchecks"
+    fetch_and_deploy_gh_release "healthchecks" "healthchecks/healthchecks" "tarball"
 
     cd /opt/healthchecks
     if [[ -d venv ]]; then

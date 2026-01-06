@@ -22,7 +22,7 @@ msg_ok "Installed Dependencies"
 
 PG_VERSION="16" setup_postgresql
 setup_go
-fetch_and_deploy_gh_release "bitmagnet" "bitmagnet-io/bitmagnet"
+fetch_and_deploy_gh_release "bitmagnet" "bitmagnet-io/bitmagnet" "tarball"
 RELEASE=$(curl -fsSL https://api.github.com/repos/bitmagnet-io/bitmagnet/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 
 msg_info "Setting up database"
