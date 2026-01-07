@@ -24,8 +24,8 @@ msg_info "Configuring monica"
 cd /opt/monica
 cp /opt/monica/.env.example /opt/monica/.env
 HASH_SALT=$(openssl rand -base64 32)
-sed -i -e "s|^DB_USERNAME=.*|DB_USERNAME=${DB_USER}|" \
-  -e "s|^DB_PASSWORD=.*|DB_PASSWORD=${DB_PASS}|" \
+sed -i -e "s|^DB_USERNAME=.*|DB_USERNAME=${MARIADB_DB_USER}|" \
+  -e "s|^DB_PASSWORD=.*|DB_PASSWORD=${MARIADB_DB_PASS}|" \
   -e "s|^HASH_SALT=.*|HASH_SALT=${HASH_SALT}|" \
   /opt/monica/.env
 $STD composer install --no-dev -o --no-interaction
