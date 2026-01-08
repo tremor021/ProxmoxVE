@@ -27,10 +27,10 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  msg_info "Updating $APP LXC"
-  $STD apt-get update
-  $STD apt-get -y upgrade
-  msg_ok "Updated $APP LXC"
+  msg_info "Updating deCONZ"
+  $STD apt update
+  $STD apt upgrade -y
+  msg_ok "Updated deCONZ"
   msg_ok "Updated successfully!"
   exit
 }
