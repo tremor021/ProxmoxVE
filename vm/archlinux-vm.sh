@@ -36,7 +36,7 @@ CL=$(echo "\033[m")
 
 CL=$(echo "\033[m")
 BOLD=$(echo "\033[1m")
-BFR="\\r\\033[K"
+BFR='\r\033[K'
 HOLD=" "
 TAB="  "
 
@@ -145,7 +145,7 @@ pve_check() {
   PVE_VER="$(pveversion | awk -F'/' '{print $2}' | awk -F'-' '{print $1}')"
 
   # Check for Proxmox VE 8.x: allow 8.0–8.9
-  if [[ "$PVE_VER" =~ ^8\.([0-9]+) ]]; then
+  if [[ $PVE_VER =~ ^8\.([0-9]+) ]]; then
     local MINOR="${BASH_REMATCH[1]}"
     if ((MINOR < 0 || MINOR > 9)); then
       msg_error "This version of Proxmox VE is not supported."
@@ -156,7 +156,7 @@ pve_check() {
   fi
 
   # Check for Proxmox VE 9.x: allow 9.0 and 9.1
-  if [[ "$PVE_VER" =~ ^9\.([0-9]+) ]]; then
+  if [[ $PVE_VER =~ ^9\.([0-9]+) ]]; then
     local MINOR="${BASH_REMATCH[1]}"
     if ((MINOR < 0 || MINOR > 1)); then
       msg_error "This version of Proxmox VE is not supported."
@@ -272,10 +272,10 @@ function advanced_settings() {
 
   if DISK_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Disk Size in GiB (e.g., 10, 20)" 8 58 "$DISK_SIZE" --title "DISK SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     DISK_SIZE=$(echo "$DISK_SIZE" | tr -d ' ')
-    if [[ "$DISK_SIZE" =~ ^[0-9]+$ ]]; then
+    if [[ $DISK_SIZE =~ ^[0-9]+$ ]]; then
       DISK_SIZE="${DISK_SIZE}G"
       echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}$DISK_SIZE${CL}"
-    elif [[ "$DISK_SIZE" =~ ^[0-9]+G$ ]]; then
+    elif [[ $DISK_SIZE =~ ^[0-9]+G$ ]]; then
       echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}$DISK_SIZE${CL}"
     else
       echo -e "${DISKSIZE}${BOLD}${RD}Invalid Disk Size. Please use a number (e.g., 10 or 10G).${CL}"
@@ -441,8 +441,8 @@ while read -r line; do
   FREE=$(echo "$line" | numfmt --field 4-6 --from-unit=K --to=iec --format %.2f | awk '{printf( "%9sB", $6)}')
   ITEM="  Type: $TYPE Free: $FREE "
   OFFSET=2
-  if [[ $((${#ITEM} + $OFFSET)) -gt ${MSG_MAX_LENGTH:-} ]]; then
-    MSG_MAX_LENGTH=$((${#ITEM} + $OFFSET))
+  if [[ $((${#ITEM} + OFFSET)) -gt ${MSG_MAX_LENGTH:-} ]]; then
+    MSG_MAX_LENGTH=$((${#ITEM} + OFFSET))
   fi
   STORAGE_MENU+=("$TAG" "$ITEM" "OFF")
 done < <(pvesm status -content images | awk 'NR>1')
@@ -456,7 +456,7 @@ else
   while [ -z "${STORAGE:+x}" ]; do
     STORAGE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
       "Which storage pool would you like to use for ${HN}?\nTo make a selection, use the Spacebar.\n" \
-      16 $(($MSG_MAX_LENGTH + 23)) 6 \
+      16 $((MSG_MAX_LENGTH + 23)) 6 \
       "${STORAGE_MENU[@]}" 3>&1 1>&2 2>&3)
   done
 fi
