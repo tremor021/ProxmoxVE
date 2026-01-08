@@ -25,8 +25,7 @@ msg_info "Installing deConz"
 libssl=$(curl -fsSL "http://security.ubuntu.com/ubuntu/pool/main/o/openssl/" | grep -o 'libssl1\.1_1\.1\.1f-1ubuntu2\.2[^"]*amd64\.deb' | head -n1)
 curl -fsSL "http://security.ubuntu.com/ubuntu/pool/main/o/openssl/$libssl" -o "$libssl"
 $STD dpkg -i "$libssl"
-$STD apt-get update
-$STD apt-get install -y deconz
+$STD apt install -y deconz
 rm -rf "$libssl"
 msg_ok "Installed deConz"
 
