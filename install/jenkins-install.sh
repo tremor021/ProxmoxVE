@@ -13,11 +13,14 @@ network_check
 update_os
 
 JAVA_VERSION="21" setup_java
+setup_deb822_repo \
+  "jenkins" \
+  "https://pkg.jenkins.io/debian/jenkins.io-2026.key" \
+  "https://pkg.jenkins.io/debian" \
+  "binary/" \
+  " "
 
 msg_info "Setup Jenkins"
-curl -fsSL "https://pkg.jenkins.io/debian/jenkins.io-2023.key" -o "/usr/share/keyrings/jenkins-keyring.asc"
-echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc]" https://pkg.jenkins.io/debian binary/ >/etc/apt/sources.list.d/jenkins.list
-$STD apt update
 $STD apt install -y jenkins
 msg_ok "Setup Jenkins"
 
