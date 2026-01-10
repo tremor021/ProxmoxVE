@@ -33,6 +33,7 @@ function update_script() {
   msg_ok "Service stopped"
 
   msg_info "Creating backup"
+  [[ ! -f /opt/infisical_backup.sql ]] && rm -f /opt/infisical_backup.sql
   DB_PASS=$(grep -Po '(?<=^Database Password:\s).*' ~/infisical.creds | head -n1)
   PGPASSWORD=$DB_PASS pg_dump -U infisical -h localhost -d infisical_db > /opt/infisical_backup.sql
   msg_ok "Created backup"
