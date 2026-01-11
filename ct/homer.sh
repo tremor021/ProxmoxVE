@@ -11,7 +11,7 @@ var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-512}"
 var_disk="${var_disk:-2}"
 var_os="${var_os:-debian}"
-var_version="${var_version:-12}"
+var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -27,6 +27,7 @@ function update_script() {
         msg_error "No ${APP} Installation Found!"
         exit
     fi
+
     msg_info "Stopping Service"
     systemctl stop homer
     msg_ok "Stopped Service"
@@ -37,22 +38,14 @@ function update_script() {
     cp -R /opt/homer/assets/. assets-backup
     msg_ok "Backed up assets directory"
 
-    msg_info "Updating ${APP}"
-    rm -rf /opt/homer/*
-    cd /opt/homer
-    curl -fsSL "https://github.com/bastienwirtz/homer/releases/latest/download/homer.zip" -o $(basename "https://github.com/bastienwirtz/homer/releases/latest/download/homer.zip")
-    $STD unzip homer.zip
-    msg_ok "Updated ${APP}"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "homer" "bastienwirtz/homer" "prebuild" "latest" "/opt/homer" "homer.zip"
 
     msg_info "Restoring assets directory"
     cd ~
     cp -Rf assets-backup/. /opt/homer/assets/
+    rm -rf assets-backup
     msg_ok "Restored assets directory"
-
-    msg_info "Cleaning"
-    rm -rf assets-backup /opt/homer/homer.zip
-    msg_ok "Cleaned"
-
+    
     msg_info "Starting Service"
     systemctl start homer
     msg_ok "Started Service"

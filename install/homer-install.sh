@@ -13,32 +13,25 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD apt-get install -y pip
-msg_ok "Installed Dependencies"
-
-msg_info "Installing Homer"
-mkdir -p /opt/homer
-cd /opt/homer
-curl -fsSL "https://github.com/bastienwirtz/homer/releases/latest/download/homer.zip" -o "homer.zip"
-$STD unzip homer.zip
-rm -rf homer.zip
-cp assets/config.yml.dist assets/config.yml
-msg_ok "Installed Homer"
+fetch_and_deploy_gh_release "homer" "bastienwirtz/homer" "prebuild" "latest" "/opt/homer" "homer.zip"
+cp /opt/homer/assets/config.yml.dist /opt/homer/assets/config.yml
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/homer.service
 [Unit]
 Description=Homer Dashboard
 After=network-online.target
+Wants=network-online.target
+
 [Service]
 Type=simple
 WorkingDirectory=/opt/homer
 ExecStart=python3 -m http.server 8010
+
 [Install]
 WantedBy=multi-user.target
 EOF
-$STD systemctl enable --now homer
+systemctl enable -q --now homer
 msg_ok "Created Service"
 
 motd_ssh
