@@ -21,6 +21,7 @@ msg_ok "Installed Dependencies"
 
 PG_VERSION="17" setup_postgresql
 PG_DB_NAME="infisical_db" PG_DB_USER="infisical" setup_postgresql_db
+import_local_ip
 
 msg_info "Setting up Infisical Repository"
 setup_deb822_repo \
@@ -33,14 +34,13 @@ msg_ok "Setup Infisical repository"
 msg_info "Setting up Infisical"
 AUTH_SECRET="$(openssl rand -base64 32 | tr -d '\n')"
 ENC_KEY="$(openssl rand -hex 16 | tr -d '\n')"
-IP_ADDR=$(hostname -I | awk '{print $1}')
 $STD apt install -y infisical-core
 mkdir -p /etc/infisical
 cat <<EOF >/etc/infisical/infisical.rb
 infisical_core['ENCRYPTION_KEY'] = '$ENC_KEY'
 infisical_core['AUTH_SECRET'] = '$AUTH_SECRET'
-infisical_core['HOST'] = '$IP_ADDR'
-infisical_core['DB_CONNECTION_URI'] = 'postgres://${DB_USER}:${DB_PASS}@localhost:5432/${DB_NAME}'
+infisical_core['HOST'] = '$LOCAL_IP'
+infisical_core['DB_CONNECTION_URI'] = 'postgres://${PG_DB_USER}:${PG_DB_PASS}@localhost:5432/${PG_DB_NAME}'
 infisical_core['REDIS_URL'] = 'redis://localhost:6379'
 EOF
 $STD infisical-ctl reconfigure
