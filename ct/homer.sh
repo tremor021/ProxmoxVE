@@ -28,28 +28,30 @@ function update_script() {
         exit
     fi
 
-    msg_info "Stopping Service"
-    systemctl stop homer
-    msg_ok "Stopped Service"
+    if check_for_gh_release "homer" "bastienwirtz/homer"; then
+      msg_info "Stopping Service"
+      systemctl stop homer
+      msg_ok "Stopped Service"
 
-    msg_info "Backing up assets directory"
-    cd ~
-    mkdir -p assets-backup
-    cp -R /opt/homer/assets/. assets-backup
-    msg_ok "Backed up assets directory"
+      msg_info "Backing up assets directory"
+      cd ~
+      mkdir -p assets-backup
+      cp -R /opt/homer/assets/. assets-backup
+      msg_ok "Backed up assets directory"
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "homer" "bastienwirtz/homer" "prebuild" "latest" "/opt/homer" "homer.zip"
+      CLEAN_INSTALL=1 fetch_and_deploy_gh_release "homer" "bastienwirtz/homer" "prebuild" "latest" "/opt/homer" "homer.zip"
 
-    msg_info "Restoring assets directory"
-    cd ~
-    cp -Rf assets-backup/. /opt/homer/assets/
-    rm -rf assets-backup
-    msg_ok "Restored assets directory"
+      msg_info "Restoring assets directory"
+      cd ~
+      cp -Rf assets-backup/. /opt/homer/assets/
+      rm -rf assets-backup
+      msg_ok "Restored assets directory"
     
-    msg_info "Starting Service"
-    systemctl start homer
-    msg_ok "Started Service"
-    msg_ok "Updated successfully!"
+      msg_info "Starting Service"
+      systemctl start homer
+      msg_ok "Started Service"
+      msg_ok "Updated successfully!"
+    fi
     exit
 }
 
