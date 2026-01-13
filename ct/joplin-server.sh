@@ -35,10 +35,12 @@ function update_script() {
     systemctl stop joplin-server
     msg_ok "Stopped Services"
 
-    fetch_and_deploy_gh_release "joplin-server" "laurent22/joplin" "tarball" "latest"
+    cp /opt/joplin-server/.env /opt
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "joplin-server" "laurent22/joplin" "tarball"
+    mv /opt/.env /opt/joplin-server
 
     msg_info "Updating Joplin-Server"
-    cd /opt/joplin-server 
+    cd /opt/joplin-server
     sed -i "/onenote-converter/d" packages/lib/package.json
     $STD yarn config set --home enableTelemetry 0
     export BUILD_SEQUENCIAL=1
