@@ -34,11 +34,10 @@ function update_script() {
     msg_info "Stopped Service"
 
     cp /opt/fluid-calendar/.env /opt/fluid.env
-    rm -rf /opt/fluid-calendar
-    fetch_and_deploy_gh_release "fluid-calendar" "dotnetfactory/fluid-calendar" "tarball"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "fluid-calendar" "dotnetfactory/fluid-calendar" "tarball"
+    mv /opt/fluid.env /opt/fluid-calendar/.env
 
     msg_info "Updating Fluid Calendar"
-    mv /opt/fluid.env /opt/fluid-calendar/.env
     cd /opt/fluid-calendar
     export NEXT_TELEMETRY_DISABLED=1
     $STD npm install --legacy-peer-deps
