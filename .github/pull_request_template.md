@@ -25,3 +25,4 @@ Fixes #
 - [ ] 🌍 **Website update** – Changes to website-related JSON files or metadata.
 - [ ] 🔧 **Refactoring / Code Cleanup** – Improves readability or maintainability without changing functionality.
 - [ ] 📝 **Documentation update** – Changes to `README`, `AppName.md`, `CONTRIBUTING.md`, or other docs.
+- [ ] ⛔ **Script / Feature removal** – Removal of a script or a script feature.
