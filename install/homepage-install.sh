@@ -24,7 +24,7 @@ RELEASE=$(get_latest_github_release "gethomepage/homepage")
 
 msg_info "Installing Homepage (Patience)"
 mkdir -p /opt/homepage/config
-cd /opt/homepage || exit
+cd /opt/homepage
 cp /opt/homepage/src/skeleton/* /opt/homepage/config
 $STD pnpm install
 export NEXT_PUBLIC_VERSION="v$RELEASE"
