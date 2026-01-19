@@ -44,13 +44,13 @@ function update_script() {
     systemctl stop homepage
     msg_ok "Stopped service"
 
-    cp /opt/homepage/.env /opt
+    cp /opt/homepage/.env /opt/homepage.env
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "homepage" "gethomepage/homepage" "tarball"
-    mv /opt/.env /opt/homepage
+    mv /opt/homepage.env /opt/homepage
 
     msg_info "Updating Homepage (Patience)"
     RELEASE=$(get_latest_github_release "gethomepage/homepage")
-    cd /opt/homepage || exit
+    cd /opt/homepage
     $STD pnpm install
     $STD pnpm update --no-save caniuse-lite
     export NEXT_PUBLIC_VERSION="v$RELEASE"
