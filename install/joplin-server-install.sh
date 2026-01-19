@@ -28,8 +28,8 @@ $STD pm2 install pm2-logrotate
 $STD pm2 set pm2-logrotate:max_size 100MB
 $STD pm2 set pm2-logrotate:retain 5
 $STD pm2 set pm2-logrotate:compress tr
+
 fetch_and_deploy_gh_release "joplin-server" "laurent22/joplin" "tarball"
-import_local_ip
 
 msg_info "Setting up Joplin Server (Patience)"
 cd /opt/joplin-server

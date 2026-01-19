@@ -47,7 +47,6 @@ cp ./target/release/daemon /usr/bin/scanopy-daemon
 msg_ok "Built scanopy-daemon"
 
 msg_info "Configuring server for first-run"
-LOCAL_IP="$(hostname -I | awk '{print $1}')"
 cat <<EOF >/opt/scanopy/.env
 ### - SERVER
 scanopy_DATABASE_URL=postgresql://$PG_DB_USER:$PG_DB_PASS@localhost:5432/$PG_DB_NAME

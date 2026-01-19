@@ -43,7 +43,6 @@ function update_script() {
   if [ "$UPD" == "2" ]; then
     NODE_VERSION="22" setup_nodejs
     if check_for_gh_release "cronicle" "jhuckaby/Cronicle"; then
-      IP=$(hostname -I | awk '{print $1}')
       msg_info "Installing Dependencies"
       $STD apt-get install -y \
         git \
@@ -59,7 +58,7 @@ function update_script() {
       cd /opt/cronicle
       $STD npm install
       $STD node bin/build.js dist
-      sed -i "s/localhost:3012/${IP}:3012/g" /opt/cronicle/conf/config.json
+      sed -i "s/localhost:3012/${LOCAL_IP}:3012/g" /opt/cronicle/conf/config.json
       $STD /opt/cronicle/bin/control.sh start
       msg_ok "Installed Cronicle Worker"
       echo -e "\n Add Masters secret key to /opt/cronicle/conf/config.json \n"
