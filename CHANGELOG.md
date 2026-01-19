@@ -14,13 +14,24 @@ Exercise vigilance regarding copycat or coat-tailing sites that seek to exploit 
 
 ### 🚀 Updated Scripts
 
+  - #### 🐞 Bug Fixes
+
+    - Update/splunk enterprise [@rcastley](https://github.com/rcastley) ([#10949](https://github.com/community-scripts/ProxmoxVE/pull/10949))
+
   - #### 🔧 Refactor
 
+    - Refactor: Homepage [@tremor021](https://github.com/tremor021) ([#10950](https://github.com/community-scripts/ProxmoxVE/pull/10950))
     - Refactor: hev-socks5-server [@tremor021](https://github.com/tremor021) ([#10945](https://github.com/community-scripts/ProxmoxVE/pull/10945))
 
 ### 🗑️ Deleted Scripts
 
   - Remove: phpIPAM [@MickLesk](https://github.com/MickLesk) ([#10939](https://github.com/community-scripts/ProxmoxVE/pull/10939))
+
+### 💾 Core
+
+  - #### ✨ New Features
+
+    - [core]: Make LXC IP a global variable [@tremor021](https://github.com/tremor021) ([#10951](https://github.com/community-scripts/ProxmoxVE/pull/10951))
 
 ### 🧰 Tools
 
