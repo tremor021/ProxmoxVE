@@ -17,7 +17,12 @@ msg_info "Installing Dependencies"
 $STD apt install -y avahi-daemon
 msg_ok "Installed Dependencies"
 
-setup_deb822_repo "fhem" "https://debian.fhem.de/archive.key" "https://debian.fhem.de/nightly/" "/" " "
+setup_deb822_repo \
+  "fhem" \
+  "https://debian.fhem.de/archive.key" \
+  "https://debian.fhem.de/nightly/" \
+  "/" \
+  " "
 
 msg_info "Setting up FHEM"
 $STD apt install -y fhem
