@@ -27,28 +27,18 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  RELEASE=$(curl -fsSL https://dl.vikunja.io/vikunja/ | grep -oP 'href="/vikunja/\K[0-9]+\.[0-9]+\.[0-9]+' | sort -V | tail -n 1)
-  if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
+  
+  if check_for_gh_release "vikunja" "go-vikunja/vikunja"; then
     msg_info "Stopping Service"
     systemctl stop vikunja
     msg_ok "Stopped Service"
 
-    msg_info "Updating ${APP} to ${RELEASE}"
-    cd /opt
-    rm -rf /opt/vikunja/vikunja
-    curl -fsSL "https://dl.vikunja.io/vikunja/$RELEASE/vikunja-$RELEASE-amd64.deb" -o $(basename "https://dl.vikunja.io/vikunja/$RELEASE/vikunja-$RELEASE-amd64.deb")
-    export DEBIAN_FRONTEND=noninteractive
-    $STD dpkg -i vikunja-"$RELEASE"-amd64.deb
-    rm -rf /opt/vikunja-"$RELEASE"-amd64.deb
-    echo "${RELEASE}" >/opt/${APP}_version.txt
-    msg_ok "Updated ${APP}"
+    fetch_and_deploy_gh_release "vikunja" "go-vikunja/vikunja" "binary"
 
     msg_info "Starting Service"
     systemctl start vikunja
     msg_ok "Started Service"
     msg_ok "Updated successfully!"
-  else
-    msg_ok "No update required. ${APP} is already at ${RELEASE}"
   fi
   exit
 }
