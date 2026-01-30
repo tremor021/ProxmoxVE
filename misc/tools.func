@@ -6246,3 +6246,138 @@ EOF
 
   msg_ok "Docker setup completed"
 }
+
+# ------------------------------------------------------------------------------
+# Fetch and deploy from URL
+# Downloads an archive (zip, tar.gz, or .deb) from a URL and extracts/installs it
+#
+# Usage: fetch_and_deploy_from_url "url" "directory"
+#   url       - URL to the archive (zip, tar.gz, or .deb)
+#   directory - Destination path where the archive will be extracted
+#               (not used for .deb packages)
+#
+# Examples:
+#   fetch_and_deploy_from_url "https://example.com/app.tar.gz" "/opt/myapp"
+#   fetch_and_deploy_from_url "https://example.com/app.zip" "/opt/myapp"
+#   fetch_and_deploy_from_url "https://example.com/package.deb" ""
+# ------------------------------------------------------------------------------
+function fetch_and_deploy_from_url() {
+  local url="$1"
+  local directory="$2"
+
+  if [[ -z "$url" ]]; then
+    msg_error "URL parameter is required"
+    return 1
+  fi
+
+  local filename="${url##*/}"
+
+  local archive_type="zip"
+  if [[ "$filename" == *.tar.gz || "$filename" == *.tgz ]]; then
+    archive_type="tar"
+  elif [[ "$filename" == *.deb ]]; then
+    archive_type="deb"
+  fi
+
+  msg_info "Downloading from $url"
+
+  local tmpdir
+  tmpdir=$(mktemp -d) || {
+    msg_error "Failed to create temporary directory"
+    return 1
+  }
+
+  curl -fsSL -o "$tmpdir/$filename" "$url" || {
+    msg_error "Download failed: $url"
+    rm -rf "$tmpdir"
+    return 1
+  }
+
+  if [[ "$archive_type" == "deb" ]]; then
+    msg_info "Installing .deb package"
+
+    chmod 644 "$tmpdir/$filename"
+    $STD apt install -y "$tmpdir/$filename" || {
+      $STD dpkg -i "$tmpdir/$filename" || {
+        msg_error "Both apt and dpkg installation failed"
+        rm -rf "$tmpdir"
+        return 1
+      }
+    }
+
+    rm -rf "$tmpdir"
+    msg_ok "Successfully installed .deb package"
+    return 0
+  fi
+
+  if [[ -z "$directory" ]]; then
+    msg_error "Directory parameter is required for archive extraction"
+    rm -rf "$tmpdir"
+    return 1
+  fi
+
+  msg_info "Extracting archive to $directory"
+
+  mkdir -p "$directory"
+
+  if [[ "${CLEAN_INSTALL:-0}" == "1" ]]; then
+    rm -rf "${directory:?}/"*
+  fi
+
+  local unpack_tmp
+  unpack_tmp=$(mktemp -d)
+
+  if [[ "$archive_type" == "zip" ]]; then
+    ensure_dependencies unzip
+    unzip -q "$tmpdir/$filename" -d "$unpack_tmp" || {
+      msg_error "Failed to extract ZIP archive"
+      rm -rf "$tmpdir" "$unpack_tmp"
+      return 1
+    }
+  elif [[ "$archive_type" == "tar" ]]; then
+    tar --no-same-owner -xf "$tmpdir/$filename" -C "$unpack_tmp" || {
+      msg_error "Failed to extract TAR archive"
+      rm -rf "$tmpdir" "$unpack_tmp"
+      return 1
+    }
+  fi
+
+  local top_entries
+  top_entries=$(find "$unpack_tmp" -mindepth 1 -maxdepth 1)
+
+  if [[ "$(echo "$top_entries" | wc -l)" -eq 1 && -d "$top_entries" ]]; then
+    local inner_dir="$top_entries"
+    shopt -s dotglob nullglob
+    if compgen -G "$inner_dir/*" >/dev/null; then
+      cp -r "$inner_dir"/* "$directory/" || {
+        msg_error "Failed to copy contents from $inner_dir to $directory"
+        rm -rf "$tmpdir" "$unpack_tmp"
+        return 1
+      }
+    else
+      msg_error "Inner directory is empty: $inner_dir"
+      rm -rf "$tmpdir" "$unpack_tmp"
+      return 1
+    fi
+    shopt -u dotglob nullglob
+  else
+    shopt -s dotglob nullglob
+    if compgen -G "$unpack_tmp/*" >/dev/null; then
+      cp -r "$unpack_tmp"/* "$directory/" || {
+        msg_error "Failed to copy contents to $directory"
+        rm -rf "$tmpdir" "$unpack_tmp"
+        return 1
+      }
+    else
+      msg_error "Unpacked archive is empty"
+      rm -rf "$tmpdir" "$unpack_tmp"
+      return 1
+    fi
+    shopt -u dotglob nullglob
+  fi
+
+  rm -rf "$tmpdir" "$unpack_tmp"
+  msg_ok "Successfully deployed archive to $directory"
+  return 0
+}
+
