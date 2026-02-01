@@ -27,9 +27,7 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  if ! dpkg -s graphicsmagick >/dev/null 2>&1; then
-    $STD apt install -y graphicsmagick
-  fi
+ensure_dependencies graphicsmagick
   if [ ! -f /opt/n8n.env ]; then
     sed -i 's|^Environment="N8N_SECURE_COOKIE=false"$|EnvironmentFile=/opt/n8n.env|' /etc/systemd/system/n8n.service
     mkdir -p /opt
