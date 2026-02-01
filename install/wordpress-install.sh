@@ -19,6 +19,7 @@ MARIADB_DB_NAME="wordpress_db" MARIADB_DB_USER="wordpress" setup_mariadb_db
 fetch_and_deploy_from_url "https://wordpress.org/latest.zip" /var/www/html/wordpress
 
 msg_info "Installing Wordpress (Patience)"
+chown -R www-data:www-data /var/www/html/wordpress
 cd /var/www/html/wordpress
 find . -type d -exec chmod 755 {} \;
 find . -type f -exec chmod 644 {} \;
