@@ -6272,13 +6272,6 @@ function fetch_and_deploy_from_url() {
 
   local filename="${url##*/}"
 
-  local archive_type="zip"
-  if [[ "$filename" == *.tar.gz || "$filename" == *.tgz ]]; then
-    archive_type="tar"
-  elif [[ "$filename" == *.deb ]]; then
-    archive_type="deb"
-  fi
-
   msg_info "Downloading from $url"
 
   local tmpdir
@@ -6292,6 +6285,28 @@ function fetch_and_deploy_from_url() {
     rm -rf "$tmpdir"
     return 1
   }
+
+  # Auto-detect archive type using file description
+  local file_desc
+  file_desc=$(file -b "$tmpdir/$filename")
+  
+  local archive_type="unknown"
+  
+  if [[ "$file_desc" =~ gzip.*compressed|gzip\ compressed\ data ]]; then
+    archive_type="tar"
+  elif [[ "$file_desc" =~ Zip.*archive|ZIP\ archive ]]; then
+    archive_type="zip"
+  elif [[ "$file_desc" =~ Debian.*package|Debian\ binary\ package ]]; then
+    archive_type="deb"
+  elif [[ "$file_desc" =~ POSIX.*tar.*archive|tar\ archive ]]; then
+    archive_type="tar"
+  else
+    msg_error "Unsupported or unknown archive type: $file_desc"
+    rm -rf "$tmpdir"
+    return 1
+  fi
+
+  msg_info "Detected archive type: $archive_type (file type: $file_desc)"
 
   if [[ "$archive_type" == "deb" ]]; then
     msg_info "Installing .deb package"
@@ -6380,4 +6395,3 @@ function fetch_and_deploy_from_url() {
   msg_ok "Successfully deployed archive to $directory"
   return 0
 }
-
