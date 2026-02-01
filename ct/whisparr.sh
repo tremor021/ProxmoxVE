@@ -27,11 +27,8 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  msg_info "Updating Whisparr"
-  $STD apt update
-  $STD apt -y upgrade
-  msg_ok "Updated Whisparr"
-  msg_ok "Updated successfully!"
+  
+  msg_warn "Application is updated via Web Interface"
   exit
 }
 
