@@ -28,20 +28,22 @@ jobs:
               /dependabot/i
             ];
             
-            // Search for closed, unlocked issues older than 3 days (paginated)
+            // Search for closed, unlocked issues older than 3 days (paginated, oldest first)
             let page = 1;
             let totalLocked = 0;
             
             while (true) {
               const issues = await github.rest.search.issuesAndPullRequests({
                 q: `repo:${context.repo.owner}/${context.repo.repo} is:closed is:unlocked updated:<${lockDate.toISOString().split('T')[0]}`,
+                sort: 'updated',
+                order: 'asc',
                 per_page: 100,
                 page: page
               });
               
               if (issues.data.items.length === 0) break;
               
-              console.log(`Processing page ${page} with ${issues.data.items.length} issues/PRs`);
+              console.log(`Page ${page}: ${issues.data.items.length} items (total available: ${issues.data.total_count})`);
               
               for (const item of issues.data.items) {
                 // Skip excluded items
@@ -68,8 +70,8 @@ jobs:
               
               page++;
               
-              // GitHub search API limit: max 1000 results
-              if (page > 10) break;
+              // GitHub search API limit: max 10000 results (100 pages * 100) - temporarily increased
+              if (page > 100) break;
             }
             
             console.log(`Total locked: ${totalLocked} issues/PRs`);
