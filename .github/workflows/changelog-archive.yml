@@ -67,9 +67,39 @@ jobs:
             let currentDate = null;
             let currentContent = [];
             let inHeader = true;
+            let inOldHistory = false;
+            let historyDetailsDepth = 0;
             
-            for (const line of lines) {
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i];
               const match = line.match(datePattern);
+              
+              // Detect the start of History section: <details> followed by line with 📜 History
+              if (inHeader && !inOldHistory && line.trim() === '<details>') {
+                // Look ahead to see if this is the History section
+                const nextLine = lines[i + 1] || '';
+                if (nextLine.includes('📜 History')) {
+                  inOldHistory = true;
+                  historyDetailsDepth = 1;
+                  continue;
+                }
+              }
+              
+              // Track nested details tags to find the end of History section
+              if (inOldHistory) {
+                if (line.trim() === '<details>') {
+                  historyDetailsDepth++;
+                }
+                if (line.trim() === '</details>') {
+                  historyDetailsDepth--;
+                  if (historyDetailsDepth === 0) {
+                    // We've closed the main History details tag
+                    inOldHistory = false;
+                  }
+                }
+                continue;
+              }
+              
               if (match) {
                 inHeader = false;
                 
