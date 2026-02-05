@@ -60,7 +60,7 @@ $STD sudo -u cool coolconfig set-admin-password --user=admin --password="$COOLPA
 echo "$COOLPASS" >~/.coolpass
 msg_ok "Installed Collabora Online"
 
-fetch_and_deploy_gh_release "opencloud" "opencloud-eu/opencloud" "singlefile" "v5.0.1" "/usr/bin" "opencloud-*-linux-amd64"
+fetch_and_deploy_gh_release "opencloud" "opencloud-eu/opencloud" "singlefile" "v5.0.2" "/usr/bin" "opencloud-*-linux-amd64"
 
 msg_info "Configuring OpenCloud"
 DATA_DIR="/var/lib/opencloud/"
@@ -194,7 +194,7 @@ EOF
 $STD sudo -u cool coolconfig set ssl.enable false
 $STD sudo -u cool coolconfig set ssl.termination true
 $STD sudo -u cool coolconfig set ssl.ssl_verification true
-sed -i "s|CSP2\"/>|CSP2\">frame-ancestors https://${OPENCLOUD_FQDN}</content_security_policy>|" /etc/coolwsd/coolwsd.xml
+sed -i "s|-Policy\">|&frame-ancestors https://${OPENCLOUD_FQDN}|" /etc/coolwsd/coolwsd.xml
 useradd -r -M -s /usr/sbin/nologin opencloud
 chown -R opencloud:opencloud "$CONFIG_DIR" "$DATA_DIR"
 sudo -u opencloud opencloud init --config-path "$CONFIG_DIR" --insecure no
