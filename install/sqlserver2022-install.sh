@@ -22,8 +22,8 @@ setup_deb822_repo \
   "mssql-server-2022" \
   "https://packages.microsoft.com/keys/microsoft.asc" \
   "https://packages.microsoft.com/ubuntu/22.04/mssql-server-2022" \
-  "./" \
-  ""
+  "jammy" \
+  "main"
 msg_ok "Repository configured"
 
 msg_info "Installing SQL Server 2022"
