@@ -46,7 +46,7 @@ function update_script() {
     tar -czf "$backup_filename" -C /opt/fileflows Data
     msg_ok "Backup Created"
 
-    fetch_and_deploy_archive "https://fileflows.com/downloads/zip" "/opt/fileflows"
+    fetch_and_deploy_from_url "https://fileflows.com/downloads/zip" "/opt/fileflows"
 
     msg_info "Starting Service"
     systemctl start fileflows
