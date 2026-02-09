@@ -31,7 +31,7 @@ setup_deb822_repo \
 $STD apt install -y aspnetcore-runtime-8.0
 msg_ok "Installed ASP.NET Core Runtime"
 
-fetch_and_deploy_archive "https://fileflows.com/downloads/zip" "/opt/fileflows"
+fetch_and_deploy_from_url "https://fileflows.com/downloads/zip" "/opt/fileflows"
 
 msg_info "Setup FileFlows"
 $STD ln -svf /usr/bin/ffmpeg /usr/local/bin/ffmpeg
