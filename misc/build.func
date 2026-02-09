@@ -3351,19 +3351,21 @@ msg_menu() {
     return 0
   fi
 
-  # Display menu
-  echo ""
-  msg_custom "📋" "${BL}" "${title}"
-  echo ""
-  for i in "${!tags[@]}"; do
-    local marker="  "
-    [[ $i -eq 0 ]] && marker="* "
-    printf "${TAB3}${marker}%s) %s\n" "${tags[$i]}" "${descs[$i]}"
-  done
-  echo ""
+  # Display menu to /dev/tty so it doesn't get captured by command substitution
+  {
+    echo ""
+    msg_custom "📋" "${BL}" "${title}"
+    echo ""
+    for i in "${!tags[@]}"; do
+      local marker="  "
+      [[ $i -eq 0 ]] && marker="* "
+      printf "${TAB3}${marker}%s) %s\n" "${tags[$i]}" "${descs[$i]}"
+    done
+    echo ""
+  } >/dev/tty
 
   local selection=""
-  read -r -t 10 -p "${TAB3}Select [default=${default_tag}, timeout 10s]: " selection || true
+  read -r -t 10 -p "${TAB3}Select [default=${default_tag}, timeout 10s]: " selection </dev/tty >/dev/tty || true
 
   # Validate selection
   if [[ -n "$selection" ]]; then
