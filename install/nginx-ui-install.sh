@@ -37,7 +37,6 @@ PageSize = 10
 Host = 0.0.0.0
 Port = 9000
 RunMode = release
-JwtSecret = $(openssl rand -hex 32)
 
 [cert]
 HTTPChallengePort = 9180
