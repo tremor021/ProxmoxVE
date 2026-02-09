@@ -29,11 +29,7 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  if ! [[ $(dpkg -s jq 2>/dev/null) ]]; then
-    $STD apt-get update
-    $STD apt-get install -y jq
-  fi
-
+  
   update_available=$(curl -fsSL -X 'GET' "http://localhost:19200/api/status/update-available" -H 'accept: application/json' | jq .UpdateAvailable)
   if [[ "${update_available}" == "true" ]]; then
     msg_info "Stopping Service"

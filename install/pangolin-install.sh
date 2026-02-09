@@ -36,7 +36,8 @@ $STD npm ci
 $STD npm run set:sqlite
 $STD npm run set:oss
 rm -rf server/private
-$STD npm run build:sqlite
+$STD npm run db:generate
+$STD npm run build
 $STD npm run build:cli
 cp -R .next/standalone ./
 
@@ -47,6 +48,8 @@ cd /opt/pangolin
 EOF
 chmod +x /usr/local/bin/pangctl ./dist/cli.mjs
 cp server/db/names.json ./dist/names.json
+cp server/db/ios_models.json ./dist/ios_models.json
+cp server/db/mac_models.json ./dist/mac_models.json
 mkdir -p /var/config
 
 cat <<EOF >/opt/pangolin/config/config.yml
@@ -175,7 +178,6 @@ http:
         servers:
           - url: "http://$LOCAL_IP:3000"
 EOF
-$STD npm run db:sqlite:generate
 $STD npm run db:sqlite:push
 
 . /etc/os-release
