@@ -45,7 +45,8 @@ fi
 cd /opt/libretranslate
 $STD uv venv --clear .venv --python 3.12
 $STD source .venv/bin/activate
-$STD uv pip install --upgrade pip setuptools
+$STD uv pip install --upgrade pip
+$STD uv pip install "setuptools<81"
 $STD uv pip install Babel==2.12.1
 $STD .venv/bin/python scripts/compile_locales.py
 $STD uv pip install "torch==${TORCH_VERSION}" --extra-index-url https://download.pytorch.org/whl/cpu
