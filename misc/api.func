@@ -451,6 +451,7 @@ EOF
 #   * ct_type=2 (VM instead of LXC)
 #   * type="vm"
 #   * Disk size without 'G' suffix
+# - Includes hardware detection: CPU, GPU, RAM speed
 # - Only executes if DIAGNOSTICS=yes and RANDOM_UUID is set
 # - Never blocks or fails script execution
 # ------------------------------------------------------------------------------
@@ -473,6 +474,27 @@ post_to_api_vm() {
     pve_version=$(pveversion 2>/dev/null | awk -F'[/ ]' '{print $2}') || true
   fi
 
+  # Detect GPU if not already set
+  if [[ -z "${GPU_VENDOR:-}" ]]; then
+    detect_gpu
+  fi
+  local gpu_vendor="${GPU_VENDOR:-unknown}"
+  local gpu_model="${GPU_MODEL:-}"
+  local gpu_passthrough="${GPU_PASSTHROUGH:-unknown}"
+
+  # Detect CPU if not already set
+  if [[ -z "${CPU_VENDOR:-}" ]]; then
+    detect_cpu
+  fi
+  local cpu_vendor="${CPU_VENDOR:-unknown}"
+  local cpu_model="${CPU_MODEL:-}"
+
+  # Detect RAM if not already set
+  if [[ -z "${RAM_SPEED:-}" ]]; then
+    detect_ram
+  fi
+  local ram_speed="${RAM_SPEED:-}"
+
   # Remove 'G' suffix from disk size
   local DISK_SIZE_API="${DISK_SIZE%G}"
 
@@ -492,6 +514,12 @@ post_to_api_vm() {
     "os_version": "${var_version:-}",
     "pve_version": "${pve_version}",
     "method": "${METHOD:-default}",
+    "cpu_vendor": "${cpu_vendor}",
+    "cpu_model": "${cpu_model}",
+    "gpu_vendor": "${gpu_vendor}",
+    "gpu_model": "${gpu_model}",
+    "gpu_passthrough": "${gpu_passthrough}",
+    "ram_speed": "${ram_speed}",
     "repo_source": "${REPO_SOURCE}"
 }
 EOF
