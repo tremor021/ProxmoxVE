@@ -465,6 +465,7 @@ manage_tool_repository() {
       msg_error "Failed to download MongoDB GPG key"
       return 1
     fi
+    chmod 644 "/etc/apt/keyrings/mongodb-server-${version}.gpg"
 
     # Setup repository
     local distro_codename
@@ -1319,6 +1320,7 @@ setup_deb822_repo() {
     }
   fi
   rm -f "$tmp_gpg"
+  chmod 644 "/etc/apt/keyrings/${name}.gpg"
 
   # Write deb822
   {
