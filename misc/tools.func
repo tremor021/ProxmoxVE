@@ -1304,17 +1304,17 @@ setup_deb822_repo() {
     return 1
   }
 
-  if file "$tmp_gpg" | grep -qi 'PGP\|GPG\|public key'; then
-    # Already in binary GPG format — copy directly
-    cp "$tmp_gpg" "/etc/apt/keyrings/${name}.gpg" || {
-      msg_error "Failed to install GPG key for ${name}"
+  if grep -q "BEGIN PGP" "$tmp_gpg" 2>/dev/null; then
+    # ASCII-armored — dearmor to binary
+    gpg --dearmor --yes -o "/etc/apt/keyrings/${name}.gpg" < "$tmp_gpg" || {
+      msg_error "Failed to dearmor GPG key for ${name}"
       rm -f "$tmp_gpg"
       return 1
     }
   else
-    # ASCII-armored — dearmor to binary
-    gpg --dearmor --yes -o "/etc/apt/keyrings/${name}.gpg" < "$tmp_gpg" || {
-      msg_error "Failed to dearmor GPG key for ${name}"
+    # Already in binary GPG format — copy directly
+    cp "$tmp_gpg" "/etc/apt/keyrings/${name}.gpg" || {
+      msg_error "Failed to install GPG key for ${name}"
       rm -f "$tmp_gpg"
       return 1
     }
