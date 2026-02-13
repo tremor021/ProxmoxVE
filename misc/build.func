@@ -4046,12 +4046,10 @@ EOF'
   if [[ $install_exit_code -ne 0 ]]; then
     msg_error "Installation failed in container ${CTID} (exit code: ${install_exit_code})"
 
-    # Report failure to telemetry API
-    post_update_to_api "failed" "$install_exit_code"
-  
-    # Copy both logs from container before potential deletion
+    # Copy install log from container BEFORE API call so get_error_text() can read it
     local build_log_copied=false
     local install_log_copied=false
+    local host_install_log="/tmp/install-lxc-${CTID}-${SESSION_ID}.log"
 
     if [[ -n "$CTID" && -n "${SESSION_ID:-}" ]]; then
       # Copy BUILD_LOG (creation log) if it exists
@@ -4059,15 +4057,22 @@ EOF'
         cp "${BUILD_LOG}" "/tmp/create-lxc-${CTID}-${SESSION_ID}.log" 2>/dev/null && build_log_copied=true
       fi
 
-      # Copy INSTALL_LOG from container
-      if pct pull "$CTID" "/root/.install-${SESSION_ID}.log" "/tmp/install-lxc-${CTID}-${SESSION_ID}.log" 2>/dev/null; then
+      # Copy INSTALL_LOG from container to host
+      if pct pull "$CTID" "/root/.install-${SESSION_ID}.log" "$host_install_log" 2>/dev/null; then
         install_log_copied=true
+        # Point INSTALL_LOG to host copy so get_error_text() finds it
+        INSTALL_LOG="$host_install_log"
       fi
+    fi
 
-      # Show available logs
+    # Report failure to telemetry API (now with log available on host)
+    post_update_to_api "failed" "$install_exit_code"
+
+    # Show available logs
+    if [[ -n "$CTID" && -n "${SESSION_ID:-}" ]]; then
       echo ""
       [[ "$build_log_copied" == true ]] && echo -e "${GN}✔${CL} Container creation log: ${BL}/tmp/create-lxc-${CTID}-${SESSION_ID}.log${CL}"
-      [[ "$install_log_copied" == true ]] && echo -e "${GN}✔${CL} Installation log: ${BL}/tmp/install-lxc-${CTID}-${SESSION_ID}.log${CL}"
+      [[ "$install_log_copied" == true ]] && echo -e "${GN}✔${CL} Installation log: ${BL}${host_install_log}${CL}"
     fi
 
     # Dev mode: Keep container or open breakpoint shell
