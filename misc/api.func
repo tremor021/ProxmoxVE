@@ -422,7 +422,8 @@ post_to_api() {
     detect_gpu
   fi
   local gpu_vendor="${GPU_VENDOR:-unknown}"
-  local gpu_model="${GPU_MODEL:-}"
+  local gpu_model
+  gpu_model=$(json_escape "${GPU_MODEL:-}")
   local gpu_passthrough="${GPU_PASSTHROUGH:-unknown}"
 
   # Detect CPU if not already set
@@ -430,7 +431,8 @@ post_to_api() {
     detect_cpu
   fi
   local cpu_vendor="${CPU_VENDOR:-unknown}"
-  local cpu_model="${CPU_MODEL:-}"
+  local cpu_model
+  cpu_model=$(json_escape "${CPU_MODEL:-}")
 
   # Detect RAM if not already set
   if [[ -z "${RAM_SPEED:-}" ]]; then
@@ -521,7 +523,8 @@ post_to_api_vm() {
     detect_gpu
   fi
   local gpu_vendor="${GPU_VENDOR:-unknown}"
-  local gpu_model="${GPU_MODEL:-}"
+  local gpu_model
+  gpu_model=$(json_escape "${GPU_MODEL:-}")
   local gpu_passthrough="${GPU_PASSTHROUGH:-unknown}"
 
   # Detect CPU if not already set
@@ -529,7 +532,8 @@ post_to_api_vm() {
     detect_cpu
   fi
   local cpu_vendor="${CPU_VENDOR:-unknown}"
-  local cpu_model="${CPU_MODEL:-}"
+  local cpu_model
+  cpu_model=$(json_escape "${CPU_MODEL:-}")
 
   # Detect RAM if not already set
   if [[ -z "${RAM_SPEED:-}" ]]; then
@@ -608,12 +612,14 @@ post_update_to_api() {
 
   # Get GPU info (if detected)
   local gpu_vendor="${GPU_VENDOR:-unknown}"
-  local gpu_model="${GPU_MODEL:-}"
+  local gpu_model
+  gpu_model=$(json_escape "${GPU_MODEL:-}")
   local gpu_passthrough="${GPU_PASSTHROUGH:-unknown}"
 
   # Get CPU info (if detected)
   local cpu_vendor="${CPU_VENDOR:-unknown}"
-  local cpu_model="${CPU_MODEL:-}"
+  local cpu_model
+  cpu_model=$(json_escape "${CPU_MODEL:-}")
 
   # Get RAM info (if detected)
   local ram_speed="${RAM_SPEED:-}"
