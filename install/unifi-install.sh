@@ -20,7 +20,7 @@ msg_ok "Installed Dependencies"
 setup_deb822_repo \
   "unifi" \
   "https://dl.ui.com/unifi/unifi-repo.gpg" \
-  "https://www.ui.com/downloads/unifi/debian" \
+  "https://dl.ui.com/unifi/debian" \
   "stable" \
   "ubiquiti" \
   "amd64"
