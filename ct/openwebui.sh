@@ -126,7 +126,7 @@ EOF
 
   msg_info "Updating Open WebUI via uv"
   PYTHON_VERSION="3.12" setup_uv
-  $STD uv tool upgrade --python 3.12 --constraint <(echo "numba>=0.60") open-webui[all]
+  $STD uv tool install --force --python 3.12 --constraint <(echo "numba>=0.60") open-webui[all]
   systemctl restart open-webui
   msg_ok "Updated Open WebUI"
   msg_ok "Updated successfully!"
