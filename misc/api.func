@@ -237,16 +237,21 @@ explain_exit_code() {
 # json_escape()
 #
 # - Escapes a string for safe JSON embedding
+# - Strips ANSI escape sequences and non-printable control characters
 # - Handles backslashes, quotes, newlines, tabs, and carriage returns
 # ------------------------------------------------------------------------------
 json_escape() {
   local s="$1"
+  # Strip ANSI escape sequences (color codes etc.)
+  s=$(printf '%s' "$s" | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g')
   s=${s//\\/\\\\}
   s=${s//"/\\"/}
   s=${s//$'\n'/\\n}
   s=${s//$'\r'/}
   s=${s//$'\t'/\\t}
-  echo "$s"
+  # Remove any remaining control characters (0x00-0x1F except those already handled)
+  s=$(printf '%s' "$s" | tr -d '\000-\010\013\014\016-\037')
+  printf '%s' "$s"
 }
 
 # ------------------------------------------------------------------------------
@@ -283,7 +288,7 @@ get_error_text() {
   fi
 
   if [[ -n "$logfile" && -s "$logfile" ]]; then
-    tail -n 20 "$logfile" 2>/dev/null | sed 's/\r$//'
+    tail -n 20 "$logfile" 2>/dev/null | sed 's/\r$//' | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g'
   fi
 }
 
