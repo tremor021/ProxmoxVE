@@ -27,6 +27,28 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
+
+  if [[ -f "$HOME/.overseerr" ]] && [[ "$(cat "$HOME/.overseerr")" == "1.34.0" ]]; then
+    echo
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Overseerr v1.34.0 detected."
+    echo
+    echo "Seerr is the new unified Jellyseerr and Overseerr."
+    echo "More info: https://docs.seerr.dev/blog/seerr-release"
+    echo
+    read -rp "Do you want to migrate to Seerr now? (y/N): " MIGRATE
+    echo
+    if [[ ! "$MIGRATE" =~ ^[Yy]$ ]]; then
+      msg_info "Migration cancelled. Exiting."
+      exit 0
+    fi
+
+    msg_info "Switching update script to Seerr"
+    sed -i 's|https://github.com/community-scripts/ProxmoxVE/raw/main/ct/overseerr.sh|https://github.com/community-scripts/ProxmoxVE/raw/main/ct/seerr.sh|g' /usr/bin/update
+    msg_ok "Switched update script to Seerr. Running update..."
+    exec /usr/bin/update
+  fi
+
   if check_for_gh_release "overseerr" "sct/overseerr"; then
     msg_info "Stopping Service"
     systemctl stop overseerr
