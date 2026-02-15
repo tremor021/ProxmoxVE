@@ -400,18 +400,19 @@ detect_cpu() {
 # - Detects RAM speed using dmidecode
 # - Sets RAM_SPEED global (e.g., "4800" for DDR5-4800)
 # - Requires root access for dmidecode
-# - Returns empty if not available
+# - Returns empty if not available or if speed is "Unknown" (nested VMs)
 # ------------------------------------------------------------------------------
 detect_ram() {
   RAM_SPEED=""
 
   if command -v dmidecode &>/dev/null; then
     # Get configured memory speed (actual running speed)
-    RAM_SPEED=$(dmidecode -t memory 2>/dev/null | grep -m1 "Configured Memory Speed:" | grep -oE "[0-9]+" | head -1)
+    # Use || true to handle "Unknown" values in nested VMs (no numeric match)
+    RAM_SPEED=$(dmidecode -t memory 2>/dev/null | grep -m1 "Configured Memory Speed:" | grep -oE "[0-9]+" | head -1) || true
 
     # Fallback to Speed: if Configured not available
     if [[ -z "$RAM_SPEED" ]]; then
-      RAM_SPEED=$(dmidecode -t memory 2>/dev/null | grep -m1 "Speed:" | grep -oE "[0-9]+" | head -1)
+      RAM_SPEED=$(dmidecode -t memory 2>/dev/null | grep -m1 "Speed:" | grep -oE "[0-9]+" | head -1) || true
     fi
   fi
 
