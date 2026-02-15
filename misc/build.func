@@ -5268,5 +5268,5 @@ if command -v pveversion >/dev/null 2>&1; then
   trap 'api_exit_script' EXIT
 fi
 trap 'ensure_log_on_host; post_update_to_api "failed" "$?"' ERR
-trap 'ensure_log_on_host; post_update_to_api "failed" "130"' SIGINT
-trap 'ensure_log_on_host; post_update_to_api "failed" "143"' SIGTERM
+trap 'ensure_log_on_host; post_update_to_api "failed" "130"; exit 130' SIGINT
+trap 'ensure_log_on_host; post_update_to_api "failed" "143"; exit 143' SIGTERM
