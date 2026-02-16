@@ -5253,14 +5253,20 @@ ensure_log_on_host() {
 # - Exit trap handler for reporting to API telemetry
 # - Captures exit code and reports to PocketBase using centralized error descriptions
 # - Uses explain_exit_code() from api.func for consistent error messages
-# - Posts failure status with exit code to API (error description resolved automatically)
-# - Only executes on non-zero exit codes
+# - For non-zero exit codes: posts "failed" status
+# - For zero exit codes where post_update_to_api was never called:
+#   catches orphaned "installing" records (e.g., script exited cleanly
+#   but description() was never reached)
 # ------------------------------------------------------------------------------
 api_exit_script() {
-  exit_code=$?
+  local exit_code=$?
   if [ $exit_code -ne 0 ]; then
     ensure_log_on_host
     post_update_to_api "failed" "$exit_code"
+  elif [[ "${POST_TO_API_DONE:-}" == "true" && "${POST_UPDATE_DONE:-}" != "true" ]]; then
+    # Script exited with 0 but never sent a completion status
+    # This catches edge cases like early returns after post_to_api()
+    post_update_to_api "failed" "1"
   fi
 }
 

@@ -529,8 +529,20 @@ cleanup_vmid() {
 }
 
 cleanup() {
+  local exit_code=$?
   if [[ "$(dirs -p | wc -l)" -gt 1 ]]; then
     popd >/dev/null || true
+  fi
+  # Report final telemetry status if post_to_api_vm was called but no update was sent
+  if [[ "${POST_TO_API_DONE:-}" == "true" && "${POST_UPDATE_DONE:-}" != "true" ]]; then
+    if declare -f post_update_to_api >/dev/null 2>&1; then
+      if [[ $exit_code -ne 0 ]]; then
+        post_update_to_api "failed" "$exit_code"
+      else
+        # Exited cleanly but description()/success was never called — shouldn't happen
+        post_update_to_api "failed" "1"
+      fi
+    fi
   fi
 }
 
