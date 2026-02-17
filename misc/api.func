@@ -986,6 +986,62 @@ get_install_duration() {
 }
 
 # ------------------------------------------------------------------------------
+# _telemetry_report_exit()
+#
+# - Internal handler called by EXIT trap set in init_tool_telemetry()
+# - Determines success/failure from exit code and reports via appropriate API
+# - Arguments:
+#   * $1: exit_code from the script
+# ------------------------------------------------------------------------------
+_telemetry_report_exit() {
+  local ec="${1:-0}"
+  local status="success"
+  [[ "$ec" -ne 0 ]] && status="failed"
+
+  # Lazy name resolution: use explicit name, fall back to $APP, then "unknown"
+  local name="${TELEMETRY_TOOL_NAME:-${APP:-unknown}}"
+
+  if [[ "${TELEMETRY_TOOL_TYPE:-tool}" == "addon" ]]; then
+    post_addon_to_api "$name" "$status" "$ec"
+  else
+    post_tool_to_api "$name" "$status" "$ec"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# init_tool_telemetry()
+#
+# - One-line telemetry setup for tools/addon scripts
+# - Reads DIAGNOSTICS from /usr/local/community-scripts/diagnostics
+# - Starts install timer for duration tracking
+# - Sets EXIT trap to automatically report success/failure on script exit
+# - Arguments:
+#   * $1: tool_name (optional, falls back to $APP at exit time)
+#   * $2: type ("tool" for PVE host scripts, "addon" for container addons)
+# - Usage:
+#   source <(curl -fsSL .../misc/api.func) 2>/dev/null || true
+#   init_tool_telemetry "post-pve-install" "tool"
+#   init_tool_telemetry "" "addon"  # uses $APP at exit time
+# ------------------------------------------------------------------------------
+init_tool_telemetry() {
+  local name="${1:-}"
+  local type="${2:-tool}"
+
+  [[ -n "$name" ]] && TELEMETRY_TOOL_NAME="$name"
+  TELEMETRY_TOOL_TYPE="$type"
+
+  # Read diagnostics opt-in/opt-out
+  if [[ -f /usr/local/community-scripts/diagnostics ]]; then
+    DIAGNOSTICS=$(grep -i "^DIAGNOSTICS=" /usr/local/community-scripts/diagnostics 2>/dev/null | awk -F'=' '{print $2}') || true
+  fi
+
+  start_install_timer
+
+  # EXIT trap: automatically report telemetry when script ends
+  trap '_telemetry_report_exit "$?"' EXIT
+}
+
+# ------------------------------------------------------------------------------
 # post_tool_to_api()
 #
 # - Reports tool usage to telemetry

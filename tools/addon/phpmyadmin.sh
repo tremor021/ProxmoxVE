@@ -29,6 +29,10 @@ APP="phpMyAdmin"
 INSTALL_DIR_DEBIAN="/var/www/html/phpMyAdmin"
 INSTALL_DIR_ALPINE="/usr/share/phpmyadmin"
 
+# Telemetry
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func) 2>/dev/null || true
+declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "phpmyadmin" "addon"
+
 IFACE=$(ip -4 route | awk '/default/ {print $5; exit}')
 IP=$(ip -4 addr show "$IFACE" | awk '/inet / {print $2}' | cut -d/ -f1 | head -n 1)
 [[ -z "$IP" ]] && IP=$(hostname -I | awk '{print $1}')

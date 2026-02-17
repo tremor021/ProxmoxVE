@@ -30,6 +30,10 @@ function msg_info() { echo -e "${INFO} ${YW}$1...${CL}"; }
 function msg_ok() { echo -e "${CM} ${GN}$1${CL}"; }
 function msg_error() { echo -e "${CROSS} ${RD}$1${CL}"; }
 
+# Telemetry
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func) 2>/dev/null || true
+declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "glances" "addon"
+
 get_lxc_ip() {
   if command -v hostname >/dev/null 2>&1 && hostname -I 2>/dev/null; then
     hostname -I | awk '{print $1}'

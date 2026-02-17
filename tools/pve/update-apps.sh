@@ -5,6 +5,8 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/refs/heads/main/misc/core.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func) 2>/dev/null || true
+declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "update-apps" "tool"
 
 # =============================================================================
 # CONFIGURATION VARIABLES
@@ -98,14 +100,14 @@ EOF
 
 # Handle command line arguments
 case "${1:-}" in
-  --help|-h)
-    print_usage
-    exit 0
-    ;;
-  --export-config)
-    export_config_json
-    exit 0
-    ;;
+--help | -h)
+  print_usage
+  exit 0
+  ;;
+--export-config)
+  export_config_json
+  exit 0
+  ;;
 esac
 
 # =============================================================================
@@ -202,40 +204,40 @@ msg_ok "Loaded ${#menu_items[@]} containers"
 # Determine container selection based on var_container
 if [[ -n "$var_container" ]]; then
   case "$var_container" in
-    all)
-      # Select all containers with matching tags
-      CHOICE=""
-      for ((i=0; i<${#menu_items[@]}; i+=3)); do
-        CHOICE="$CHOICE ${menu_items[$i]}"
-      done
-      CHOICE=$(echo "$CHOICE" | xargs)
-      ;;
-    all_running)
-      # Select only running containers with matching tags
-      CHOICE=""
-      for ((i=0; i<${#menu_items[@]}; i+=3)); do
-        cid="${menu_items[$i]}"
-        if pct status "$cid" 2>/dev/null | grep -q "running"; then
-          CHOICE="$CHOICE $cid"
-        fi
-      done
-      CHOICE=$(echo "$CHOICE" | xargs)
-      ;;
-    all_stopped)
-      # Select only stopped containers with matching tags
-      CHOICE=""
-      for ((i=0; i<${#menu_items[@]}; i+=3)); do
-        cid="${menu_items[$i]}"
-        if pct status "$cid" 2>/dev/null | grep -q "stopped"; then
-          CHOICE="$CHOICE $cid"
-        fi
-      done
-      CHOICE=$(echo "$CHOICE" | xargs)
-      ;;
-    *)
-      # Assume comma-separated list of container IDs
-      CHOICE=$(echo "$var_container" | tr ',' ' ')
-      ;;
+  all)
+    # Select all containers with matching tags
+    CHOICE=""
+    for ((i = 0; i < ${#menu_items[@]}; i += 3)); do
+      CHOICE="$CHOICE ${menu_items[$i]}"
+    done
+    CHOICE=$(echo "$CHOICE" | xargs)
+    ;;
+  all_running)
+    # Select only running containers with matching tags
+    CHOICE=""
+    for ((i = 0; i < ${#menu_items[@]}; i += 3)); do
+      cid="${menu_items[$i]}"
+      if pct status "$cid" 2>/dev/null | grep -q "running"; then
+        CHOICE="$CHOICE $cid"
+      fi
+    done
+    CHOICE=$(echo "$CHOICE" | xargs)
+    ;;
+  all_stopped)
+    # Select only stopped containers with matching tags
+    CHOICE=""
+    for ((i = 0; i < ${#menu_items[@]}; i += 3)); do
+      cid="${menu_items[$i]}"
+      if pct status "$cid" 2>/dev/null | grep -q "stopped"; then
+        CHOICE="$CHOICE $cid"
+      fi
+    done
+    CHOICE=$(echo "$CHOICE" | xargs)
+    ;;
+  *)
+    # Assume comma-separated list of container IDs
+    CHOICE=$(echo "$var_container" | tr ',' ' ')
+    ;;
   esac
 
   if [[ -z "$CHOICE" ]]; then

@@ -13,6 +13,7 @@ fi
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/core.func)
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/tools.func)
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/error_handler.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func) 2>/dev/null || true
 
 # Enable error handling
 set -Eeuo pipefail
@@ -29,6 +30,7 @@ DEFAULT_PORT=3000
 
 # Initialize all core functions (colors, formatting, icons, STD mode)
 load_functions
+init_tool_telemetry "" "addon"
 
 # ==============================================================================
 # HEADER

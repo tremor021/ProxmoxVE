@@ -4431,7 +4431,7 @@ EOF'
           export var_cpu="$CORE_COUNT"
           export VERBOSE="yes"
           export var_verbose="yes"
-          export RECOVERY_ATTEMPT=$(( ${RECOVERY_ATTEMPT:-0} + 1 ))
+          export RECOVERY_ATTEMPT=$((${RECOVERY_ATTEMPT:-0} + 1))
 
           echo -e "${YW}Rebuilding with increased resources (attempt ${RECOVERY_ATTEMPT}/2):${CL}"
           echo -e "  Container ID: ${old_ctid} → ${CTID}"
