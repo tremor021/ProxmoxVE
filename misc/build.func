@@ -3427,6 +3427,7 @@ start() {
     VERBOSE="no"
     set_std_mode
     ensure_profile_loaded
+    get_lxc_ip
     update_script
     update_motd_ip
     cleanup_lxc
@@ -3454,6 +3455,7 @@ start() {
       ;;
     esac
     ensure_profile_loaded
+    get_lxc_ip
     update_script
     update_motd_ip
     cleanup_lxc
