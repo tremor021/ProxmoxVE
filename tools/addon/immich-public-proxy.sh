@@ -104,12 +104,37 @@ function update() {
     $STD npm run build
     msg_ok "Built ${APP}"
 
+    msg_info "Updating service"
+    create_service
+    msg_ok "Updated service"
+
     msg_info "Starting service"
     systemctl start immich-proxy
     msg_ok "Started service"
     msg_ok "Updated successfully"
     exit
   fi
+}
+
+function create_service() {
+  cat <<EOF >"$SERVICE_PATH"
+[Unit]
+Description=Immich Public Proxy
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=${INSTALL_PATH}/app
+EnvironmentFile=${CONFIG_PATH}/.env
+ExecStart=/usr/bin/node ${INSTALL_PATH}/app/dist/index.js
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  systemctl daemon-reload
 }
 
 # ==============================================================================
@@ -173,23 +198,7 @@ EOF
   msg_ok "Created configuration"
 
   msg_info "Creating service"
-  cat <<EOF >"$SERVICE_PATH"
-[Unit]
-Description=Immich Public Proxy
-After=network.target
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=${INSTALL_PATH}
-EnvironmentFile=${CONFIG_PATH}/.env
-ExecStart=/usr/bin/node ${INSTALL_PATH}/app/server.js
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-EOF
+  create_service
   systemctl enable -q --now immich-proxy
   msg_ok "Created and started service"
 
