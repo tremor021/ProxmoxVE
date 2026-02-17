@@ -117,16 +117,17 @@ detect_repo_source
 # - Canonical source of truth for ALL exit code mappings
 # - Used by both api.func (telemetry) and error_handler.func (error display)
 # - Supports:
-#   * Generic/Shell errors (1, 2, 124, 126-130, 134, 137, 139, 141, 143)
-#   * curl/wget errors (6, 7, 22, 28, 35)
+#   * Generic/Shell errors (1-3, 10, 124-132, 134, 137, 139, 141, 143-146)
+#   * curl/wget errors (4-8, 16, 18, 22-28, 30, 32-36, 39, 44-48, 51-52, 55-57, 59, 61, 63, 75, 78-79, 92, 95)
 #   * Package manager errors (APT, DPKG: 100-102, 255)
+#   * BSD sysexits (64-78)
 #   * Systemd/Service errors (150-154)
 #   * Python/pip/uv errors (160-162)
 #   * PostgreSQL errors (170-173)
 #   * MySQL/MariaDB errors (180-183)
 #   * MongoDB errors (190-193)
 #   * Proxmox custom codes (200-231)
-#   * Node.js/npm errors (243, 245-249)
+#   * Node.js/npm errors (239, 243, 245-249)
 # - Returns description string for given exit code
 # ------------------------------------------------------------------------------
 explain_exit_code() {
@@ -135,6 +136,7 @@ explain_exit_code() {
   # --- Generic / Shell ---
   1) echo "General error / Operation not permitted" ;;
   2) echo "Misuse of shell builtins (e.g. syntax error)" ;;
+  3) echo "General syntax or argument error" ;;
   10) echo "Docker / privileged mode required (unsupported environment)" ;;
 
   # --- curl / wget errors (commonly seen in downloads) ---
@@ -142,16 +144,41 @@ explain_exit_code() {
   5) echo "curl: Could not resolve proxy" ;;
   6) echo "curl: DNS resolution failed (could not resolve host)" ;;
   7) echo "curl: Failed to connect (network unreachable / host down)" ;;
-  8) echo "curl: FTP server reply error" ;;
+  8) echo "curl: Server reply error (FTP/SFTP or apk untrusted key)" ;;
+  16) echo "curl: HTTP/2 framing layer error" ;;
+  18) echo "curl: Partial file (transfer not completed)" ;;
   22) echo "curl: HTTP error returned (404, 429, 500+)" ;;
   23) echo "curl: Write error (disk full or permissions)" ;;
+  24) echo "curl: Write to local file failed" ;;
   25) echo "curl: Upload failed" ;;
+  26) echo "curl: Read error on local file (I/O)" ;;
+  27) echo "curl: Out of memory (memory allocation failed)" ;;
   28) echo "curl: Operation timeout (network slow or server not responding)" ;;
   30) echo "curl: FTP port command failed" ;;
+  32) echo "curl: FTP SIZE command failed" ;;
+  33) echo "curl: HTTP range error" ;;
+  34) echo "curl: HTTP post error" ;;
   35) echo "curl: SSL/TLS handshake failed (certificate error)" ;;
+  36) echo "curl: FTP bad download resume" ;;
+  39) echo "curl: LDAP search failed" ;;
+  44) echo "curl: Internal error (bad function call order)" ;;
+  45) echo "curl: Interface error (failed to bind to specified interface)" ;;
+  46) echo "curl: Bad password entered" ;;
+  47) echo "curl: Too many redirects" ;;
+  48) echo "curl: Unknown command line option specified" ;;
+  51) echo "curl: SSL peer certificate or SSH host key verification failed" ;;
+  52) echo "curl: Empty reply from server (got nothing)" ;;
+  55) echo "curl: Failed sending network data" ;;
   56) echo "curl: Receive error (connection reset by peer)" ;;
+  57) echo "curl: Unrecoverable poll/select error (system I/O failure)" ;;
+  59) echo "curl: Couldn't use specified SSL cipher" ;;
+  61) echo "curl: Bad/unrecognized transfer encoding" ;;
+  63) echo "curl: Maximum file size exceeded" ;;
   75) echo "Temporary failure (retry later)" ;;
   78) echo "curl: Remote file not found (404 on FTP/file)" ;;
+  79) echo "curl: SSH session error (key exchange/auth failed)" ;;
+  92) echo "curl: HTTP/2 stream error (protocol violation)" ;;
+  95) echo "curl: HTTP/3 layer error" ;;
 
   # --- Package manager / APT / DPKG ---
   100) echo "APT: Package manager error (broken packages / dependency problems)" ;;
@@ -175,15 +202,21 @@ explain_exit_code() {
 
   # --- Common shell/system errors ---
   124) echo "Command timed out (timeout command)" ;;
+  125) echo "Command failed to start (Docker daemon or execution error)" ;;
   126) echo "Command invoked cannot execute (permission problem?)" ;;
   127) echo "Command not found" ;;
   128) echo "Invalid argument to exit" ;;
+  129) echo "Killed by SIGHUP (terminal closed / hangup)" ;;
   130) echo "Aborted by user (SIGINT)" ;;
+  131) echo "Killed by SIGQUIT (core dumped)" ;;
+  132) echo "Killed by SIGILL (illegal CPU instruction)" ;;
   134) echo "Process aborted (SIGABRT - possibly Node.js heap overflow)" ;;
   137) echo "Killed (SIGKILL / Out of memory?)" ;;
   139) echo "Segmentation fault (core dumped)" ;;
   141) echo "Broken pipe (SIGPIPE - output closed prematurely)" ;;
   143) echo "Terminated (SIGTERM)" ;;
+  144) echo "Killed by signal 16 (SIGUSR1 / SIGSTKFLT)" ;;
+  146) echo "Killed by signal 18 (SIGTSTP)" ;;
 
   # --- Systemd / Service errors (150-154) ---
   150) echo "Systemd: Service failed to start" ;;
@@ -191,7 +224,6 @@ explain_exit_code() {
   152) echo "Permission denied (EACCES)" ;;
   153) echo "Build/compile failed (make/gcc/cmake)" ;;
   154) echo "Node.js: Native addon build failed (node-gyp)" ;;
-
   # --- Python / pip / uv (160-162) ---
   160) echo "Python: Virtualenv / uv environment missing or broken" ;;
   161) echo "Python: Dependency resolution failed" ;;
@@ -242,7 +274,8 @@ explain_exit_code() {
   225) echo "Proxmox: No template available for OS/Version" ;;
   231) echo "Proxmox: LXC stack upgrade failed" ;;
 
-  # --- Node.js / npm / pnpm / yarn (243-249) ---
+  # --- Node.js / npm / pnpm / yarn (239-249) ---
+  239) echo "npm/Node.js: Unexpected runtime error or dependency failure" ;;
   243) echo "Node.js: Out of memory (JavaScript heap out of memory)" ;;
   245) echo "Node.js: Invalid command-line option" ;;
   246) echo "Node.js: Internal JavaScript Parse Error" ;;

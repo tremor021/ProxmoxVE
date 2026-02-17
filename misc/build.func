@@ -297,7 +297,7 @@ validate_container_id() {
   # Falls back gracefully if pvesh unavailable or returns empty
   if command -v pvesh &>/dev/null; then
     local cluster_ids
-    cluster_ids=$(pvesh get /cluster/resources --type vm --output-format json 2>/dev/null | 
+    cluster_ids=$(pvesh get /cluster/resources --type vm --output-format json 2>/dev/null |
       grep -oP '"vmid":\s*\K[0-9]+' 2>/dev/null || true)
     if [[ -n "$cluster_ids" ]] && echo "$cluster_ids" | grep -qw "$ctid"; then
       return 1
@@ -4040,6 +4040,13 @@ EOF'
 
   msg_ok "Customized LXC Container"
 
+  # Optional DNS override for retry scenarios (inside LXC, never on host)
+  if [[ "${DNS_RETRY_OVERRIDE:-false}" == "true" ]]; then
+    msg_info "Applying DNS retry override in LXC (8.8.8.8, 1.1.1.1)"
+    pct exec "$CTID" -- bash -c "printf 'nameserver 8.8.8.8\nnameserver 1.1.1.1\n' >/etc/resolv.conf" >/dev/null 2>&1 || true
+    msg_ok "DNS override applied in LXC"
+  fi
+
   # Install SSH keys
   install_ssh_keys_into_ct
 
@@ -4152,32 +4159,322 @@ EOF'
 
     # Prompt user for cleanup with 60s timeout
     echo ""
-    echo -en "${TAB}❓${TAB}${YW}Remove broken container ${CTID}? (Y/n) [auto-remove in 60s]: ${CL}"
+
+    # Detect error type for smart recovery options
+    local is_oom=false
+    local is_network_issue=false
+    local is_apt_issue=false
+    local is_cmd_not_found=false
+    local error_explanation=""
+    if declare -f explain_exit_code >/dev/null 2>&1; then
+      error_explanation="$(explain_exit_code "$install_exit_code")"
+    fi
+
+    # OOM detection: exit codes 134 (SIGABRT/heap), 137 (SIGKILL/OOM), 243 (Node.js heap)
+    if [[ $install_exit_code -eq 134 || $install_exit_code -eq 137 || $install_exit_code -eq 243 ]]; then
+      is_oom=true
+    fi
+
+    # APT/DPKG detection: exit codes 100-102 (APT), 255 (DPKG with log evidence)
+    case "$install_exit_code" in
+    100 | 101 | 102) is_apt_issue=true ;;
+    255)
+      if [[ -f "$combined_log" ]] && grep -qiE 'dpkg|apt-get|apt\.conf|broken packages|unmet dependencies|E: Sub-process|E: Failed' "$combined_log"; then
+        is_apt_issue=true
+      fi
+      ;;
+    esac
+
+    # Command not found detection
+    if [[ $install_exit_code -eq 127 ]]; then
+      is_cmd_not_found=true
+    fi
+
+    # Network-related detection (curl/apt/git fetch failures and transient network issues)
+    case "$install_exit_code" in
+    6 | 7 | 22 | 28 | 35 | 52 | 56 | 57 | 75 | 78) is_network_issue=true ;;
+    100)
+      # APT can fail due to network (Failed to fetch)
+      if [[ -f "$combined_log" ]] && grep -qiE 'Failed to fetch|Could not resolve|Connection failed|Network is unreachable|Temporary failure resolving' "$combined_log"; then
+        is_network_issue=true
+      fi
+      ;;
+    128)
+      if [[ -f "$combined_log" ]] && grep -qiE 'RPC failed|early EOF|fetch-pack|HTTP/2 stream|Could not resolve host|Temporary failure resolving|Failed to fetch|Connection reset|Network is unreachable' "$combined_log"; then
+        is_network_issue=true
+      fi
+      ;;
+    esac
+
+    # Exit 1 subclassification: analyze logs to identify actual root cause
+    # Many exit 1 errors are actually APT, OOM, network, or command-not-found issues
+    if [[ $install_exit_code -eq 1 && -f "$combined_log" ]]; then
+      if grep -qiE 'E: Unable to|E: Package|E: Failed to fetch|dpkg.*error|broken packages|unmet dependencies|dpkg --configure -a' "$combined_log"; then
+        is_apt_issue=true
+      fi
+      if grep -qiE 'Cannot allocate memory|Out of memory|oom-killer|Killed process|JavaScript heap' "$combined_log"; then
+        is_oom=true
+      fi
+      if grep -qiE 'Could not resolve|DNS|Connection refused|Network is unreachable|No route to host|Temporary failure resolving|Failed to fetch' "$combined_log"; then
+        is_network_issue=true
+      fi
+      if grep -qiE ': command not found|No such file or directory.*/s?bin/' "$combined_log"; then
+        is_cmd_not_found=true
+      fi
+    fi
+
+    # Show error explanation if available
+    if [[ -n "$error_explanation" ]]; then
+      echo -e "${TAB}${RD}Error: ${error_explanation}${CL}"
+      echo ""
+    fi
+
+    # Show specific hints for known error types
+    if [[ $install_exit_code -eq 10 ]]; then
+      echo -e "${TAB}${INFO} This error usually means the container needs ${GN}privileged${CL} mode or Docker/nesting support."
+      echo -e "${TAB}${INFO} Recreate with: Advanced Install → Container Type: ${GN}Privileged${CL}"
+      echo ""
+    fi
+
+    if [[ $install_exit_code -eq 125 || $install_exit_code -eq 126 ]]; then
+      echo -e "${TAB}${INFO} The command exists but cannot be executed. This may be a ${GN}permission${CL} issue."
+      echo -e "${TAB}${INFO} If using Docker, ensure the container is ${GN}privileged${CL} or has correct permissions."
+      echo ""
+    fi
+
+    if [[ "$is_cmd_not_found" == true ]]; then
+      local missing_cmd=""
+      if [[ -f "$combined_log" ]]; then
+        missing_cmd=$(grep -oiE '[a-zA-Z0-9_.-]+: command not found' "$combined_log" | tail -1 | sed 's/: command not found//')
+      fi
+      if [[ -n "$missing_cmd" ]]; then
+        echo -e "${TAB}${INFO} Missing command: ${GN}${missing_cmd}${CL}"
+      fi
+      echo ""
+    fi
+
+    # Build recovery menu based on error type
+    echo -e "${YW}What would you like to do?${CL}"
+    echo ""
+    echo -e "  ${GN}1)${CL} Remove container and exit"
+    echo -e "  ${GN}2)${CL} Keep container for debugging"
+    echo -e "  ${GN}3)${CL} Retry with verbose mode (full rebuild)"
+
+    local next_option=4
+    local APT_OPTION="" OOM_OPTION="" DNS_OPTION=""
+
+    if [[ "$is_apt_issue" == true ]]; then
+      if [[ "$var_os" == "alpine" ]]; then
+        echo -e "  ${GN}${next_option})${CL} Repair APK state and re-run install (in-place)"
+      else
+        echo -e "  ${GN}${next_option})${CL} Repair APT/DPKG state and re-run install (in-place)"
+      fi
+      APT_OPTION=$next_option
+      next_option=$((next_option + 1))
+    fi
+
+    if [[ "$is_oom" == true ]]; then
+      local recovery_attempt="${RECOVERY_ATTEMPT:-0}"
+      if [[ $recovery_attempt -lt 2 ]]; then
+        local new_ram=$((RAM_SIZE * 2))
+        local new_cpu=$((CORE_COUNT * 2))
+        echo -e "  ${GN}${next_option})${CL} Retry with more resources (RAM: ${RAM_SIZE}→${new_ram} MiB, CPU: ${CORE_COUNT}→${new_cpu} cores)"
+        OOM_OPTION=$next_option
+        next_option=$((next_option + 1))
+      else
+        echo -e "  ${DGN}-)${CL} ${DGN}OOM retry exhausted (already retried ${recovery_attempt}x)${CL}"
+      fi
+    fi
+
+    if [[ "$is_network_issue" == true ]]; then
+      echo -e "  ${GN}${next_option})${CL} Retry with DNS override in LXC (8.8.8.8 / 1.1.1.1)"
+      DNS_OPTION=$next_option
+      next_option=$((next_option + 1))
+    fi
+
+    local max_option=$((next_option - 1))
+
+    echo ""
+    echo -en "${YW}Select option [1-${max_option}] (default: 1, auto-remove in 60s): ${CL}"
 
     if read -t 60 -r response; then
-      if [[ -z "$response" || "$response" =~ ^[Yy]$ ]]; then
+      case "${response:-1}" in
+      1)
         # Remove container
-        echo ""
-        msg_info "Removing container ${CTID}"
+        echo -e "\n${TAB}${HOLD}${YW}Removing container ${CTID}${CL}"
         pct stop "$CTID" &>/dev/null || true
         pct destroy "$CTID" &>/dev/null || true
-        msg_ok "Container ${CTID} removed"
-      elif [[ "$response" =~ ^[Nn]$ ]]; then
-        echo ""
-        msg_warn "Container ${CTID} kept for debugging"
-
+        echo -e "${BFR}${CM}${GN}Container ${CTID} removed${CL}"
+        ;;
+      2)
+        echo -e "\n${TAB}${YW}Container ${CTID} kept for debugging${CL}"
         # Dev mode: Setup MOTD/SSH for debugging access to broken container
         if [[ "${DEV_MODE_MOTD:-false}" == "true" ]]; then
           echo -e "${TAB}${HOLD}${DGN}Setting up MOTD and SSH for debugging...${CL}"
           if pct exec "$CTID" -- bash -c "
-            source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/install.func)
-            declare -f motd_ssh >/dev/null 2>&1 && motd_ssh || true
-          " >/dev/null 2>&1; then
+              source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/install.func)
+              declare -f motd_ssh >/dev/null 2>&1 && motd_ssh || true
+            " >/dev/null 2>&1; then
             local ct_ip=$(pct exec "$CTID" ip a s dev eth0 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1)
             echo -e "${BFR}${CM}${GN}MOTD/SSH ready - SSH into container: ssh root@${ct_ip}${CL}"
           fi
         fi
-      fi
+        exit $install_exit_code
+        ;;
+      3)
+        # Retry with verbose mode (full rebuild)
+        echo -e "\n${TAB}${HOLD}${YW}Removing container ${CTID} for rebuild...${CL}"
+        pct stop "$CTID" &>/dev/null || true
+        pct destroy "$CTID" &>/dev/null || true
+        echo -e "${BFR}${CM}${GN}Container ${CTID} removed${CL}"
+        echo ""
+        # Get new container ID
+        local old_ctid="$CTID"
+        export CTID=$(get_valid_container_id "$CTID")
+        export VERBOSE="yes"
+        export var_verbose="yes"
+
+        # Show rebuild summary
+        echo -e "${YW}Rebuilding with preserved settings:${CL}"
+        echo -e "  Container ID: ${old_ctid} → ${CTID}"
+        echo -e "  RAM: ${RAM_SIZE} MiB | CPU: ${CORE_COUNT} cores | Disk: ${DISK_SIZE} GB"
+        echo -e "  Network: ${NET:-dhcp} | Bridge: ${BRG:-vmbr0}"
+        echo -e "  Verbose: ${GN}enabled${CL}"
+        echo ""
+        msg_info "Restarting installation..."
+        # Re-run build_container
+        build_container
+        return $?
+        ;;
+      *)
+        # Handle dynamic smart recovery options via named option variables
+        local handled=false
+
+        if [[ -n "${APT_OPTION}" && "${response}" == "${APT_OPTION}" ]]; then
+          # Package manager in-place repair: fix broken state and re-run install script
+          handled=true
+          if [[ "$var_os" == "alpine" ]]; then
+            echo -e "\n${TAB}${HOLD}${YW}Repairing APK state in container ${CTID}...${CL}"
+            pct exec "$CTID" -- ash -c "
+              apk fix 2>/dev/null || true
+              apk cache clean 2>/dev/null || true
+              apk update 2>/dev/null || true
+            " >/dev/null 2>&1 || true
+            echo -e "${BFR}${CM}${GN}APK state repaired in container ${CTID}${CL}"
+          else
+            echo -e "\n${TAB}${HOLD}${YW}Repairing APT/DPKG state in container ${CTID}...${CL}"
+            pct exec "$CTID" -- bash -c "
+              DEBIAN_FRONTEND=noninteractive dpkg --configure -a 2>/dev/null || true
+              apt-get -f install -y 2>/dev/null || true
+              apt-get clean 2>/dev/null
+              apt-get update 2>/dev/null || true
+            " >/dev/null 2>&1 || true
+            echo -e "${BFR}${CM}${GN}APT/DPKG state repaired in container ${CTID}${CL}"
+          fi
+          echo ""
+          export VERBOSE="yes"
+          export var_verbose="yes"
+
+          echo -e "${YW}Re-running installation in existing container ${CTID}:${CL}"
+          echo -e "  RAM: ${RAM_SIZE} MiB | CPU: ${CORE_COUNT} cores | Disk: ${DISK_SIZE} GB"
+          echo -e "  Verbose: ${GN}enabled${CL}"
+          echo ""
+          msg_info "Re-running installation script..."
+
+          # Re-run install script in existing container (don't destroy/recreate)
+          set +Eeuo pipefail
+          trap - ERR
+          lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/install/${var_install}.sh)"
+          local apt_retry_exit=$?
+          set -Eeuo pipefail
+          trap 'error_handler' ERR
+
+          # Check for error flag from retry
+          local apt_retry_code=0
+          if [[ -n "${SESSION_ID:-}" ]]; then
+            local retry_error_flag="/root/.install-${SESSION_ID}.failed"
+            if pct exec "$CTID" -- test -f "$retry_error_flag" 2>/dev/null; then
+              apt_retry_code=$(pct exec "$CTID" -- cat "$retry_error_flag" 2>/dev/null || echo "1")
+              pct exec "$CTID" -- rm -f "$retry_error_flag" 2>/dev/null || true
+            fi
+          fi
+
+          if [[ $apt_retry_code -eq 0 && $apt_retry_exit -ne 0 ]]; then
+            apt_retry_code=$apt_retry_exit
+          fi
+
+          if [[ $apt_retry_code -eq 0 ]]; then
+            msg_ok "Installation completed successfully after APT repair!"
+            post_update_to_api "done" "0" "force"
+            return 0
+          else
+            msg_error "Installation still failed after APT repair (exit code: ${apt_retry_code})"
+            install_exit_code=$apt_retry_code
+          fi
+        fi
+
+        if [[ -n "${OOM_OPTION}" && "${response}" == "${OOM_OPTION}" ]]; then
+          # Retry with doubled resources
+          handled=true
+          echo -e "\n${TAB}${HOLD}${YW}Removing container ${CTID} for rebuild with more resources...${CL}"
+          pct stop "$CTID" &>/dev/null || true
+          pct destroy "$CTID" &>/dev/null || true
+          echo -e "${BFR}${CM}${GN}Container ${CTID} removed${CL}"
+          echo ""
+          local old_ctid="$CTID"
+          local old_ram="$RAM_SIZE"
+          local old_cpu="$CORE_COUNT"
+          export CTID=$(get_valid_container_id "$CTID")
+          export RAM_SIZE=$((RAM_SIZE * 2))
+          export CORE_COUNT=$((CORE_COUNT * 2))
+          export var_ram="$RAM_SIZE"
+          export var_cpu="$CORE_COUNT"
+          export VERBOSE="yes"
+          export var_verbose="yes"
+          export RECOVERY_ATTEMPT=$(( ${RECOVERY_ATTEMPT:-0} + 1 ))
+
+          echo -e "${YW}Rebuilding with increased resources (attempt ${RECOVERY_ATTEMPT}/2):${CL}"
+          echo -e "  Container ID: ${old_ctid} → ${CTID}"
+          echo -e "  RAM: ${old_ram} → ${GN}${RAM_SIZE}${CL} MiB (x2)"
+          echo -e "  CPU: ${old_cpu} → ${GN}${CORE_COUNT}${CL} cores (x2)"
+          echo -e "  Disk: ${DISK_SIZE} GB | Network: ${NET:-dhcp} | Bridge: ${BRG:-vmbr0}"
+          echo -e "  Verbose: ${GN}enabled${CL}"
+          echo ""
+          msg_info "Restarting installation..."
+          build_container
+          return $?
+        fi
+
+        if [[ -n "${DNS_OPTION}" && "${response}" == "${DNS_OPTION}" ]]; then
+          # Retry with DNS override in LXC
+          handled=true
+          echo -e "\n${TAB}${HOLD}${YW}Removing container ${CTID} for rebuild with DNS override...${CL}"
+          pct stop "$CTID" &>/dev/null || true
+          pct destroy "$CTID" &>/dev/null || true
+          echo -e "${BFR}${CM}${GN}Container ${CTID} removed${CL}"
+          echo ""
+          local old_ctid="$CTID"
+          export CTID=$(get_valid_container_id "$CTID")
+          export DNS_RETRY_OVERRIDE="true"
+          export VERBOSE="yes"
+          export var_verbose="yes"
+
+          echo -e "${YW}Rebuilding with DNS override in LXC:${CL}"
+          echo -e "  Container ID: ${old_ctid} → ${CTID}"
+          echo -e "  DNS: ${GN}8.8.8.8, 1.1.1.1${CL} (inside LXC only)"
+          echo -e "  Verbose: ${GN}enabled${CL}"
+          echo ""
+          msg_info "Restarting installation..."
+          build_container
+          return $?
+        fi
+
+        if [[ "$handled" == false ]]; then
+          echo -e "\n${TAB}${YW}Invalid option. Container ${CTID} kept.${CL}"
+          exit $install_exit_code
+        fi
+        ;;
+      esac
     else
       # Timeout - auto-remove
       echo ""
@@ -5275,6 +5572,7 @@ api_exit_script() {
 if command -v pveversion >/dev/null 2>&1; then
   trap 'api_exit_script' EXIT
 fi
-trap 'ensure_log_on_host; post_update_to_api "failed" "$?"' ERR
+trap '_ERR_CODE=$?; ensure_log_on_host; post_update_to_api "failed" "$_ERR_CODE"' ERR
+trap 'ensure_log_on_host; post_update_to_api "failed" "129"; exit 129' SIGHUP
 trap 'ensure_log_on_host; post_update_to_api "failed" "130"; exit 130' SIGINT
 trap 'ensure_log_on_host; post_update_to_api "failed" "143"; exit 143' SIGTERM
