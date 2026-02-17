@@ -908,6 +908,9 @@ categorize_error() {
   # Network errors (curl/wget)
   6 | 7 | 22 | 35) echo "network" ;;
 
+  # Docker / Privileged mode required
+  10) echo "config" ;;
+
   # Timeout errors
   28 | 124 | 211) echo "timeout" ;;
 

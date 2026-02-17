@@ -5564,15 +5564,15 @@ api_exit_script() {
     post_update_to_api "failed" "$exit_code"
   elif [[ "${POST_TO_API_DONE:-}" == "true" && "${POST_UPDATE_DONE:-}" != "true" ]]; then
     # Script exited with 0 but never sent a completion status
-    # This catches edge cases like early returns after post_to_api()
-    post_update_to_api "failed" "1"
+    # exit_code=0 is never an error — report as success
+    post_update_to_api "done" "0"
   fi
 }
 
 if command -v pveversion >/dev/null 2>&1; then
   trap 'api_exit_script' EXIT
 fi
-trap '_ERR_CODE=$?; ensure_log_on_host; post_update_to_api "failed" "$_ERR_CODE"' ERR
+trap 'local _ec=$?; if [[ $_ec -ne 0 ]]; then ensure_log_on_host; post_update_to_api "failed" "$_ec"; fi' ERR
 trap 'ensure_log_on_host; post_update_to_api "failed" "129"; exit 129' SIGHUP
 trap 'ensure_log_on_host; post_update_to_api "failed" "130"; exit 130' SIGINT
 trap 'ensure_log_on_host; post_update_to_api "failed" "143"; exit 143' SIGTERM

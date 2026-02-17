@@ -40,6 +40,25 @@ catch_errors
 # Get LXC IP address (must be called INSIDE container, after network is up)
 get_lxc_ip
 
+# ------------------------------------------------------------------------------
+# post_progress_to_api()
+#
+# - Lightweight progress ping from inside the container
+# - Updates the existing telemetry record status from "installing" to "configuring"
+# - Signals that the installation is actively progressing (not stuck)
+# - Fire-and-forget: never blocks or fails the script
+# - Only executes if DIAGNOSTICS=yes and RANDOM_UUID is set
+# ------------------------------------------------------------------------------
+post_progress_to_api() {
+  command -v curl &>/dev/null || return 0
+  [[ "${DIAGNOSTICS:-no}" == "no" ]] && return 0
+  [[ -z "${RANDOM_UUID:-}" ]] && return 0
+
+  curl -fsS -m 5 -X POST "https://telemetry.community-scripts.org/telemetry" \
+    -H "Content-Type: application/json" \
+    -d "{\"random_id\":\"${RANDOM_UUID}\",\"type\":\"lxc\",\"nsapp\":\"${app:-unknown}\",\"status\":\"configuring\"}" &>/dev/null || true
+}
+
 # ==============================================================================
 # SECTION 2: NETWORK & CONNECTIVITY
 # ==============================================================================
@@ -103,6 +122,7 @@ setting_up_container() {
   msg_ok "Set up Container OS"
   #msg_custom "${CM}" "${GN}" "Network Connected: ${BL}$(hostname -I)"
   msg_ok "Network Connected: ${BL}$(hostname -I)"
+  post_progress_to_api
 }
 
 # ------------------------------------------------------------------------------
@@ -206,8 +226,18 @@ EOF
   $STD apt-get -o Dpkg::Options::="--force-confold" -y dist-upgrade
   rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
   msg_ok "Updated Container OS"
+  post_progress_to_api
 
-  source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/tools.func)
+  local tools_content
+  tools_content=$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/tools.func) || {
+    msg_error "Failed to download tools.func"
+    exit 6
+  }
+  source /dev/stdin <<<"$tools_content"
+  if ! declare -f fetch_and_deploy_gh_release >/dev/null 2>&1; then
+    msg_error "tools.func loaded but incomplete — missing expected functions"
+    exit 6
+  fi
 }
 
 # ==============================================================================
