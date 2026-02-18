@@ -406,6 +406,12 @@ Exercise vigilance regarding copycat or coat-tailing sites that seek to exploit 
 
 ## 2026-02-18
 
+### 🚀 Updated Scripts
+
+  - #### 💥 Breaking Changes
+
+    - [Fix] PatchMon: use `SERVER_PORT` in Nginx config if set in env [@vhsdream](https://github.com/vhsdream) ([#12053](https://github.com/community-scripts/ProxmoxVE/pull/12053))
+
 ### 💾 Core
 
   - #### ✨ New Features
