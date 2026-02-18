@@ -4106,9 +4106,9 @@ EOF'
         build_log_copied=true
       fi
 
-      # Copy and append INSTALL_LOG from container
+      # Copy and append INSTALL_LOG from container (with timeout to prevent hangs)
       local temp_install_log="/tmp/.install-temp-${SESSION_ID}.log"
-      if pct pull "$CTID" "/root/.install-${SESSION_ID}.log" "$temp_install_log" 2>/dev/null; then
+      if timeout 8 pct pull "$CTID" "/root/.install-${SESSION_ID}.log" "$temp_install_log" 2>/dev/null; then
         {
           echo "================================================================================"
           echo "PHASE 2: APPLICATION INSTALLATION (Container)"
@@ -5492,6 +5492,7 @@ EOF
 # - If INSTALL_LOG points to a container path (e.g. /root/.install-*),
 #   tries to pull it from the container and create a combined log
 # - This allows get_error_text() to find actual error output for telemetry
+# - Uses timeout on pct pull to prevent hangs on dead/unresponsive containers
 # ------------------------------------------------------------------------------
 ensure_log_on_host() {
   # Already readable on host? Nothing to do.
@@ -5521,9 +5522,9 @@ ensure_log_on_host() {
           echo ""
         } >>"$combined_log"
       fi
-      # Pull INSTALL_LOG from container
+      # Pull INSTALL_LOG from container (with timeout to prevent hangs on dead containers)
       local temp_log="/tmp/.install-temp-${SESSION_ID}.log"
-      if pct pull "$CTID" "/root/.install-${SESSION_ID}.log" "$temp_log" 2>/dev/null; then
+      if timeout 8 pct pull "$CTID" "/root/.install-${SESSION_ID}.log" "$temp_log" 2>/dev/null; then
         {
           echo "================================================================================"
           echo "PHASE 2: APPLICATION INSTALLATION (Container)"
@@ -5546,8 +5547,8 @@ ensure_log_on_host() {
 # - Exit trap handler for reporting to API telemetry
 # - Captures exit code and reports to PocketBase using centralized error descriptions
 # - Uses explain_exit_code() from api.func for consistent error messages
-# - For signal exits (>128): sends telemetry FIRST before log collection
-#   to prevent pct pull hangs from blocking status updates
+# - ALWAYS sends telemetry FIRST before log collection to prevent pct pull
+#   hangs from blocking status updates (container may be dead/unresponsive)
 # - For non-zero exit codes: posts "failed" status
 # - For zero exit codes where post_update_to_api was never called:
 #   catches orphaned "installing" records (e.g., script exited cleanly
@@ -5556,14 +5557,12 @@ ensure_log_on_host() {
 api_exit_script() {
   local exit_code=$?
   if [ $exit_code -ne 0 ]; then
-    if [ $exit_code -gt 128 ]; then
-      # Signal exit: send telemetry IMMEDIATELY (container may be dying)
-      post_update_to_api "failed" "$exit_code" 2>/dev/null || true
-      ensure_log_on_host 2>/dev/null || true
-    else
-      # Normal error: collect logs first for better error details
-      ensure_log_on_host 2>/dev/null || true
-      post_update_to_api "failed" "$exit_code"
+    # ALWAYS send telemetry FIRST - ensure status is reported even if
+    # ensure_log_on_host hangs (e.g. pct pull on dead container)
+    post_update_to_api "failed" "$exit_code" 2>/dev/null || true
+    # Best-effort log collection with timeout (non-critical after telemetry is sent)
+    if declare -f ensure_log_on_host >/dev/null 2>&1; then
+      timeout 10 bash -c 'ensure_log_on_host' 2>/dev/null || true
     fi
   elif [[ "${POST_TO_API_DONE:-}" == "true" && "${POST_UPDATE_DONE:-}" != "true" ]]; then
     # Script exited with 0 but never sent a completion status
@@ -5575,7 +5574,7 @@ api_exit_script() {
 if command -v pveversion >/dev/null 2>&1; then
   trap 'api_exit_script' EXIT
 fi
-trap 'local _ec=$?; if [[ $_ec -ne 0 ]]; then ensure_log_on_host 2>/dev/null || true; post_update_to_api "failed" "$_ec"; fi' ERR
-trap 'post_update_to_api "failed" "129" 2>/dev/null || true; ensure_log_on_host 2>/dev/null || true; exit 129' SIGHUP
-trap 'post_update_to_api "failed" "130" 2>/dev/null || true; ensure_log_on_host 2>/dev/null || true; exit 130' SIGINT
-trap 'post_update_to_api "failed" "143" 2>/dev/null || true; ensure_log_on_host 2>/dev/null || true; exit 143' SIGTERM
+trap 'local _ec=$?; if [[ $_ec -ne 0 ]]; then post_update_to_api "failed" "$_ec" 2>/dev/null || true; timeout 10 bash -c "ensure_log_on_host" 2>/dev/null || true; fi' ERR
+trap 'post_update_to_api "failed" "129" 2>/dev/null || true; timeout 10 bash -c "ensure_log_on_host" 2>/dev/null || true; exit 129' SIGHUP
+trap 'post_update_to_api "failed" "130" 2>/dev/null || true; timeout 10 bash -c "ensure_log_on_host" 2>/dev/null || true; exit 130' SIGINT
+trap 'post_update_to_api "failed" "143" 2>/dev/null || true; timeout 10 bash -c "ensure_log_on_host" 2>/dev/null || true; exit 143' SIGTERM
