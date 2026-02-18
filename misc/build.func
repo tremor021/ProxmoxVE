@@ -42,9 +42,10 @@ variables() {
   var_install="${NSAPP}-install"                         # sets the var_install variable by appending "-install" to the value of NSAPP.
   INTEGER='^[0-9]+([.][0-9]+)?$'                         # it defines the INTEGER regular expression pattern.
   PVEHOST_NAME=$(hostname)                               # gets the Proxmox Hostname and sets it to Uppercase
-  DIAGNOSTICS="yes"                                      # sets the DIAGNOSTICS variable to "yes", used for the API call.
+  DIAGNOSTICS="no"                                       # Safe default: no telemetry until user consents via diagnostics_check()
   METHOD="default"                                       # sets the METHOD variable to "default", used for the API call.
   RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"      # generates a random UUID and sets it to the RANDOM_UUID variable.
+  EXECUTION_ID="${RANDOM_UUID}"                          # Unique execution ID for telemetry record identification (unique-indexed in PocketBase)
   SESSION_ID="${RANDOM_UUID:0:8}"                        # Short session ID (first 8 chars of UUID) for log files
   BUILD_LOG="/tmp/create-lxc-${SESSION_ID}.log"          # Host-side container creation log
   combined_log="/tmp/install-${SESSION_ID}-combined.log" # Combined log (build + install) for failed installations
@@ -2787,93 +2788,85 @@ Advanced:
 # diagnostics_check()
 #
 # - Ensures diagnostics config file exists at /usr/local/community-scripts/diagnostics
-# - Asks user whether to send anonymous diagnostic data
+# - Asks user whether to send anonymous diagnostic data (first run only)
 # - Saves DIAGNOSTICS=yes/no in the config file
-# - Creates file if missing with default DIAGNOSTICS=yes
-# - Reads current diagnostics setting from file
+# - Reads current diagnostics setting from existing file
 # - Sets global DIAGNOSTICS variable for API telemetry opt-in/out
 # ------------------------------------------------------------------------------
 diagnostics_check() {
-  if ! [ -d "/usr/local/community-scripts" ]; then
-    mkdir -p /usr/local/community-scripts
+  local config_dir="/usr/local/community-scripts"
+  local config_file="${config_dir}/diagnostics"
+
+  mkdir -p "$config_dir"
+
+  if [[ -f "$config_file" ]]; then
+    DIAGNOSTICS=$(awk -F '=' '/^DIAGNOSTICS/ {print $2}' "$config_file") || true
+    DIAGNOSTICS="${DIAGNOSTICS:-no}"
+    return
   fi
 
-  if ! [ -f "/usr/local/community-scripts/diagnostics" ]; then
-    if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "DIAGNOSTICS" --yesno "Send Diagnostics of LXC Installation?\n\n(This only transmits data without user data, just RAM, CPU, LXC name, ...)" 10 58); then
-      cat <<EOF >/usr/local/community-scripts/diagnostics
-DIAGNOSTICS=yes
+  local result
+  result=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
+    --title "TELEMETRY & DIAGNOSTICS" \
+    --ok-button "Confirm" --cancel-button "Exit" \
+    --radiolist "\nHelp improve Community-Scripts by sharing anonymous data.\n\nWhat we collect:\n  - Container resources (CPU, RAM, disk), OS & PVE version\n  - Application name, install method and status\n\nWhat we DON'T collect:\n  - No IP addresses, hostnames, or personal data\n\nYou can change this anytime in the Settings menu.\nPrivacy: https://github.com/community-scripts/telemetry-service/blob/main/docs/PRIVACY.md\n\nUse SPACE to select, ENTER to confirm." 22 76 2 \
+    "yes" "Yes, share anonymous data" OFF \
+    "no" "No, opt out" OFF \
+    3>&1 1>&2 2>&3) || result="no"
 
-#This file is used to store the diagnostics settings for the Community-Scripts API.
-#https://github.com/community-scripts/ProxmoxVE/discussions/1836
-#Your diagnostics will be sent to the Community-Scripts API for troubleshooting/statistical purposes.
-#You can review the data at https://community-scripts.github.io/ProxmoxVE/data
-#If you do not wish to send diagnostics, please set the variable 'DIAGNOSTICS' to "no" in /usr/local/community-scripts/diagnostics, or use the menue.
-#This will disable the diagnostics feature.
-#To send diagnostics, set the variable 'DIAGNOSTICS' to "yes" in /usr/local/community-scripts/diagnostics, or use the menue.
-#This will enable the diagnostics feature.
-#The following information will be sent:
-#"disk_size"
-#"core_count"
-#"ram_size"
-#"os_type"
-#"os_version"
-#"nsapp"
-#"method"
-#"pve_version"
-#"status"
-#If you have any concerns, please review the source code at /misc/build.func
+  DIAGNOSTICS="${result:-no}"
+
+  cat <<EOF >"$config_file"
+DIAGNOSTICS=${DIAGNOSTICS}
+
+# Community-Scripts Telemetry Configuration
+# https://telemetry.community-scripts.org
+#
+# This file stores your telemetry preference.
+# Set DIAGNOSTICS=yes to share anonymous installation data.
+# Set DIAGNOSTICS=no to disable telemetry.
+#
+# You can also change this via the Settings menu during installation.
+#
+# Data collected (when enabled):
+#   disk_size, core_count, ram_size, os_type, os_version,
+#   nsapp, method, pve_version, status, exit_code
+#
+# No personal data (IPs, hostnames, passwords) is ever collected.
+# Privacy: https://github.com/community-scripts/telemetry-service/blob/main/docs/PRIVACY.md
 EOF
-      DIAGNOSTICS="yes"
-    else
-      cat <<EOF >/usr/local/community-scripts/diagnostics
-DIAGNOSTICS=no
-
-#This file is used to store the diagnostics settings for the Community-Scripts API.
-#https://github.com/community-scripts/ProxmoxVE/discussions/1836
-#Your diagnostics will be sent to the Community-Scripts API for troubleshooting/statistical purposes.
-#You can review the data at https://community-scripts.github.io/ProxmoxVE/data
-#If you do not wish to send diagnostics, please set the variable 'DIAGNOSTICS' to "no" in /usr/local/community-scripts/diagnostics, or use the menue.
-#This will disable the diagnostics feature.
-#To send diagnostics, set the variable 'DIAGNOSTICS' to "yes" in /usr/local/community-scripts/diagnostics, or use the menue.
-#This will enable the diagnostics feature.
-#The following information will be sent:
-#"disk_size"
-#"core_count"
-#"ram_size"
-#"os_type"
-#"os_version"
-#"nsapp"
-#"method"
-#"pve_version"
-#"status"
-#If you have any concerns, please review the source code at /misc/build.func
-EOF
-      DIAGNOSTICS="no"
-    fi
-  else
-    DIAGNOSTICS=$(awk -F '=' '/^DIAGNOSTICS/ {print $2}' /usr/local/community-scripts/diagnostics)
-
-  fi
 }
 
 diagnostics_menu() {
-  if [ "${DIAGNOSTICS:-no}" = "yes" ]; then
+  local current="${DIAGNOSTICS:-no}"
+  local status_text="DISABLED"
+  [[ "$current" == "yes" ]] && status_text="ENABLED"
+
+  local dialog_text=(
+    "Telemetry is currently: ${status_text}\n\n"
+    "Anonymous data helps us improve scripts and track issues.\n"
+    "No personal data is ever collected.\n\n"
+    "More info: https://telemetry.community-scripts.org\n\n"
+    "Do you want to ${current:+change this setting}?"
+  )
+
+  if [[ "$current" == "yes" ]]; then
     if whiptail --backtitle "Proxmox VE Helper Scripts" \
-      --title "DIAGNOSTIC SETTINGS" \
-      --yesno "Send Diagnostics?\n\nCurrent: ${DIAGNOSTICS}" 10 58 \
-      --yes-button "No" --no-button "Back"; then
+      --title "TELEMETRY SETTINGS" \
+      --yesno "${dialog_text[*]}" 14 64 \
+      --yes-button "Disable" --no-button "Keep enabled"; then
       DIAGNOSTICS="no"
       sed -i 's/^DIAGNOSTICS=.*/DIAGNOSTICS=no/' /usr/local/community-scripts/diagnostics
-      whiptail --msgbox "Diagnostics set to ${DIAGNOSTICS}." 8 58
+      whiptail --msgbox "Telemetry disabled.\n\nNote: Existing containers keep their current setting.\nNew containers will inherit this choice." 10 58
     fi
   else
     if whiptail --backtitle "Proxmox VE Helper Scripts" \
-      --title "DIAGNOSTIC SETTINGS" \
-      --yesno "Send Diagnostics?\n\nCurrent: ${DIAGNOSTICS}" 10 58 \
-      --yes-button "Yes" --no-button "Back"; then
+      --title "TELEMETRY SETTINGS" \
+      --yesno "${dialog_text[*]}" 14 64 \
+      --yes-button "Enable" --no-button "Keep disabled"; then
       DIAGNOSTICS="yes"
       sed -i 's/^DIAGNOSTICS=.*/DIAGNOSTICS=yes/' /usr/local/community-scripts/diagnostics
-      whiptail --msgbox "Diagnostics set to ${DIAGNOSTICS}." 8 58
+      whiptail --msgbox "Telemetry enabled.\n\nNote: Existing containers keep their current setting.\nNew containers will inherit this choice." 10 58
     fi
   fi
 }
@@ -3561,6 +3554,7 @@ build_container() {
   # Core exports for install.func
   export DIAGNOSTICS="$DIAGNOSTICS"
   export RANDOM_UUID="$RANDOM_UUID"
+  export EXECUTION_ID="$EXECUTION_ID"
   export SESSION_ID="$SESSION_ID"
   export CACHER="$APT_CACHER"
   export CACHER_IP="$APT_CACHER_IP"
@@ -5552,6 +5546,8 @@ ensure_log_on_host() {
 # - Exit trap handler for reporting to API telemetry
 # - Captures exit code and reports to PocketBase using centralized error descriptions
 # - Uses explain_exit_code() from api.func for consistent error messages
+# - For signal exits (>128): sends telemetry FIRST before log collection
+#   to prevent pct pull hangs from blocking status updates
 # - For non-zero exit codes: posts "failed" status
 # - For zero exit codes where post_update_to_api was never called:
 #   catches orphaned "installing" records (e.g., script exited cleanly
@@ -5560,8 +5556,15 @@ ensure_log_on_host() {
 api_exit_script() {
   local exit_code=$?
   if [ $exit_code -ne 0 ]; then
-    ensure_log_on_host
-    post_update_to_api "failed" "$exit_code"
+    if [ $exit_code -gt 128 ]; then
+      # Signal exit: send telemetry IMMEDIATELY (container may be dying)
+      post_update_to_api "failed" "$exit_code" 2>/dev/null || true
+      ensure_log_on_host 2>/dev/null || true
+    else
+      # Normal error: collect logs first for better error details
+      ensure_log_on_host 2>/dev/null || true
+      post_update_to_api "failed" "$exit_code"
+    fi
   elif [[ "${POST_TO_API_DONE:-}" == "true" && "${POST_UPDATE_DONE:-}" != "true" ]]; then
     # Script exited with 0 but never sent a completion status
     # exit_code=0 is never an error — report as success
@@ -5572,7 +5575,7 @@ api_exit_script() {
 if command -v pveversion >/dev/null 2>&1; then
   trap 'api_exit_script' EXIT
 fi
-trap 'local _ec=$?; if [[ $_ec -ne 0 ]]; then ensure_log_on_host; post_update_to_api "failed" "$_ec"; fi' ERR
-trap 'ensure_log_on_host; post_update_to_api "failed" "129"; exit 129' SIGHUP
-trap 'ensure_log_on_host; post_update_to_api "failed" "130"; exit 130' SIGINT
-trap 'ensure_log_on_host; post_update_to_api "failed" "143"; exit 143' SIGTERM
+trap 'local _ec=$?; if [[ $_ec -ne 0 ]]; then ensure_log_on_host 2>/dev/null || true; post_update_to_api "failed" "$_ec"; fi' ERR
+trap 'post_update_to_api "failed" "129" 2>/dev/null || true; ensure_log_on_host 2>/dev/null || true; exit 129' SIGHUP
+trap 'post_update_to_api "failed" "130" 2>/dev/null || true; ensure_log_on_host 2>/dev/null || true; exit 130' SIGINT
+trap 'post_update_to_api "failed" "143" 2>/dev/null || true; ensure_log_on_host 2>/dev/null || true; exit 143' SIGTERM

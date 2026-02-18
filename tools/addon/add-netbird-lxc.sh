@@ -22,7 +22,7 @@ set -e
 
 # Telemetry
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func) 2>/dev/null || true
-declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "add-netbird-lxc" "tool"
+declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "add-netbird-lxc" "addon"
 
 while true; do
   read -p "This will add NetBird to an existing LXC Container ONLY. Proceed(y/n)?" yn

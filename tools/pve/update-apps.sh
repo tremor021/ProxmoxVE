@@ -6,7 +6,7 @@
 
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/refs/heads/main/misc/core.func)
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func) 2>/dev/null || true
-declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "update-apps" "tool"
+declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "update-apps" "pve"
 
 # =============================================================================
 # CONFIGURATION VARIABLES

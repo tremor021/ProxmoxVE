@@ -329,6 +329,8 @@ error_handler() {
 # - Cleans up lock files if lockfile variable is set
 # - Exits with captured exit code
 # - Always runs on script termination (success or failure)
+# - For signal exits (>128): sends telemetry FIRST before log collection
+#   to prevent pct pull hangs from blocking status updates
 # ------------------------------------------------------------------------------
 on_exit() {
   local exit_code=$?
@@ -337,14 +339,24 @@ on_exit() {
   # post_to_api was called ("installing" sent) but post_update_to_api was never called
   if [[ "${POST_TO_API_DONE:-}" == "true" && "${POST_UPDATE_DONE:-}" != "true" ]]; then
     if declare -f post_update_to_api >/dev/null 2>&1; then
-      # Ensure log is accessible on host before reporting
-      if declare -f ensure_log_on_host >/dev/null 2>&1; then
-        ensure_log_on_host
-      fi
-      if [[ $exit_code -ne 0 ]]; then
-        post_update_to_api "failed" "$exit_code"
+      if [[ $exit_code -gt 128 ]]; then
+        # Signal exit: send telemetry IMMEDIATELY (container may be dying, pct pull could hang)
+        post_update_to_api "failed" "$exit_code" 2>/dev/null || true
+        # Then try log collection (non-critical, best-effort)
+        if declare -f ensure_log_on_host >/dev/null 2>&1; then
+          ensure_log_on_host 2>/dev/null || true
+        fi
       else
-        post_update_to_api "failed" "1"
+        # Normal exit: collect logs first for better error details
+        if declare -f ensure_log_on_host >/dev/null 2>&1; then
+          ensure_log_on_host 2>/dev/null || true
+        fi
+        if [[ $exit_code -ne 0 ]]; then
+          post_update_to_api "failed" "$exit_code"
+        else
+          # exit_code=0 is never an error — report as success
+          post_update_to_api "done" "0"
+        fi
       fi
     fi
   fi
@@ -356,22 +368,26 @@ on_exit() {
 # on_interrupt()
 #
 # - SIGINT (Ctrl+C) trap handler
+# - Reports to telemetry FIRST (time-critical: container may be dying)
 # - Displays "Interrupted by user" message
 # - Exits with code 130 (128 + SIGINT=2)
+# - Output redirected to /dev/null fallback to prevent SIGPIPE on closed terminals
 # ------------------------------------------------------------------------------
 on_interrupt() {
-  # Ensure log is accessible on host before reporting
-  if declare -f ensure_log_on_host >/dev/null 2>&1; then
-    ensure_log_on_host
-  fi
-  # Report interruption to telemetry API (prevents stuck "installing" records)
+  # CRITICAL: Send telemetry FIRST before any cleanup or output
+  # If ensure_log_on_host hangs (e.g. pct pull on dying container),
+  # the status update would never be sent, leaving records stuck in "installing"
   if declare -f post_update_to_api >/dev/null 2>&1; then
-    post_update_to_api "failed" "130"
+    post_update_to_api "failed" "130" 2>/dev/null || true
+  fi
+  # Best-effort log collection (non-critical after telemetry is sent)
+  if declare -f ensure_log_on_host >/dev/null 2>&1; then
+    ensure_log_on_host 2>/dev/null || true
   fi
   if declare -f msg_error >/dev/null 2>&1; then
-    msg_error "Interrupted by user (SIGINT)"
+    msg_error "Interrupted by user (SIGINT)" 2>/dev/null || true
   else
-    echo -e "\n${RD}Interrupted by user (SIGINT)${CL}"
+    echo -e "\n${RD}Interrupted by user (SIGINT)${CL}" 2>/dev/null || true
   fi
   exit 130
 }
@@ -380,23 +396,27 @@ on_interrupt() {
 # on_terminate()
 #
 # - SIGTERM trap handler
+# - Reports to telemetry FIRST (time-critical: process being killed)
 # - Displays "Terminated by signal" message
 # - Exits with code 143 (128 + SIGTERM=15)
 # - Triggered by external process termination
+# - Output redirected to /dev/null fallback to prevent SIGPIPE on closed terminals
 # ------------------------------------------------------------------------------
 on_terminate() {
-  # Ensure log is accessible on host before reporting
-  if declare -f ensure_log_on_host >/dev/null 2>&1; then
-    ensure_log_on_host
-  fi
-  # Report termination to telemetry API (prevents stuck "installing" records)
+  # CRITICAL: Send telemetry FIRST before any cleanup or output
+  # Same rationale as on_interrupt: ensure status gets reported even if
+  # ensure_log_on_host hangs or terminal is already closed
   if declare -f post_update_to_api >/dev/null 2>&1; then
-    post_update_to_api "failed" "143"
+    post_update_to_api "failed" "143" 2>/dev/null || true
+  fi
+  # Best-effort log collection (non-critical after telemetry is sent)
+  if declare -f ensure_log_on_host >/dev/null 2>&1; then
+    ensure_log_on_host 2>/dev/null || true
   fi
   if declare -f msg_error >/dev/null 2>&1; then
-    msg_error "Terminated by signal (SIGTERM)"
+    msg_error "Terminated by signal (SIGTERM)" 2>/dev/null || true
   else
-    echo -e "\n${RD}Terminated by signal (SIGTERM)${CL}"
+    echo -e "\n${RD}Terminated by signal (SIGTERM)${CL}" 2>/dev/null || true
   fi
   exit 143
 }

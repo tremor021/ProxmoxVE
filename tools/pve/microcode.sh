@@ -31,7 +31,7 @@ msg_error() { echo -e "${BFR} ${CROSS} ${RD}$1${CL}"; }
 
 # Telemetry
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func) 2>/dev/null || true
-declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "microcode" "tool"
+declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "microcode" "pve"
 
 header_info
 current_microcode=$(journalctl -k | grep -i 'microcode: Current revision:' | grep -oP 'Current revision: \K0x[0-9a-f]+')

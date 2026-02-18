@@ -46,7 +46,7 @@ msg_error() {
 
 # Telemetry
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func) 2>/dev/null || true
-declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "post-pve-install" "tool"
+declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "post-pve-install" "pve"
 
 get_pve_version() {
   local pve_ver

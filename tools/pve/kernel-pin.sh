@@ -28,7 +28,7 @@ available_kernels=$(dpkg --list | grep 'kernel-.*-pve' | awk '{print substr($2, 
 
 # Telemetry
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func) 2>/dev/null || true
-declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "kernel-pin" "tool"
+declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "kernel-pin" "pve"
 
 header_info
 

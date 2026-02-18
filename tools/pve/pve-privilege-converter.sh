@@ -13,7 +13,7 @@ fi
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVE/raw/branch/main/misc/core.func)
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func) 2>/dev/null || true
 load_functions
-declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "pve-privilege-converter" "tool"
+declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "pve-privilege-converter" "pve"
 
 set -euo pipefail
 shopt -s inherit_errexit nullglob

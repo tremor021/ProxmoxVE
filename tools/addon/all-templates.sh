@@ -45,7 +45,7 @@ function msg() {
 
 # Telemetry
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func) 2>/dev/null || true
-declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "all-templates" "tool"
+declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "all-templates" "addon"
 
 function validate_container_id() {
   local ctid="$1"

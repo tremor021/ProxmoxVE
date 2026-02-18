@@ -18,7 +18,7 @@ EOF
 
 # Telemetry
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func) 2>/dev/null || true
-declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "clean-orphaned-lvm" "tool"
+declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "clean-orphaned-lvm" "pve"
 
 # Function to check for orphaned LVM volumes
 function find_orphaned_lvm {

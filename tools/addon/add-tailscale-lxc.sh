@@ -25,7 +25,7 @@ function msg_error() { echo -e " \e[1;31m✖\e[0m $1"; }
 
 # Telemetry
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func) 2>/dev/null || true
-declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "add-tailscale-lxc" "tool"
+declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "add-tailscale-lxc" "addon"
 
 header_info
 

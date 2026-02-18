@@ -27,7 +27,7 @@ CL=$(echo "\033[m")
 
 # Telemetry
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func) 2>/dev/null || true
-declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "update-lxcs" "tool"
+declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "update-lxcs" "pve"
 
 header_info
 echo "Loading..."

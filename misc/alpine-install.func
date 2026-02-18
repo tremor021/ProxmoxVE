@@ -11,6 +11,13 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 load_functions
 catch_errors
 
+# Persist diagnostics setting inside container (exported from build.func)
+# so addon scripts running later can find the user's choice
+if [[ ! -f /usr/local/community-scripts/diagnostics ]]; then
+  mkdir -p /usr/local/community-scripts
+  echo "DIAGNOSTICS=${DIAGNOSTICS:-no}" >/usr/local/community-scripts/diagnostics
+fi
+
 # Get LXC IP address (must be called INSIDE container, after network is up)
 get_lxc_ip
 
@@ -30,7 +37,7 @@ post_progress_to_api() {
 
   curl -fsS -m 5 -X POST "https://telemetry.community-scripts.org/telemetry" \
     -H "Content-Type: application/json" \
-    -d "{\"random_id\":\"${RANDOM_UUID}\",\"type\":\"lxc\",\"nsapp\":\"${app:-unknown}\",\"status\":\"configuring\"}" &>/dev/null || true
+    -d "{\"random_id\":\"${RANDOM_UUID}\",\"execution_id\":\"${EXECUTION_ID:-${RANDOM_UUID}}\",\"type\":\"lxc\",\"nsapp\":\"${app:-unknown}\",\"status\":\"configuring\"}" &>/dev/null || true
 }
 
 # This function enables IPv6 if it's not disabled and sets verbose mode

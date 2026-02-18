@@ -18,7 +18,7 @@ EOF
 
 # Telemetry
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func) 2>/dev/null || true
-declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "frigate-support" "tool"
+declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "frigate-support" "pve"
 
 header_info
 while true; do
