@@ -148,6 +148,7 @@ motd_ssh() {
     # Start the sshd service
     $STD /etc/init.d/sshd start
   fi
+  post_progress_to_api
 }
 
 # Validate Timezone for some LXC's
@@ -184,5 +185,5 @@ EOF
 
   echo "bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/ct/${app}.sh)\"" >/usr/bin/update
   chmod +x /usr/bin/update
-
+  post_progress_to_api
 }

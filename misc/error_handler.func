@@ -204,6 +204,12 @@ error_handler() {
 
   printf "\e[?25h"
 
+  # ALWAYS report failure to API immediately - don't wait for container checks
+  # This ensures we capture failures that occur before/after container exists
+  if declare -f post_update_to_api &>/dev/null; then
+    post_update_to_api "failed" "$exit_code" 2>/dev/null || true
+  fi
+
   # Use msg_error if available, fallback to echo
   if declare -f msg_error >/dev/null 2>&1; then
     msg_error "in line ${line_number}: exit code ${exit_code} (${explanation}): while executing command ${command}"
@@ -254,11 +260,6 @@ error_handler() {
 
       # Offer to remove container if it exists (build errors after container creation)
       if [[ -n "${CTID:-}" ]] && command -v pct &>/dev/null && pct status "$CTID" &>/dev/null; then
-        # Report failure to API before container cleanup
-        if declare -f post_update_to_api &>/dev/null; then
-          post_update_to_api "failed" "$exit_code"
-        fi
-
         echo ""
         if declare -f msg_custom >/dev/null 2>&1; then
           echo -en "${TAB}❓${TAB}${YW}Remove broken container ${CTID}? (Y/n) [auto-remove in 60s]: ${CL}"

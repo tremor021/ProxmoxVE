@@ -285,6 +285,7 @@ motd_ssh() {
     sed -i "s/#PermitRootLogin prohibit-password/PermitRootLogin yes/g" /etc/ssh/sshd_config
     systemctl restart sshd
   fi
+  post_progress_to_api
 }
 
 # ==============================================================================
@@ -323,4 +324,5 @@ EOF
     chmod 700 /root/.ssh
     chmod 600 /root/.ssh/authorized_keys
   fi
+  post_progress_to_api
 }
