@@ -1,5 +1,5 @@
 {
-  "generated": "2026-02-18T12:13:31Z",
+  "generated": "2026-02-18T18:17:02Z",
   "versions": [
     {
       "slug": "2fauth",
@@ -557,9 +557,9 @@
     {
       "slug": "huntarr",
       "repo": "plexguide/Huntarr.io",
-      "version": "9.3.3",
+      "version": "9.3.5",
       "pinned": false,
-      "date": "2026-02-18T02:35:29Z"
+      "date": "2026-02-18T16:25:07Z"
     },
     {
       "slug": "immich-public-proxy",
@@ -1187,9 +1187,9 @@
     {
       "slug": "pulse",
       "repo": "rcourtman/Pulse",
-      "version": "v5.1.9",
+      "version": "v5.1.10",
       "pinned": false,
-      "date": "2026-02-11T15:34:40Z"
+      "date": "2026-02-18T14:00:51Z"
     },
     {
       "slug": "pve-scripts-local",
@@ -1607,9 +1607,9 @@
     {
       "slug": "victoriametrics",
       "repo": "VictoriaMetrics/VictoriaMetrics",
-      "version": "v1.135.0",
+      "version": "v1.136.0",
       "pinned": false,
-      "date": "2026-02-02T14:20:15Z"
+      "date": "2026-02-16T13:17:50Z"
     },
     {
       "slug": "vikunja",
