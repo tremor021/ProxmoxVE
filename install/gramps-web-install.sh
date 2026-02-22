@@ -27,7 +27,7 @@ $STD apt install -y \
   git \
   graphviz \
   libcairo2-dev \
-  libgirepository-2.0-dev \
+  libgirepository1.0-dev \
   libglib2.0-dev \
   libicu-dev \
   libopencv-dev \
