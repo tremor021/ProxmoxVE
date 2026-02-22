@@ -525,9 +525,9 @@ fi
 
 msg_info "Finalizing image (hostname, SSH config)"
 # Set hostname and prepare for unique machine-id
-virt-customize -q -a "$WORK_FILE" --hostname "${HN}" >/dev/null 2>&1
-virt-customize -q -a "$WORK_FILE" --run-command "truncate -s 0 /etc/machine-id" >/dev/null 2>&1
-virt-customize -q -a "$WORK_FILE" --run-command "rm -f /var/lib/dbus/machine-id" >/dev/null 2>&1
+virt-customize -q -a "$WORK_FILE" --hostname "${HN}" >/dev/null 2>&1 || true
+virt-customize -q -a "$WORK_FILE" --run-command "truncate -s 0 /etc/machine-id" >/dev/null 2>&1 || true
+virt-customize -q -a "$WORK_FILE" --run-command "rm -f /var/lib/dbus/machine-id" >/dev/null 2>&1 || true
 
 # Configure SSH for Cloud-Init
 if [ "$USE_CLOUD_INIT" = "yes" ]; then
@@ -552,7 +552,7 @@ msg_ok "Finalized image"
 
 # Create first-boot Docker install script (fallback if virt-customize failed)
 if [ "$DOCKER_PREINSTALLED" = "no" ]; then
-  virt-customize -q -a "$WORK_FILE" --run-command 'cat > /root/install-docker.sh << "DOCKERSCRIPT"
+  if virt-customize -q -a "$WORK_FILE" --run-command 'cat > /root/install-docker.sh << "DOCKERSCRIPT"
 #!/bin/bash
 exec > /var/log/install-docker.log 2>&1
 echo "[$(date)] Starting Docker installation"
@@ -581,9 +581,9 @@ systemctl restart docker
 touch /root/.docker-installed
 echo "[$(date)] Docker installation completed"
 DOCKERSCRIPT
-chmod +x /root/install-docker.sh' >/dev/null 2>&1
+chmod +x /root/install-docker.sh' >/dev/null 2>&1; then
 
-  virt-customize -q -a "$WORK_FILE" --run-command 'cat > /etc/systemd/system/install-docker.service << "DOCKERSERVICE"
+    virt-customize -q -a "$WORK_FILE" --run-command 'cat > /etc/systemd/system/install-docker.service << "DOCKERSERVICE"
 [Unit]
 Description=Install Docker on First Boot
 After=network-online.target
@@ -598,7 +598,11 @@ RemainAfterExit=yes
 [Install]
 WantedBy=multi-user.target
 DOCKERSERVICE
-systemctl enable install-docker.service' >/dev/null 2>&1
+systemctl enable install-docker.service' >/dev/null 2>&1 || true
+  else
+    msg_warn "virt-customize failed for this image. Docker must be installed manually after first boot:"
+    msg_warn "  curl -fsSL https://get.docker.com | sh"
+  fi
 fi
 
 # Resize disk to target size
