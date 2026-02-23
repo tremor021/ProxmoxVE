@@ -4085,6 +4085,7 @@ Types: deb
 URIs: http://deb.debian.org/debian
 Suites: bullseye bullseye-updates
 Components: non-free
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 EOF
     ;;
   bookworm)
@@ -4093,6 +4094,7 @@ Types: deb
 URIs: http://deb.debian.org/debian
 Suites: bookworm bookworm-updates
 Components: non-free non-free-firmware
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 EOF
     ;;
   trixie | sid)
@@ -4101,11 +4103,13 @@ Types: deb
 URIs: http://deb.debian.org/debian
 Suites: trixie trixie-updates
 Components: non-free non-free-firmware
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 
 Types: deb
 URIs: http://deb.debian.org/debian-security
 Suites: trixie-security
 Components: non-free non-free-firmware
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 EOF
     ;;
   esac
@@ -4128,11 +4132,13 @@ Types: deb
 URIs: http://deb.debian.org/debian
 Suites: bullseye bullseye-updates
 Components: non-free
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 
 Types: deb
 URIs: http://deb.debian.org/debian-security
 Suites: bullseye-security
 Components: non-free
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 EOF
     ;;
   bookworm)
@@ -4141,11 +4147,13 @@ Types: deb
 URIs: http://deb.debian.org/debian
 Suites: bookworm bookworm-updates
 Components: non-free-firmware
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 
 Types: deb
 URIs: http://deb.debian.org/debian-security
 Suites: bookworm-security
 Components: non-free-firmware
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 EOF
     ;;
   trixie | sid)
@@ -4154,11 +4162,13 @@ Types: deb
 URIs: http://deb.debian.org/debian
 Suites: trixie trixie-updates
 Components: non-free-firmware
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 
 Types: deb
 URIs: http://deb.debian.org/debian-security
 Suites: trixie-security
 Components: non-free-firmware
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 EOF
     ;;
   esac
