@@ -395,12 +395,20 @@ ssh_check() {
 # get_active_logfile()
 #
 # - Returns the appropriate log file based on execution context
-# - BUILD_LOG: Host operations (container creation)
+# - _HOST_LOGFILE: Override for host context (keeps host logging on BUILD_LOG
+#   even after INSTALL_LOG is exported for the container)
 # - INSTALL_LOG: Container operations (application installation)
+# - BUILD_LOG: Host operations (container creation)
 # - Fallback to BUILD_LOG if neither is set
 # ------------------------------------------------------------------------------
 get_active_logfile() {
-  if [[ -n "${INSTALL_LOG:-}" ]]; then
+  # Host override: _HOST_LOGFILE is set (not exported) in build.func to keep
+  # host-side logging in BUILD_LOG after INSTALL_LOG is exported for the container.
+  # Without this, all host msg_info/msg_ok/msg_error would write to
+  # /root/.install-SESSION.log (a container path) instead of BUILD_LOG.
+  if [[ -n "${_HOST_LOGFILE:-}" ]]; then
+    echo "$_HOST_LOGFILE"
+  elif [[ -n "${INSTALL_LOG:-}" ]]; then
     echo "$INSTALL_LOG"
   elif [[ -n "${BUILD_LOG:-}" ]]; then
     echo "$BUILD_LOG"
