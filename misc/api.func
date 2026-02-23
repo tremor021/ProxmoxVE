@@ -741,7 +741,10 @@ EOF
 # post_progress_to_api()
 #
 # - Lightweight progress ping from host or container
-# - Updates the existing telemetry record status to "configuring"
+# - Updates the existing telemetry record status
+# - Arguments:
+#   * $1: status (optional, default: "configuring")
+#         Valid values: "validation", "configuring"
 # - Signals that the installation is actively progressing (not stuck)
 # - Fire-and-forget: never blocks or fails the script
 # - Only executes if DIAGNOSTICS=yes and RANDOM_UUID is set
@@ -752,12 +755,13 @@ post_progress_to_api() {
   [[ "${DIAGNOSTICS:-no}" == "no" ]] && return 0
   [[ -z "${RANDOM_UUID:-}" ]] && return 0
 
+  local progress_status="${1:-configuring}"
   local app_name="${NSAPP:-${app:-unknown}}"
   local telemetry_type="${TELEMETRY_TYPE:-lxc}"
 
   curl -fsS -m 5 -X POST "${TELEMETRY_URL:-https://telemetry.community-scripts.org/telemetry}" \
     -H "Content-Type: application/json" \
-    -d "{\"random_id\":\"${RANDOM_UUID}\",\"execution_id\":\"${EXECUTION_ID:-${RANDOM_UUID}}\",\"type\":\"${telemetry_type}\",\"nsapp\":\"${app_name}\",\"status\":\"configuring\"}" &>/dev/null || true
+    -d "{\"random_id\":\"${RANDOM_UUID}\",\"execution_id\":\"${EXECUTION_ID:-${RANDOM_UUID}}\",\"type\":\"${telemetry_type}\",\"nsapp\":\"${app_name}\",\"status\":\"${progress_status}\"}" &>/dev/null || true
 }
 
 # ------------------------------------------------------------------------------

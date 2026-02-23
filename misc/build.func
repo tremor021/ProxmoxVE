@@ -3912,7 +3912,6 @@ EOF
   for i in {1..10}; do
     if pct status "$CTID" | grep -q "status: running"; then
       msg_ok "Started LXC Container"
-      post_progress_to_api # Signal container is running
       break
     fi
     sleep 1
@@ -3967,7 +3966,6 @@ EOF
       echo -e "${YW}Container may have limited internet access. Installation will continue...${CL}"
     else
       msg_ok "Network in LXC is reachable (ping)"
-      post_progress_to_api # Signal network is ready
     fi
   fi
   # Function to get correct GID inside container
@@ -4039,7 +4037,9 @@ EOF'
   fi
 
   msg_ok "Customized LXC Container"
-  post_progress_to_api # Signal ready for app installation
+
+  # Transition to 'configuring' — container install script is about to run
+  post_progress_to_api "configuring"
 
   # Optional DNS override for retry scenarios (inside LXC, never on host)
   if [[ "${DNS_RETRY_OVERRIDE:-false}" == "true" ]]; then
@@ -4910,6 +4910,9 @@ create_lxc_container() {
   # Report installation start to API early - captures failures in storage/template/create
   post_to_api
 
+  # Transition to 'validation' — Proxmox-internal checks (storage, template, cluster)
+  post_progress_to_api "validation"
+
   # Storage capability check
   check_storage_support "rootdir" || {
     msg_error "No valid storage found for 'rootdir' [Container]"
@@ -5439,7 +5442,6 @@ create_lxc_container() {
   }
 
   msg_ok "LXC Container ${BL}$CTID${CL} ${GN}was successfully created."
-  post_progress_to_api # Signal container creation complete
 }
 
 # ==============================================================================
