@@ -35,7 +35,11 @@
 TELEMETRY_URL="https://telemetry.community-scripts.org/telemetry"
 
 # Timeout for telemetry requests (seconds)
+# Progress pings (validation/configuring) use the short timeout
 TELEMETRY_TIMEOUT=5
+# Final status updates (success/failed) use the longer timeout
+# PocketBase may need more time under load (FindRecord + UpdateRecord)
+STATUS_TIMEOUT=10
 
 # ==============================================================================
 # SECTION 0: REPOSITORY SOURCE DETECTION
@@ -897,7 +901,7 @@ post_update_to_api() {
 EOF
   )
 
-  http_code=$(curl -sS -w "%{http_code}" -m "${TELEMETRY_TIMEOUT}" -X POST "${TELEMETRY_URL}" \
+  http_code=$(curl -sS -w "%{http_code}" -m "${STATUS_TIMEOUT}" -X POST "${TELEMETRY_URL}" \
     -H "Content-Type: application/json" \
     -d "$JSON_PAYLOAD" -o /dev/null 2>/dev/null) || http_code="000"
 
@@ -940,7 +944,7 @@ EOF
 EOF
   )
 
-  http_code=$(curl -sS -w "%{http_code}" -m "${TELEMETRY_TIMEOUT}" -X POST "${TELEMETRY_URL}" \
+  http_code=$(curl -sS -w "%{http_code}" -m "${STATUS_TIMEOUT}" -X POST "${TELEMETRY_URL}" \
     -H "Content-Type: application/json" \
     -d "$RETRY_PAYLOAD" -o /dev/null 2>/dev/null) || http_code="000"
 
@@ -968,12 +972,18 @@ EOF
 EOF
   )
 
-  curl -sS -w "%{http_code}" -m "${TELEMETRY_TIMEOUT}" -X POST "${TELEMETRY_URL}" \
+  http_code=$(curl -sS -w "%{http_code}" -m "${STATUS_TIMEOUT}" -X POST "${TELEMETRY_URL}" \
     -H "Content-Type: application/json" \
-    -d "$MINIMAL_PAYLOAD" -o /dev/null 2>/dev/null || true
+    -d "$MINIMAL_PAYLOAD" -o /dev/null 2>/dev/null) || http_code="000"
 
-  # Tried 3 times - mark as done regardless to prevent infinite loops
-  POST_UPDATE_DONE=true
+  if [[ "$http_code" =~ ^2[0-9]{2}$ ]]; then
+    POST_UPDATE_DONE=true
+    return 0
+  fi
+
+  # All 3 attempts failed — do NOT set POST_UPDATE_DONE=true.
+  # This allows the EXIT trap (api_exit_script) to retry with 3 fresh attempts.
+  # No infinite loop risk: EXIT trap fires exactly once.
 }
 
 # ==============================================================================
@@ -1349,9 +1359,27 @@ post_update_to_api_extended() {
 EOF
   )
 
-  curl -fsS -m "${TELEMETRY_TIMEOUT}" -X POST "${TELEMETRY_URL}" \
+  local http_code
+  http_code=$(curl -sS -w "%{http_code}" -m "${STATUS_TIMEOUT}" -X POST "${TELEMETRY_URL}" \
     -H "Content-Type: application/json" \
-    -d "$JSON_PAYLOAD" &>/dev/null || true
+    -d "$JSON_PAYLOAD" -o /dev/null 2>/dev/null) || http_code="000"
 
-  POST_UPDATE_DONE=true
+  if [[ "$http_code" =~ ^2[0-9]{2}$ ]]; then
+    POST_UPDATE_DONE=true
+    return 0
+  fi
+
+  # Retry with minimal payload
+  sleep 1
+  http_code=$(curl -sS -w "%{http_code}" -m "${STATUS_TIMEOUT}" -X POST "${TELEMETRY_URL}" \
+    -H "Content-Type: application/json" \
+    -d "{\"random_id\":\"${RANDOM_UUID}\",\"execution_id\":\"${EXECUTION_ID:-${RANDOM_UUID}}\",\"type\":\"${TELEMETRY_TYPE:-lxc}\",\"nsapp\":\"${NSAPP:-unknown}\",\"status\":\"${pb_status}\",\"exit_code\":${exit_code},\"install_duration\":${duration:-0}}" \
+    -o /dev/null 2>/dev/null) || http_code="000"
+
+  if [[ "$http_code" =~ ^2[0-9]{2}$ ]]; then
+    POST_UPDATE_DONE=true
+    return 0
+  fi
+
+  # Do NOT set POST_UPDATE_DONE=true — let EXIT trap retry
 }
