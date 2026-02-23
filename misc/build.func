@@ -4064,8 +4064,15 @@ EOF'
   # that sends "configuring" status AFTER the host already reported "failed"
   export CONTAINER_INSTALLING=true
 
-  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/install/${var_install}.sh)"
-  local lxc_exit=$?
+  # Capture lxc-attach terminal output to host-side log via tee.
+  # This is the ONLY reliable way to get install output when:
+  #   - install.func fails to load (DNS error) → no container-side logging
+  #   - install script crashes before logging starts
+  #   - $STD/silent() not used for some commands
+  # PIPESTATUS[0] gets the real exit code from lxc-attach (not from tee).
+  local _LXC_CAPTURE_LOG="/tmp/.install-capture-${SESSION_ID}.log"
+  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/install/${var_install}.sh)" 2>&1 | tee "$_LXC_CAPTURE_LOG"
+  local lxc_exit=${PIPESTATUS[0]}
 
   unset CONTAINER_INSTALLING
 
@@ -4123,7 +4130,17 @@ EOF'
 
       # Copy and append INSTALL_LOG from container (with timeout to prevent hangs)
       local temp_install_log="/tmp/.install-temp-${SESSION_ID}.log"
+      local container_log_ok=false
       if timeout 8 pct pull "$CTID" "/root/.install-${SESSION_ID}.log" "$temp_install_log" 2>/dev/null; then
+        # Only use container log if it has meaningful content (>100 bytes)
+        if [[ -s "$temp_install_log" ]] && [[ $(stat -c%s "$temp_install_log" 2>/dev/null || echo 0) -gt 100 ]]; then
+          container_log_ok=true
+        fi
+      fi
+
+      # PHASE 2: Use container-side log if available, otherwise use host-captured tee output
+      local _LXC_CAPTURE_LOG="/tmp/.install-capture-${SESSION_ID}.log"
+      if [[ "$container_log_ok" == true ]]; then
         {
           echo "================================================================================"
           echo "PHASE 2: APPLICATION INSTALLATION (Container)"
@@ -4131,9 +4148,25 @@ EOF'
           cat "$temp_install_log"
           echo ""
         } >>"$combined_log"
-        rm -f "$temp_install_log"
         install_log_copied=true
-        # Point INSTALL_LOG to combined log so get_error_text() finds it
+      elif [[ -s "$_LXC_CAPTURE_LOG" ]]; then
+        # Fallback: host-captured terminal output from lxc-attach
+        # This captures everything the user saw, including errors when install.func
+        # failed to load (DNS issues, etc.) and no container-side logging was set up.
+        {
+          echo "================================================================================"
+          echo "PHASE 2: APPLICATION INSTALLATION (Container - captured from terminal)"
+          echo "================================================================================"
+          # Strip ANSI escape codes from terminal capture
+          sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' "$_LXC_CAPTURE_LOG" | sed 's/\r$//'
+          echo ""
+        } >>"$combined_log"
+        install_log_copied=true
+      fi
+      rm -f "$temp_install_log"
+
+      if [[ "$install_log_copied" == true ]]; then
+        # Point INSTALL_LOG to combined log so get_full_log() finds it
         INSTALL_LOG="$combined_log"
       fi
     fi
@@ -4393,8 +4426,9 @@ EOF'
           # Re-run install script in existing container (don't destroy/recreate)
           set +Eeuo pipefail
           trap - ERR
-          lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/install/${var_install}.sh)"
-          local apt_retry_exit=$?
+          local _LXC_CAPTURE_LOG="/tmp/.install-capture-${SESSION_ID}.log"
+          lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/install/${var_install}.sh)" 2>&1 | tee "$_LXC_CAPTURE_LOG"
+          local apt_retry_exit=${PIPESTATUS[0]}
           set -Eeuo pipefail
           trap 'error_handler' ERR
 
@@ -4499,6 +4533,9 @@ EOF'
 
     exit $install_exit_code
   fi
+
+  # Clean up host-side capture log (not needed on success, already in combined_log on failure)
+  rm -f "/tmp/.install-capture-${SESSION_ID}.log" 2>/dev/null
 
   # Re-enable error handling after successful install or recovery menu completion
   set -Eeuo pipefail
