@@ -3671,6 +3671,9 @@ $PCT_OPTIONS_STRING"
 
   create_lxc_container || exit $?
 
+  # Transition to 'configuring' — container created, now setting up OS/userland
+  post_progress_to_api "configuring"
+
   LXC_CONFIG="/etc/pve/lxc/${CTID}.conf"
 
   # ============================================================================
@@ -4037,9 +4040,6 @@ EOF'
   fi
 
   msg_ok "Customized LXC Container"
-
-  # Transition to 'configuring' — container install script is about to run
-  post_progress_to_api "configuring"
 
   # Optional DNS override for retry scenarios (inside LXC, never on host)
   if [[ "${DNS_RETRY_OVERRIDE:-false}" == "true" ]]; then
