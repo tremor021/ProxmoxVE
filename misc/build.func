@@ -4052,8 +4052,15 @@ EOF'
   set +Eeuo pipefail # Disable ALL error handling temporarily
   trap - ERR         # Remove ERR trap completely
 
+  # Signal handlers use this flag to stop the container on abort (SIGHUP/SIGINT/SIGTERM)
+  # Without this, SSH disconnects leave the container running as an orphan process
+  # that sends "configuring" status AFTER the host already reported "failed"
+  export CONTAINER_INSTALLING=true
+
   lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/install/${var_install}.sh)"
   local lxc_exit=$?
+
+  unset CONTAINER_INSTALLING
 
   # Keep error handling DISABLED during failure detection and recovery
   # Re-enabling it here would cause any pct exec/pull failure to trigger
@@ -5566,9 +5573,13 @@ api_exit_script() {
     # ALWAYS send telemetry FIRST - ensure status is reported even if
     # ensure_log_on_host hangs (e.g. pct pull on dead container)
     post_update_to_api "failed" "$exit_code" 2>/dev/null || true
-    # Best-effort log collection with timeout (non-critical after telemetry is sent)
+    # Best-effort log collection (non-critical after telemetry is sent)
     if declare -f ensure_log_on_host >/dev/null 2>&1; then
-      timeout 10 bash -c 'ensure_log_on_host' 2>/dev/null || true
+      ensure_log_on_host 2>/dev/null || true
+    fi
+    # Stop orphaned container if we're in the install phase
+    if [[ "${CONTAINER_INSTALLING:-}" == "true" && -n "${CTID:-}" ]] && command -v pct &>/dev/null; then
+      pct stop "$CTID" 2>/dev/null || true
     fi
   elif [[ "${POST_TO_API_DONE:-}" == "true" && "${POST_UPDATE_DONE:-}" != "true" ]]; then
     # Script exited with 0 but never sent a completion status
@@ -5580,7 +5591,7 @@ api_exit_script() {
 if command -v pveversion >/dev/null 2>&1; then
   trap 'api_exit_script' EXIT
 fi
-trap 'local _ec=$?; if [[ $_ec -ne 0 ]]; then post_update_to_api "failed" "$_ec" 2>/dev/null || true; timeout 10 bash -c "ensure_log_on_host" 2>/dev/null || true; fi' ERR
-trap 'post_update_to_api "failed" "129" 2>/dev/null || true; timeout 10 bash -c "ensure_log_on_host" 2>/dev/null || true; exit 129' SIGHUP
-trap 'post_update_to_api "failed" "130" 2>/dev/null || true; timeout 10 bash -c "ensure_log_on_host" 2>/dev/null || true; exit 130' SIGINT
-trap 'post_update_to_api "failed" "143" 2>/dev/null || true; timeout 10 bash -c "ensure_log_on_host" 2>/dev/null || true; exit 143' SIGTERM
+trap 'local _ec=$?; if [[ $_ec -ne 0 ]]; then post_update_to_api "failed" "$_ec" 2>/dev/null || true; if declare -f ensure_log_on_host &>/dev/null; then ensure_log_on_host 2>/dev/null || true; fi; fi' ERR
+trap 'post_update_to_api "failed" "129" 2>/dev/null || true; if [[ -n "${CTID:-}" ]] && command -v pct &>/dev/null; then pct stop "$CTID" 2>/dev/null || true; fi; exit 129' SIGHUP
+trap 'post_update_to_api "failed" "130" 2>/dev/null || true; if [[ -n "${CTID:-}" ]] && command -v pct &>/dev/null; then pct stop "$CTID" 2>/dev/null || true; fi; exit 130' SIGINT
+trap 'post_update_to_api "failed" "143" 2>/dev/null || true; if [[ -n "${CTID:-}" ]] && command -v pct &>/dev/null; then pct stop "$CTID" 2>/dev/null || true; fi; exit 143' SIGTERM

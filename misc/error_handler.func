@@ -208,6 +208,10 @@ error_handler() {
   # This ensures we capture failures that occur before/after container exists
   if declare -f post_update_to_api &>/dev/null; then
     post_update_to_api "failed" "$exit_code" 2>/dev/null || true
+  else
+    # Container context: post_update_to_api not available (api.func not sourced)
+    # Send status directly via curl so container failures are never lost
+    _send_abort_telemetry "$exit_code" 2>/dev/null || true
   fi
 
   # Use msg_error if available, fallback to echo
@@ -329,40 +333,97 @@ error_handler() {
 }
 
 # ==============================================================================
-# SECTION 3: SIGNAL HANDLERS
+# SECTION 3: TELEMETRY & CLEANUP HELPERS FOR SIGNAL HANDLERS
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# _send_abort_telemetry()
+#
+# - Sends failure/abort status to telemetry API
+# - Works in BOTH host context (post_update_to_api available) and
+#   container context (only curl available, api.func not sourced)
+# - Container context is critical: without this, container-side failures
+#   and signal exits are never reported, leaving records stuck in
+#   "installing" or "configuring" forever
+# - Arguments: $1 = exit_code
+# ------------------------------------------------------------------------------
+_send_abort_telemetry() {
+  local exit_code="${1:-1}"
+  # Try full API function first (host context - api.func sourced)
+  if declare -f post_update_to_api &>/dev/null; then
+    post_update_to_api "failed" "$exit_code" 2>/dev/null || true
+    return
+  fi
+  # Fallback: direct curl (container context - api.func NOT sourced)
+  # This is the ONLY way containers can report failures to telemetry
+  command -v curl &>/dev/null || return 0
+  [[ "${DIAGNOSTICS:-no}" == "no" ]] && return 0
+  [[ -z "${RANDOM_UUID:-}" ]] && return 0
+  curl -fsS -m 5 -X POST "${TELEMETRY_URL:-https://telemetry.community-scripts.org/telemetry}" \
+    -H "Content-Type: application/json" \
+    -d "{\"random_id\":\"${RANDOM_UUID}\",\"execution_id\":\"${EXECUTION_ID:-${RANDOM_UUID}}\",\"type\":\"${TELEMETRY_TYPE:-lxc}\",\"nsapp\":\"${NSAPP:-${app:-unknown}}\",\"status\":\"failed\",\"exit_code\":${exit_code}}" &>/dev/null || true
+}
+
+# ------------------------------------------------------------------------------
+# _stop_container_if_installing()
+#
+# - Stops the LXC container if we're in the install phase
+# - Prevents orphaned container processes when the host exits due to a signal
+#   (SSH disconnect, Ctrl+C, SIGTERM) — without this, the container keeps
+#   running and may send "configuring" status AFTER the host already sent
+#   "failed", leaving records permanently stuck in "configuring"
+# - Only acts when:
+#   * CONTAINER_INSTALLING flag is set (during lxc-attach in build_container)
+#   * CTID is set (container was created)
+#   * pct command is available (we're on the Proxmox host, not inside a container)
+# - Does NOT destroy the container — just stops it for potential debugging
+# ------------------------------------------------------------------------------
+_stop_container_if_installing() {
+  [[ "${CONTAINER_INSTALLING:-}" == "true" ]] || return 0
+  [[ -n "${CTID:-}" ]] || return 0
+  command -v pct &>/dev/null || return 0
+  pct stop "$CTID" 2>/dev/null || true
+}
+
+# ==============================================================================
+# SECTION 4: SIGNAL HANDLERS
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
 # on_exit()
 #
-# - EXIT trap handler
-# - Cleans up lock files if lockfile variable is set
-# - Exits with captured exit code
-# - Always runs on script termination (success or failure)
-# - For signal exits (>128): sends telemetry FIRST before log collection
-#   to prevent pct pull hangs from blocking status updates
+# - EXIT trap handler — runs on EVERY script termination
+# - Catches orphaned "installing"/"configuring" records:
+#   * If post_to_api sent "installing" but post_update_to_api never ran
+#   * Reports final status to prevent records stuck forever
+# - Best-effort log collection for failed installs
+# - Stops orphaned container processes on failure
+# - Cleans up lock files
 # ------------------------------------------------------------------------------
 on_exit() {
   local exit_code=$?
+
   # Report orphaned "installing" records to telemetry API
-  # Catches ALL exit paths: errors (non-zero), signals, AND clean exits where
-  # post_to_api was called ("installing" sent) but post_update_to_api was never called
+  # Catches ALL exit paths: errors, signals, AND clean exits where
+  # post_to_api was called but post_update_to_api was never called
   if [[ "${POST_TO_API_DONE:-}" == "true" && "${POST_UPDATE_DONE:-}" != "true" ]]; then
-    if declare -f post_update_to_api >/dev/null 2>&1; then
-      # ALWAYS send telemetry FIRST - ensure status is reported even if
-      # ensure_log_on_host hangs (e.g. pct pull on dead/unresponsive container)
-      if [[ $exit_code -ne 0 ]]; then
-        post_update_to_api "failed" "$exit_code" 2>/dev/null || true
-      else
-        # exit_code=0 is never an error — report as success
-        post_update_to_api "done" "0" 2>/dev/null || true
-      fi
-      # Best-effort log collection with timeout (non-critical after telemetry is sent)
-      if declare -f ensure_log_on_host >/dev/null 2>&1; then
-        timeout 10 bash -c 'ensure_log_on_host' 2>/dev/null || true
-      fi
+    if [[ $exit_code -ne 0 ]]; then
+      _send_abort_telemetry "$exit_code"
+    elif declare -f post_update_to_api >/dev/null 2>&1; then
+      post_update_to_api "done" "0" 2>/dev/null || true
     fi
   fi
+
+  # Best-effort log collection on failure (non-critical, telemetry already sent)
+  if [[ $exit_code -ne 0 ]] && declare -f ensure_log_on_host >/dev/null 2>&1; then
+    ensure_log_on_host 2>/dev/null || true
+  fi
+
+  # Stop orphaned container if we're in the install phase and exiting with error
+  if [[ $exit_code -ne 0 ]]; then
+    _stop_container_if_installing
+  fi
+
   [[ -n "${lockfile:-}" && -e "$lockfile" ]] && rm -f "$lockfile"
   exit "$exit_code"
 }
@@ -371,22 +432,13 @@ on_exit() {
 # on_interrupt()
 #
 # - SIGINT (Ctrl+C) trap handler
-# - Reports to telemetry FIRST (time-critical: container may be dying)
-# - Displays "Interrupted by user" message
+# - Reports status FIRST (time-critical: container may be dying)
+# - Stops orphaned container to prevent "configuring" ghost records
 # - Exits with code 130 (128 + SIGINT=2)
-# - Output redirected to /dev/null fallback to prevent SIGPIPE on closed terminals
 # ------------------------------------------------------------------------------
 on_interrupt() {
-  # CRITICAL: Send telemetry FIRST before any cleanup or output
-  # If ensure_log_on_host hangs (e.g. pct pull on dying container),
-  # the status update would never be sent, leaving records stuck in "installing"
-  if declare -f post_update_to_api >/dev/null 2>&1; then
-    post_update_to_api "failed" "130" 2>/dev/null || true
-  fi
-  # Best-effort log collection with timeout (non-critical after telemetry is sent)
-  if declare -f ensure_log_on_host >/dev/null 2>&1; then
-    timeout 10 bash -c 'ensure_log_on_host' 2>/dev/null || true
-  fi
+  _send_abort_telemetry "130"
+  _stop_container_if_installing
   if declare -f msg_error >/dev/null 2>&1; then
     msg_error "Interrupted by user (SIGINT)" 2>/dev/null || true
   else
@@ -399,23 +451,13 @@ on_interrupt() {
 # on_terminate()
 #
 # - SIGTERM trap handler
-# - Reports to telemetry FIRST (time-critical: process being killed)
-# - Displays "Terminated by signal" message
+# - Reports status FIRST (time-critical: process being killed)
+# - Stops orphaned container to prevent "configuring" ghost records
 # - Exits with code 143 (128 + SIGTERM=15)
-# - Triggered by external process termination
-# - Output redirected to /dev/null fallback to prevent SIGPIPE on closed terminals
 # ------------------------------------------------------------------------------
 on_terminate() {
-  # CRITICAL: Send telemetry FIRST before any cleanup or output
-  # Same rationale as on_interrupt: ensure status gets reported even if
-  # ensure_log_on_host hangs or terminal is already closed
-  if declare -f post_update_to_api >/dev/null 2>&1; then
-    post_update_to_api "failed" "143" 2>/dev/null || true
-  fi
-  # Best-effort log collection with timeout (non-critical after telemetry is sent)
-  if declare -f ensure_log_on_host >/dev/null 2>&1; then
-    timeout 10 bash -c 'ensure_log_on_host' 2>/dev/null || true
-  fi
+  _send_abort_telemetry "143"
+  _stop_container_if_installing
   if declare -f msg_error >/dev/null 2>&1; then
     msg_error "Terminated by signal (SIGTERM)" 2>/dev/null || true
   else
@@ -424,8 +466,25 @@ on_terminate() {
   exit 143
 }
 
+# ------------------------------------------------------------------------------
+# on_hangup()
+#
+# - SIGHUP trap handler (SSH disconnect, terminal closed)
+# - CRITICAL: This was previously MISSING from catch_errors(), causing
+#   container processes to become orphans on SSH disconnect — the #1 cause
+#   of records stuck in "installing" and "configuring" states
+# - Reports status via direct curl (terminal is already closed, no output)
+# - Stops orphaned container to prevent ghost records
+# - Exits with code 129 (128 + SIGHUP=1)
+# ------------------------------------------------------------------------------
+on_hangup() {
+  _send_abort_telemetry "129"
+  _stop_container_if_installing
+  exit 129
+}
+
 # ==============================================================================
-# SECTION 4: INITIALIZATION
+# SECTION 5: INITIALIZATION
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -437,10 +496,11 @@ on_terminate() {
 #   * set -o pipefail: Pipeline fails if any command fails
 #   * set -u: (optional) Exit on undefined variable (if STRICT_UNSET=1)
 # - Sets up traps:
-#   * ERR → error_handler
-#   * EXIT → on_exit
-#   * INT → on_interrupt
-#   * TERM → on_terminate
+#   * ERR  → error_handler (script errors)
+#   * EXIT → on_exit      (any termination — cleanup + orphan detection)
+#   * INT  → on_interrupt  (Ctrl+C)
+#   * TERM → on_terminate  (kill / systemd stop)
+#   * HUP  → on_hangup     (SSH disconnect / terminal closed)
 # - Call this function early in every script
 # ------------------------------------------------------------------------------
 catch_errors() {
@@ -453,4 +513,5 @@ catch_errors() {
   trap on_exit EXIT
   trap on_interrupt INT
   trap on_terminate TERM
+  trap on_hangup HUP
 }

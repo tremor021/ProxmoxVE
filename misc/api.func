@@ -351,6 +351,55 @@ get_error_text() {
 }
 
 # ------------------------------------------------------------------------------
+# get_full_log()
+#
+# - Returns the FULL installation log (build + install combined)
+# - Calls ensure_log_on_host() to pull container log if needed
+# - Strips ANSI escape codes and carriage returns
+# - Truncates to max_bytes (default: 120KB) to stay within API limits
+# - Used for the error telemetry field (full trace instead of 20 lines)
+# ------------------------------------------------------------------------------
+get_full_log() {
+  local max_bytes="${1:-122880}" # 120KB default
+  local logfile=""
+
+  # Ensure logs are available on host (pulls from container if needed)
+  if declare -f ensure_log_on_host >/dev/null 2>&1; then
+    ensure_log_on_host
+  fi
+
+  # Try combined log first (most complete)
+  if [[ -n "${CTID:-}" && -n "${SESSION_ID:-}" ]]; then
+    local combined_log="/tmp/${NSAPP:-lxc}-${CTID}-${SESSION_ID}.log"
+    if [[ -s "$combined_log" ]]; then
+      logfile="$combined_log"
+    fi
+  fi
+
+  # Fall back to INSTALL_LOG
+  if [[ -z "$logfile" || ! -s "$logfile" ]]; then
+    if [[ -n "${INSTALL_LOG:-}" && -s "${INSTALL_LOG}" ]]; then
+      logfile="$INSTALL_LOG"
+    fi
+  fi
+
+  # Fall back to BUILD_LOG
+  if [[ -z "$logfile" || ! -s "$logfile" ]]; then
+    if [[ -n "${BUILD_LOG:-}" && -s "${BUILD_LOG}" ]]; then
+      logfile="$BUILD_LOG"
+    fi
+  fi
+
+  if [[ -n "$logfile" && -s "$logfile" ]]; then
+    # Strip ANSI codes, carriage returns, and anonymize IP addresses (GDPR)
+    sed 's/\r$//' "$logfile" 2>/dev/null |
+      sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' |
+      sed -E 's/([0-9]{1,3}\.)[0-9]{1,3}\.[0-9]{1,3}/\1x.x/g' |
+      head -c "$max_bytes"
+  fi
+}
+
+# ------------------------------------------------------------------------------
 # build_error_string()
 #
 # - Builds a structured error string for telemetry reporting
@@ -782,11 +831,15 @@ post_update_to_api() {
     else
       exit_code=1
     fi
-    # Get log lines and build structured error string
-    local error_text=""
-    error_text=$(get_error_text)
+    # Get full installation log for error field
+    local log_text=""
+    log_text=$(get_full_log 122880) || true # 120KB max
+    if [[ -z "$log_text" ]]; then
+      # Fallback to last 20 lines
+      log_text=$(get_error_text)
+    fi
     local full_error
-    full_error=$(build_error_string "$exit_code" "$error_text")
+    full_error=$(build_error_string "$exit_code" "$log_text")
     error=$(json_escape "$full_error")
     short_error=$(json_escape "$(explain_exit_code "$exit_code")")
     error_category=$(categorize_error "$exit_code")
@@ -807,7 +860,7 @@ post_update_to_api() {
 
   local http_code=""
 
-  # ── Attempt 1: Full payload with complete error text ──
+  # ── Attempt 1: Full payload with complete error text (includes full log) ──
   local JSON_PAYLOAD
   JSON_PAYLOAD=$(
     cat <<EOF
@@ -969,16 +1022,16 @@ categorize_error() {
   # Python environment errors
   # (already covered: 160-162 under dependency)
 
-  # Aborted by user
-  130) echo "aborted" ;;
+  # Aborted by user (SIGHUP=terminal closed, SIGINT=Ctrl+C, SIGTERM=killed)
+  129 | 130 | 143) echo "user_aborted" ;;
 
   # Resource errors (OOM, SIGKILL, SIGABRT)
   134 | 137) echo "resource" ;;
 
-  # Signal/Process errors (SIGTERM, SIGPIPE, SIGSEGV)
-  139 | 141 | 143) echo "signal" ;;
+  # Signal/Process errors (SIGPIPE, SIGSEGV)
+  139 | 141) echo "signal" ;;
 
-  # Shell errors (general error, syntax error)  
+  # Shell errors (general error, syntax error)
   1 | 2) echo "shell" ;;
 
   # Default - truly unknown
