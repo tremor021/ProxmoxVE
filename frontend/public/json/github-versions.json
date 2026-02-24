@@ -1,5 +1,5 @@
 {
-  "generated": "2026-02-24T00:22:35Z",
+  "generated": "2026-02-24T06:23:39Z",
   "versions": [
     {
       "slug": "2fauth",
@@ -151,9 +151,9 @@
     {
       "slug": "booklore",
       "repo": "booklore-app/BookLore",
-      "version": "v2.0.0",
+      "version": "v2.0.1",
       "pinned": false,
-      "date": "2026-02-23T17:00:00Z"
+      "date": "2026-02-24T04:15:33Z"
     },
     {
       "slug": "bookstack",
@@ -452,9 +452,9 @@
     {
       "slug": "gitea-mirror",
       "repo": "RayLabsHQ/gitea-mirror",
-      "version": "v3.9.2",
+      "version": "v3.9.4",
       "pinned": false,
-      "date": "2025-11-08T05:36:48Z"
+      "date": "2026-02-24T06:17:56Z"
     },
     {
       "slug": "glance",
@@ -613,9 +613,9 @@
     {
       "slug": "jackett",
       "repo": "Jackett/Jackett",
-      "version": "v0.24.1184",
+      "version": "v0.24.1193",
       "pinned": false,
-      "date": "2026-02-23T05:55:36Z"
+      "date": "2026-02-24T05:58:04Z"
     },
     {
       "slug": "jellystat",
@@ -1271,9 +1271,9 @@
     {
       "slug": "rdtclient",
       "repo": "rogerfar/rdt-client",
-      "version": "v2.0.123",
+      "version": "v2.0.124",
       "pinned": false,
-      "date": "2026-02-21T23:08:13Z"
+      "date": "2026-02-24T03:18:03Z"
     },
     {
       "slug": "reactive-resume",
@@ -1453,9 +1453,9 @@
     {
       "slug": "stirling-pdf",
       "repo": "Stirling-Tools/Stirling-PDF",
-      "version": "v2.5.2",
+      "version": "v2.5.3",
       "pinned": false,
-      "date": "2026-02-20T23:20:20Z"
+      "date": "2026-02-23T23:23:39Z"
     },
     {
       "slug": "streamlink-webui",
@@ -1740,9 +1740,9 @@
     {
       "slug": "wishlist",
       "repo": "cmintey/wishlist",
-      "version": "v0.60.0",
+      "version": "v0.60.1",
       "pinned": false,
-      "date": "2026-02-10T04:05:26Z"
+      "date": "2026-02-24T04:01:37Z"
     },
     {
       "slug": "wizarr",
