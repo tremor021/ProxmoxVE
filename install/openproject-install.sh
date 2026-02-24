@@ -14,13 +14,24 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt install -y apt-transport-https
+$STD apt install -y \
+  apt-transport-https \
+  build-essential \
+  autoconf
 msg_ok "Installed Dependencies"
 
 PG_VERSION="17" setup_postgresql
 PG_DB_NAME="openproject" PG_DB_USER="openproject" setup_postgresql_db
 API_KEY=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
 echo "OpenProject API Key: $API_KEY" >>~/openproject.creds
+fetch_and_deploy_gh_release "jemalloc" "jemalloc/jemalloc" "tarball"
+
+msg_info "Compiling jemalloc (Patience)"
+cd /opt/jemalloc
+$STD ./autogen.sh
+$STD make
+$STD make install
+msg_ok "Compiled jemalloc"
 
 setup_deb822_repo \
   "openproject" \
@@ -60,6 +71,11 @@ openproject/admin_email admin@example.net
 openproject/default_language en
 EOF
 $STD sudo openproject configure
+systemctl stop openproject-web-1
+if ! grep -qF 'Environment=LD_PRELOAD=/usr/local/lib/libjemalloc.so.2' /etc/systemd/system/openproject-web-1.service; then
+  sed -i '/^\[Service\]/a Environment=LD_PRELOAD=/usr/local/lib/libjemalloc.so.2' /etc/systemd/system/openproject-web-1.service
+fi
+systemctl start openproject-web-1
 msg_ok "Configured OpenProject"
 
 motd_ssh
