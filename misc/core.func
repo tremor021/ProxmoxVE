@@ -607,6 +607,7 @@ stop_spinner() {
 
   unset SPINNER_PID SPINNER_MSG
   stty sane 2>/dev/null || true
+  stty -tostop 2>/dev/null || true
 }
 
 # ==============================================================================

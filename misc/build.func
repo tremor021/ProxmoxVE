@@ -4098,10 +4098,11 @@ EOF'
 
   # Installation failed?
   if [[ $install_exit_code -ne 0 ]]; then
-    # Prevent SIGTSTP (Ctrl+Z) from suspending the script during recovery.
+    # Prevent job-control signals from suspending the script during recovery.
     # In non-interactive shells (bash -c), background processes (spinner) can
     # trigger terminal-related signals that stop the entire process group.
-    trap '' TSTP
+    # TSTP = Ctrl+Z, TTIN = bg read from tty, TTOU = bg write to tty (tostop)
+    trap '' TSTP TTIN TTOU
 
     msg_error "Installation failed in container ${CTID} (exit code: ${install_exit_code})"
 
@@ -4551,8 +4552,8 @@ EOF'
     post_update_to_api "failed" "$install_exit_code" "force"
     $STD echo -e "${TAB}${CM:-✔} Telemetry finalized"
 
-    # Restore default SIGTSTP handling before exit
-    trap - TSTP
+    # Restore default job-control signal handling before exit
+    trap - TSTP TTIN TTOU
     exit $install_exit_code
   fi
 
