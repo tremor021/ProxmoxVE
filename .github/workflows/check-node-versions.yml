@@ -214,11 +214,12 @@ jobs:
             total=$((total + 1))
             slug=$(basename "$script" | sed 's/-install\.sh$//')
 
-            # Extract Source URL (GitHub only)
+            # Extract Source URL (GitHub only) from the "# Source:" line
             # Supports both:
             #   # Source: https://github.com/owner/repo
             #   # Source: https://example.com | Github: https://github.com/owner/repo
-            source_url=$(head -20 "$script" | grep -oP 'https://github\.com/[^\s|]+' | head -1 || echo "")
+            # NOTE: Must filter for "# Source:" line first to avoid matching the License URL
+            source_url=$(head -20 "$script" | grep -i '# Source:' | grep -oP 'https://github\.com/[^\s|]+' | head -1 || echo "")
             if [[ -z "$source_url" ]]; then
               report_lines+=("| \`$slug\` | — | — | — | — | ⏭️ No GitHub source |")
               continue
