@@ -88,7 +88,7 @@ function truenas_iso_lookup() {
     curl -sL "$BASE_URL" |
       grep -oE 'href="[^"]+\.iso"' |
       sed 's/href="//; s/"$//' |
-      grep -vE '(nightly|ALPHA)' |
+      grep -vE '(MASTER|ALPHA)' |
       grep -E "$year_pattern"
   )
 
