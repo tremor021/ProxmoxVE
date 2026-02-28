@@ -3132,7 +3132,7 @@ check_container_resources() {
     msg_warn "Under-provisioned: Required ${var_cpu} CPU/${var_ram}MB RAM, Current ${current_cpu} CPU/${current_ram}MB RAM"
     echo -e "${YWB}Please ensure that the ${APP} LXC is configured with at least ${var_cpu} vCPU and ${var_ram} MB RAM for the build process.${CL}\n"
     echo -ne "${INFO}${HOLD} May cause data loss! ${INFO} Continue update with under-provisioned LXC? <yes/No>  "
-    read -r prompt
+    read -r prompt </dev/tty
     if [[ ! ${prompt,,} =~ ^(yes)$ ]]; then
       msg_error "Aborted: under-provisioned LXC (${current_cpu} CPU/${current_ram}MB RAM < ${var_cpu} CPU/${var_ram}MB RAM)"
       exit 1
@@ -3155,7 +3155,7 @@ check_container_storage() {
   if ((usage > 80)); then
     msg_warn "Storage is dangerously low (${usage}% used on /boot)"
     echo -ne "Continue anyway? <y/N>  "
-    read -r prompt
+    read -r prompt </dev/tty
     if [[ ! ${prompt,,} =~ ^(y|yes)$ ]]; then
       msg_error "Aborted: storage too low (${usage}% used)"
       exit 1
@@ -3707,10 +3707,18 @@ $PCT_OPTIONS_STRING"
     NVIDIA_DEVICES=()
 
     # Store PCI info to avoid multiple calls
-    local pci_vga_info=$(lspci -nn 2>/dev/null | grep -E "VGA|Display|3D")
+    # grep returns exit 1 when no match — use || true to prevent ERR trap
+    local pci_vga_info
+    pci_vga_info=$(lspci -nn 2>/dev/null | grep -E "VGA|Display|3D" || true)
+
+    # No GPU-related PCI devices at all? Skip silently.
+    if [[ -z "$pci_vga_info" ]]; then
+      msg_debug "No VGA/Display/3D PCI devices found"
+      return 0
+    fi
 
     # Check for Intel GPU - look for Intel vendor ID [8086]
-    if echo "$pci_vga_info" | grep -q "\[8086:"; then
+    if grep -q "\[8086:" <<<"$pci_vga_info"; then
       msg_custom "🎮" "${BL}" "Detected Intel GPU"
       if [[ -d /dev/dri ]]; then
         for d in /dev/dri/renderD* /dev/dri/card*; do
@@ -3720,7 +3728,7 @@ $PCT_OPTIONS_STRING"
     fi
 
     # Check for AMD GPU - look for AMD vendor IDs [1002] (AMD/ATI) or [1022] (AMD)
-    if echo "$pci_vga_info" | grep -qE "\[1002:|\[1022:"; then
+    if grep -qE "\[1002:|\[1022:" <<<"$pci_vga_info"; then
       msg_custom "🎮" "${RD}" "Detected AMD GPU"
       if [[ -d /dev/dri ]]; then
         # Only add if not already claimed by Intel
@@ -3733,7 +3741,7 @@ $PCT_OPTIONS_STRING"
     fi
 
     # Check for NVIDIA GPU - look for NVIDIA vendor ID [10de]
-    if echo "$pci_vga_info" | grep -q "\[10de:"; then
+    if grep -q "\[10de:" <<<"$pci_vga_info"; then
       msg_custom "🎮" "${GN}" "Detected NVIDIA GPU"
 
       # Simple passthrough - just bind /dev/nvidia* devices if they exist
@@ -3834,7 +3842,7 @@ EOF
       for gpu in "${available_gpus[@]}"; do
         echo "  - $gpu"
       done
-      read -rp "Which GPU type to passthrough? (${available_gpus[*]}): " selected_gpu
+      read -rp "Which GPU type to passthrough? (${available_gpus[*]}): " selected_gpu </dev/tty
       selected_gpu="${selected_gpu^^}"
 
       # Validate selection
@@ -4012,6 +4020,16 @@ EOF
   #   install_gpu_userland "NVIDIA"
   # fi
 
+  # Disable error trap for entire customization & install phase.
+  # All errors are handled explicitly — recovery menu shown on failure.
+  # Without this, customization errors (e.g. container stopped during base package
+  # install) would trigger error_handler() with a simple "Remove broken container?"
+  # prompt instead of the full recovery menu with retry/repair options.
+  set +Eeuo pipefail
+  trap - ERR
+
+  local install_exit_code=0
+
   # Continue with standard container setup
   if [ "$var_os" == "alpine" ]; then
     sleep 3
@@ -4019,9 +4037,9 @@ EOF
 http://dl-cdn.alpinelinux.org/alpine/latest-stable/main
 http://dl-cdn.alpinelinux.org/alpine/latest-stable/community
 EOF'
-    pct exec "$CTID" -- ash -c "apk add bash newt curl openssh nano mc ncurses jq >/dev/null" || {
+    pct exec "$CTID" -- ash -c "apk add bash newt curl openssh nano mc ncurses jq" >>"$BUILD_LOG" 2>&1 || {
       msg_error "Failed to install base packages in Alpine container"
-      exit 1
+      install_exit_code=1
     }
   else
     sleep 3
@@ -4045,69 +4063,69 @@ EOF'
       msg_warn "Skipping timezone setup – zone '$tz' not found in container"
     fi
 
-    pct exec "$CTID" -- bash -c "apt-get update >/dev/null && apt-get install -y sudo curl mc gnupg2 jq >/dev/null" || {
+    pct exec "$CTID" -- bash -c "apt-get update 2>&1 && apt-get install -y sudo curl mc gnupg2 jq 2>&1" >>"$BUILD_LOG" 2>&1 || {
       msg_error "apt-get base packages installation failed"
-      exit 1
+      install_exit_code=1
     }
   fi
 
-  msg_ok "Customized LXC Container"
+  # Only continue with installation if customization succeeded
+  if [[ $install_exit_code -eq 0 ]]; then
+    msg_ok "Customized LXC Container"
 
-  # Optional DNS override for retry scenarios (inside LXC, never on host)
-  if [[ "${DNS_RETRY_OVERRIDE:-false}" == "true" ]]; then
-    msg_info "Applying DNS retry override in LXC (8.8.8.8, 1.1.1.1)"
-    pct exec "$CTID" -- bash -c "printf 'nameserver 8.8.8.8\nnameserver 1.1.1.1\n' >/etc/resolv.conf" >/dev/null 2>&1 || true
-    msg_ok "DNS override applied in LXC"
-  fi
-
-  # Install SSH keys
-  install_ssh_keys_into_ct
-
-  # Start timer for duration tracking
-  start_install_timer
-
-  # Run application installer
-  # Disable error trap - container errors are handled internally via flag file
-  set +Eeuo pipefail # Disable ALL error handling temporarily
-  trap - ERR         # Remove ERR trap completely
-
-  # Signal handlers use this flag to stop the container on abort (SIGHUP/SIGINT/SIGTERM)
-  # Without this, SSH disconnects leave the container running as an orphan process
-  # that sends "configuring" status AFTER the host already reported "failed"
-  export CONTAINER_INSTALLING=true
-
-  # Capture lxc-attach terminal output to host-side log via tee.
-  # This is the ONLY reliable way to get install output when:
-  #   - install.func fails to load (DNS error) → no container-side logging
-  #   - install script crashes before logging starts
-  #   - $STD/silent() not used for some commands
-  # PIPESTATUS[0] gets the real exit code from lxc-attach (not from tee).
-  local _LXC_CAPTURE_LOG="/tmp/.install-capture-${SESSION_ID}.log"
-  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/install/${var_install}.sh)" 2>&1 | tee "$_LXC_CAPTURE_LOG"
-  local lxc_exit=${PIPESTATUS[0]}
-
-  unset CONTAINER_INSTALLING
-
-  # Keep error handling DISABLED during failure detection and recovery
-  # Re-enabling it here would cause any pct exec/pull failure to trigger
-  # error_handler() on the host, bypassing the recovery menu entirely
-
-  # Check for error flag file in container (more reliable than lxc-attach exit code)
-  local install_exit_code=0
-  if [[ -n "${SESSION_ID:-}" ]]; then
-    local error_flag="/root/.install-${SESSION_ID}.failed"
-    if pct exec "$CTID" -- test -f "$error_flag" 2>/dev/null; then
-      install_exit_code=$(pct exec "$CTID" -- cat "$error_flag" 2>/dev/null || echo "1")
-      pct exec "$CTID" -- rm -f "$error_flag" 2>/dev/null || true
+    # Optional DNS override for retry scenarios (inside LXC, never on host)
+    if [[ "${DNS_RETRY_OVERRIDE:-false}" == "true" ]]; then
+      msg_info "Applying DNS retry override in LXC (8.8.8.8, 1.1.1.1)"
+      pct exec "$CTID" -- bash -c "printf 'nameserver 8.8.8.8\nnameserver 1.1.1.1\n' >/etc/resolv.conf" >/dev/null 2>&1 || true
+      msg_ok "DNS override applied in LXC"
     fi
-  fi
 
-  # Fallback to lxc-attach exit code if no flag file
-  if [[ $install_exit_code -eq 0 && $lxc_exit -ne 0 ]]; then
-    install_exit_code=$lxc_exit
-  fi
+    # Install SSH keys
+    install_ssh_keys_into_ct
 
-  # Installation failed?
+    # Start timer for duration tracking
+    start_install_timer
+
+    # Run application installer
+    # Error handling already disabled above (before customization phase)
+
+    # Signal handlers use this flag to stop the container on abort (SIGHUP/SIGINT/SIGTERM)
+    # Without this, SSH disconnects leave the container running as an orphan process
+    # that sends "configuring" status AFTER the host already reported "failed"
+    export CONTAINER_INSTALLING=true
+
+    # Capture lxc-attach terminal output to host-side log via tee.
+    # This is the ONLY reliable way to get install output when:
+    #   - install.func fails to load (DNS error) → no container-side logging
+    #   - install script crashes before logging starts
+    #   - $STD/silent() not used for some commands
+    # PIPESTATUS[0] gets the real exit code from lxc-attach (not from tee).
+    local _LXC_CAPTURE_LOG="/tmp/.install-capture-${SESSION_ID}.log"
+    lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/install/${var_install}.sh)" 2>&1 | tee "$_LXC_CAPTURE_LOG"
+    local lxc_exit=${PIPESTATUS[0]}
+
+    unset CONTAINER_INSTALLING
+
+    # Keep error handling DISABLED during failure detection and recovery
+    # Re-enabling it here would cause any pct exec/pull failure to trigger
+    # error_handler() on the host, bypassing the recovery menu entirely
+
+    # Check for error flag file in container (more reliable than lxc-attach exit code)
+    if [[ -n "${SESSION_ID:-}" ]]; then
+      local error_flag="/root/.install-${SESSION_ID}.failed"
+      if pct exec "$CTID" -- test -f "$error_flag" 2>/dev/null; then
+        install_exit_code=$(pct exec "$CTID" -- cat "$error_flag" 2>/dev/null || echo "1")
+        pct exec "$CTID" -- rm -f "$error_flag" 2>/dev/null || true
+      fi
+    fi
+
+    # Fallback to lxc-attach exit code if no flag file
+    if [[ $install_exit_code -eq 0 && ${lxc_exit:-0} -ne 0 ]]; then
+      install_exit_code=${lxc_exit:-0}
+    fi
+  fi # end: if [[ $install_exit_code -eq 0 ]] (customization succeeded)
+
+  # Installation or customization failed?
   if [[ $install_exit_code -ne 0 ]]; then
     # Prevent job-control signals from suspending the script during recovery.
     # In non-interactive shells (bash -c), background processes (spinner) can
@@ -4219,7 +4237,7 @@ EOF'
       pct enter "$CTID"
       echo ""
       echo -en "${YW}Container ${CTID} still running. Remove now? (y/N): ${CL}"
-      if read -r response && [[ "$response" =~ ^[Yy]$ ]]; then
+      if read -r response </dev/tty && [[ "$response" =~ ^[Yy]$ ]]; then
         pct stop "$CTID" &>/dev/null || true
         pct destroy "$CTID" &>/dev/null || true
         msg_ok "Container ${CTID} removed"
@@ -4369,7 +4387,7 @@ EOF'
     echo ""
     echo -en "${YW}Select option [1-${max_option}] (default: 1, auto-remove in 60s): ${CL}"
 
-    if read -t 60 -r response; then
+    if read -t 60 -r response </dev/tty; then
       case "${response:-1}" in
       1)
         # Remove container
@@ -4586,7 +4604,7 @@ destroy_lxc() {
   trap 'echo; msg_error "Aborted by user (SIGINT/SIGQUIT)"; return 130' INT QUIT
 
   local prompt
-  if ! read -rp "Remove this Container? <y/N> " prompt; then
+  if ! read -rp "Remove this Container? <y/N> " prompt </dev/tty; then
     # read returns non-zero on Ctrl-D/ESC
     msg_error "Aborted input (Ctrl-D/ESC)"
     return 130
@@ -4923,7 +4941,7 @@ create_lxc_container() {
     echo "  pve-container: installed=${_pvec_i:-n/a}  candidate=${_pvec_c:-n/a}"
     echo "  lxc-pve     : installed=${_lxcp_i:-n/a}  candidate=${_lxcp_c:-n/a}"
     echo
-    read -rp "Do you want to upgrade now? [y/N] " _ans
+    read -rp "Do you want to upgrade now? [y/N] " _ans </dev/tty
     case "${_ans,,}" in
     y | yes)
       msg_info "Upgrading Proxmox LXC stack (pve-container, lxc-pve)"
@@ -5155,7 +5173,7 @@ create_lxc_container() {
         echo "  [$((i + 1))] ${AVAILABLE_VERSIONS[$i]}"
       done
       echo ""
-      read -p "Select version [1-${#AVAILABLE_VERSIONS[@]}] or press Enter to cancel: " choice
+      read -p "Select version [1-${#AVAILABLE_VERSIONS[@]}] or press Enter to cancel: " choice </dev/tty
 
       if [[ "$choice" =~ ^[0-9]+$ ]] && [[ "$choice" -ge 1 ]] && [[ "$choice" -le ${#AVAILABLE_VERSIONS[@]} ]]; then
         PCT_OSVERSION="${AVAILABLE_VERSIONS[$((choice - 1))]}"
@@ -5218,7 +5236,7 @@ create_lxc_container() {
         done
 
         echo ""
-        read -p "Select version [1-${#AVAILABLE_VERSIONS[@]}] or Enter to exit: " choice
+        read -p "Select version [1-${#AVAILABLE_VERSIONS[@]}] or Enter to exit: " choice </dev/tty
 
         if [[ "$choice" =~ ^[0-9]+$ ]] && [[ "$choice" -ge 1 ]] && [[ "$choice" -le ${#AVAILABLE_VERSIONS[@]} ]]; then
           export var_version="${AVAILABLE_VERSIONS[$((choice - 1))]}"
@@ -5328,7 +5346,7 @@ create_lxc_container() {
     [[ -f "$TEMPLATE_PATH" ]] && rm -f "$TEMPLATE_PATH"
     for attempt in {1..3}; do
       msg_info "Attempt $attempt: Downloading template $TEMPLATE to $TEMPLATE_STORAGE"
-      if pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1; then
+      if pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >>"${BUILD_LOG:-/dev/null}" 2>&1; then
         msg_ok "Template download successful."
         break
       fi
@@ -5405,11 +5423,23 @@ create_lxc_container() {
 
   LOGFILE="/tmp/pct_create_${CTID}_$(date +%Y%m%d_%H%M%S)_${SESSION_ID}.log"
 
+  # Helper: append pct_create log to BUILD_LOG before exit so combined log has full context
+  _flush_pct_log() {
+    if [[ -s "${LOGFILE:-}" && -n "${BUILD_LOG:-}" ]]; then
+      {
+        echo ""
+        echo "--- pct create output (${LOGFILE}) ---"
+        cat "$LOGFILE"
+        echo "--- end pct create output ---"
+      } >>"$BUILD_LOG" 2>/dev/null || true
+    fi
+  }
+
   # Validate template before pct create (while holding lock)
   if [[ ! -s "$TEMPLATE_PATH" || "$(stat -c%s "$TEMPLATE_PATH" 2>/dev/null || echo 0)" -lt 1000000 ]]; then
     msg_info "Template file missing or too small – downloading"
     rm -f "$TEMPLATE_PATH"
-    pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1 || {
+    pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >>"${BUILD_LOG:-/dev/null}" 2>&1 || {
       msg_error "Failed to download template '$TEMPLATE' to storage '$TEMPLATE_STORAGE'"
       exit 222
     }
@@ -5418,7 +5448,7 @@ create_lxc_container() {
     if [[ -n "$ONLINE_TEMPLATE" ]]; then
       msg_info "Template appears corrupted – re-downloading"
       rm -f "$TEMPLATE_PATH"
-      pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1 || {
+      pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >>"${BUILD_LOG:-/dev/null}" 2>&1 || {
         msg_error "Failed to re-download template '$TEMPLATE'"
         exit 222
       }
@@ -5442,7 +5472,7 @@ create_lxc_container() {
     if grep -qiE 'unable to open|corrupt|invalid' "$LOGFILE"; then
       msg_info "Template may be corrupted – re-downloading"
       rm -f "$TEMPLATE_PATH"
-      pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1
+      pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >>"${BUILD_LOG:-/dev/null}" 2>&1
       msg_ok "Template re-downloaded"
     fi
 
@@ -5455,7 +5485,7 @@ create_lxc_container() {
         if [[ ! -f "$LOCAL_TEMPLATE_PATH" ]]; then
           msg_ok "Trying local storage fallback"
           msg_info "Downloading template to local"
-          pveam download local "$TEMPLATE" >/dev/null 2>&1
+          pveam download local "$TEMPLATE" >>"${BUILD_LOG:-/dev/null}" 2>&1
           msg_ok "Template downloaded to local"
         else
           msg_ok "Trying local storage fallback"
@@ -5470,10 +5500,12 @@ create_lxc_container() {
             0) : ;; # success - container created, continue
             2)
               msg_error "Upgrade declined. Please update and re-run: apt update && apt install --only-upgrade pve-container lxc-pve"
+              _flush_pct_log
               exit 231
               ;;
             3)
               msg_error "Upgrade and/or retry failed. Please inspect: $LOGFILE"
+              _flush_pct_log
               exit 231
               ;;
             esac
@@ -5484,6 +5516,7 @@ create_lxc_container() {
               pct create "$CTID" "local:vztmpl/${TEMPLATE}" $PCT_OPTIONS 2>&1 | tee -a "$LOGFILE"
               set +x
             fi
+            _flush_pct_log
             exit 209
           fi
         else
@@ -5499,10 +5532,12 @@ create_lxc_container() {
           0) : ;; # success - container created, continue
           2)
             msg_error "Upgrade declined. Please update and re-run: apt update && apt install --only-upgrade pve-container lxc-pve"
+            _flush_pct_log
             exit 231
             ;;
           3)
             msg_error "Upgrade and/or retry failed. Please inspect: $LOGFILE"
+            _flush_pct_log
             exit 231
             ;;
           esac
@@ -5513,6 +5548,7 @@ create_lxc_container() {
             pct create "$CTID" "local:vztmpl/${TEMPLATE}" $PCT_OPTIONS 2>&1 | tee -a "$LOGFILE"
             set +x
           fi
+          _flush_pct_log
           exit 209
         fi
       fi
@@ -5524,16 +5560,28 @@ create_lxc_container() {
   # Verify container exists
   pct list | awk '{print $1}' | grep -qx "$CTID" || {
     msg_error "Container ID $CTID not listed in 'pct list'. See $LOGFILE"
+    _flush_pct_log
     exit 215
   }
 
   # Verify config rootfs
   grep -q '^rootfs:' "/etc/pve/lxc/$CTID.conf" || {
     msg_error "RootFS entry missing in container config. See $LOGFILE"
+    _flush_pct_log
     exit 216
   }
 
   msg_ok "LXC Container ${BL}$CTID${CL} ${GN}was successfully created."
+
+  # Append pct create log to BUILD_LOG for combined log visibility
+  if [[ -s "$LOGFILE" && -n "${BUILD_LOG:-}" ]]; then
+    {
+      echo ""
+      echo "--- pct create output ---"
+      cat "$LOGFILE"
+      echo "--- end pct create output ---"
+    } >>"$BUILD_LOG" 2>/dev/null || true
+  fi
 }
 
 # ==============================================================================
