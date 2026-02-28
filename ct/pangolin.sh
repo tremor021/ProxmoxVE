@@ -29,6 +29,8 @@ function update_script() {
     exit
   fi
 
+  ensure_dependencies build-essential python3
+
   NODE_VERSION="24" setup_nodejs
 
   if check_for_gh_release "pangolin" "fosrl/pangolin"; then

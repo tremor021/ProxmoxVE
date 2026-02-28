@@ -15,6 +15,8 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
+  build-essential \
+  python3 \
   sqlite3 \
   iptables
 msg_ok "Installed Dependencies"
