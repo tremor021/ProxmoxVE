@@ -86,7 +86,6 @@ elif [[ -f /opt/dawarich/app/package.json ]]; then
   $STD npm install
 fi
 $STD bundle exec rake assets:precompile
-$STD bundle exec rails db:create
 $STD bundle exec rails db:schema:load
 $STD bundle exec rails db:seed || msg_warn "Database seed failed (upstream rgeo-geojson issue), app will still work"
 $STD bundle exec rake data:migrate
