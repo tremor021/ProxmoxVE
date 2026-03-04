@@ -23,7 +23,7 @@ PG_VERSION="17" setup_postgresql
 PG_DB_NAME="litellm_db" PG_DB_USER="litellm" setup_postgresql_db
 PYTHON_VERSION="3.13" USE_UVX="YES" setup_uv
 
-msg_info "Setting up Virtual Environment"https://www.shellcheck.net/wiki/SC2164
+msg_info "Setting up Virtual Environment"
 mkdir -p /opt/litellm
 cd /opt/litellm
 $STD uv venv --clear /opt/litellm/.venv
