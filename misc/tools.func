@@ -2519,6 +2519,8 @@ check_for_codeberg_release() {
 # ------------------------------------------------------------------------------
 create_self_signed_cert() {
   local APP_NAME="${1:-${APPLICATION}}"
+  local HOSTNAME="$(hostname -f)"
+  local IP="$(hostname -I | awk '{print $1}')"
   local APP_NAME_LC=$(echo "${APP_NAME,,}" | tr -d ' ')
   local CERT_DIR="/etc/ssl/${APP_NAME_LC}"
   local CERT_KEY="${CERT_DIR}/${APP_NAME_LC}.key"
@@ -2536,8 +2538,8 @@ create_self_signed_cert() {
 
   mkdir -p "$CERT_DIR"
   $STD openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 \
-    -subj "/CN=${APP_NAME}" \
-    -addext "subjectAltName=DNS:${APP_NAME}" \
+    -subj "/CN=${HOSTNAME}" \
+    -addext "subjectAltName=DNS:${HOSTNAME},DNS:localhost,IP:${IP},IP:127.0.0.1" \
     -keyout "$CERT_KEY" \
     -out "$CERT_CRT" || {
     msg_error "Failed to create self-signed certificate"
