@@ -33,13 +33,25 @@ msg_ok "Installed ASP.NET Core Runtime"
 
 fetch_and_deploy_from_url "https://fileflows.com/downloads/zip" "/opt/fileflows"
 
-msg_info "Setup FileFlows"
 $STD ln -svf /usr/bin/ffmpeg /usr/local/bin/ffmpeg
 $STD ln -svf /usr/bin/ffprobe /usr/local/bin/ffprobe
-cd /opt/fileflows/Server
-dotnet FileFlows.Server.dll --systemd install --root true
-systemctl enable -q --now fileflows
-msg_ok "Setup FileFlows"
+CHOICE=$(msg_menu "FileFlows Setup Options" \
+  "1" "Install FileFlows Server" \
+  "2" "Install FileFlows Node")
+
+case $CHOICE in
+1)
+  cd /opt/fileflows/Server
+  $STD dotnet FileFlows.Server.dll --systemd install --root true
+  systemctl enable -q --now fileflows
+  ;;
+2)
+  cd /opt/fileflows/Node
+  $STD dotnet FileFlows.Node.dll
+  $STD dotnet FileFlows.Node.dll --systemd install --root true
+  systemctl enable -q --now fileflows-node
+  ;;
+esac
 
 motd_ssh
 customize
