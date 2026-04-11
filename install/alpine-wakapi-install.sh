@@ -18,17 +18,13 @@ $STD apk add --no-cache \
   ca-certificates \
   tzdata
 $STD update-ca-certificates
-$STD apk add --no-cache go --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community
 msg_ok "Installed Dependencies"
 
-fetch_and_deploy_gh_release "wakapi" "muety/wakapi" "tarball"
+fetch_and_deploy_gh_release "wakapi" "muety/wakapi" "prebuild" "latest" "/opt/wakapi" "wakapi_linux_amd64.zip"
 
 msg_info "Configuring Wakapi"
 LOCAL_IP=$(/sbin/ip -o -4 addr list eth0 | awk '{print $4}' | cut -d/ -f1)
 cd /opt/wakapi
-$STD go mod download
-$STD go build -o wakapi
-cp config.default.yml config.yml
 sed -i 's/listen_ipv6: ::1/listen_ipv6: "-"/g' config.yml
 sed -i 's/listen_ipv4: 127.0.0.1/listen_ipv4: "0.0.0.0"/g' config.yml
 sed -i "s/public_url: http:\/\/localhost:3000/public_url: http:\/\/$LOCAL_IP:3000/g" config.yml
