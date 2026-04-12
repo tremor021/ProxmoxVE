@@ -13,6 +13,13 @@ setting_up_container
 network_check
 update_os
 
+msg_info "Installing Dependencies"
+$STD apt install -y \
+  dbus-user-session \
+  gnome-keyring \
+  libsecret-tools
+msg_ok "Installed Dependencies"
+
 PG_VERSION="17" PG_MODULES="pgvector" setup_postgresql
 PG_DB_NAME="ironclaw" PG_DB_USER="ironclaw" PG_DB_EXTENSIONS="vector" setup_postgresql_db
 
@@ -46,7 +53,8 @@ After=network.target postgresql.service
 Type=simple
 User=root
 WorkingDirectory=/root
-ExecStart=/usr/local/bin/ironclaw
+EnvironmentFile=/root/.ironclaw/.env
+ExecStart=/usr/bin/dbus-run-session /usr/local/bin/ironclaw
 Restart=on-failure
 RestartSec=5
 
