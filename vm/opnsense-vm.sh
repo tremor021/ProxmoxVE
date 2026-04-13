@@ -317,7 +317,7 @@ function default_settings() {
 
   # Determine available network modes based on bridge count
   local DEFAULT_WAN_BRG
-  DEFAULT_WAN_BRG=$(echo "$AVAILABLE_BRIDGES" | grep -v "^${BRG}$" | head -n1)
+  DEFAULT_WAN_BRG=$(echo "$AVAILABLE_BRIDGES" | grep -v "^${BRG}$" | head -n1 || true)
 
   if [ "$BRIDGE_COUNT" -ge 2 ]; then
     # Multiple bridges available - offer dual or single mode
@@ -509,7 +509,7 @@ function advanced_settings() {
 
   # Build WAN bridge selection from available bridges (excluding LAN bridge)
   local WAN_BRIDGES
-  WAN_BRIDGES=$(get_available_bridges | grep -v "^${BRG}$")
+  WAN_BRIDGES=$(get_available_bridges | grep -v "^${BRG}$" || true)
   if [ -z "$WAN_BRIDGES" ]; then
     msg_error "No additional bridge available for WAN. Only '${BRG}' exists."
     msg_error "Create a second bridge (e.g. vmbr1) in Proxmox network config first."
@@ -738,8 +738,8 @@ done
 msg_info "Creating a OPNsense VM"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
-pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
-qm importdisk $VMID ${FILE} $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
+pvesm alloc $STORAGE $VMID $DISK0 4M &>/dev/null
+qm importdisk $VMID ${FILE} $STORAGE ${DISK_IMPORT:-} &>/dev/null
 qm set $VMID \
   -efidisk0 ${DISK0_REF}${FORMAT} \
   -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN}size=2G \
