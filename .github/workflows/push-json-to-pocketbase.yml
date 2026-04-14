@@ -170,7 +170,6 @@ jobs:
               website: data.website,
               logo: data.logo,
               description: data.description,
-              config_path: data.config_path,
               default_user: (data.default_credentials && data.default_credentials.username) || data.default_user || null,
               default_passwd: (data.default_credentials && data.default_credentials.password) || data.default_passwd || null,
               is_dev: false
