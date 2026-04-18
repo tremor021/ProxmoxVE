@@ -462,6 +462,10 @@ Exercise vigilance regarding copycat or coat-tailing sites that seek to exploit 
 
     - SparkyFitness Garmin Microservice: fix update function [@tomfrenzel](https://github.com/tomfrenzel) ([#13824](https://github.com/community-scripts/ProxmoxVE/pull/13824))
 
+  - #### 🔧 Refactor
+
+    - Clean-Orphan-LVM: check all cluster nodes for VM/CT configs [@MickLesk](https://github.com/MickLesk) ([#13837](https://github.com/community-scripts/ProxmoxVE/pull/13837))
+
 ## 2026-04-17
 
 ### 🆕 New Scripts
