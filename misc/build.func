@@ -3658,7 +3658,7 @@ build_container() {
     local _mount_clean="${ALLOW_MOUNT_FS// /}"
     _mount_clean="${_mount_clean%%,}"
     _mount_clean="${_mount_clean##,}"
-    _mount_clean="${_mount_clean%%;}"  
+    _mount_clean="${_mount_clean%%;}"
     _mount_clean="${_mount_clean//,/;}"
     if [ -n "$_mount_clean" ]; then
       [ -n "$FEATURES" ] && FEATURES="$FEATURES,"
@@ -5250,9 +5250,133 @@ create_lxc_container() {
   # Extract Debian OS minor from template name: debian-13-standard_13.1-1_amd64.tar.zst => "13.1"
   parse_template_osver() { sed -n 's/.*_\([0-9][0-9]*\(\.[0-9]\+\)\?\)-.*/\1/p' <<<"$1"; }
 
+  # Switch to the previous OS major version template and retry pct create
+  # Determines the fallback version automatically based on available templates.
+  # Returns: 0 = success, 1 = failed
+  fallback_to_previous_os_version() {
+    local old_template="$TEMPLATE"
+    local os_type="${PCT_OSTYPE:-}"
+    local current_ver="${PCT_OSVERSION:-}"
+
+    # Determine template search pattern based on OS type
+    local tpl_pattern=""
+    case "$os_type" in
+    debian | ubuntu) tpl_pattern="-standard_" ;;
+    alpine | fedora | rocky | centos) tpl_pattern="-default_" ;;
+    *) tpl_pattern="" ;;
+    esac
+
+    msg_info "Searching for an older $os_type template (current: $os_type $current_ver)"
+
+    # Collect all available versions for this OS type (local + online)
+    local -a all_versions=()
+
+    # Local templates
+    mapfile -t _local_vers < <(
+      pveam list "$TEMPLATE_STORAGE" 2>/dev/null |
+        awk -v os="$os_type" -v pat="$tpl_pattern" '$1 ~ ("^"os"|/"os) && $1 ~ pat {print $1}' |
+        sed 's|.*/||' |
+        sed -E "s/^${os_type}-([0-9]+(\.[0-9]+)?).*/\1/" |
+        sort -u -V
+    )
+    all_versions+=("${_local_vers[@]}")
+
+    # Online templates (only if needed)
+    if command -v timeout &>/dev/null; then
+      timeout 30 pveam update >/dev/null 2>&1 || true
+    else
+      pveam update >/dev/null 2>&1 || true
+    fi
+    mapfile -t _online_vers < <(
+      pveam available -section system 2>/dev/null |
+        awk '{print $2}' |
+        grep -E "^${os_type}-[0-9]" |
+        { [[ -n "$tpl_pattern" ]] && grep "$tpl_pattern" || cat; } |
+        sed -E "s/^${os_type}-([0-9]+(\.[0-9]+)?).*/\1/" |
+        sort -u -V 2>/dev/null || true
+    )
+    all_versions+=("${_online_vers[@]}")
+
+    # Deduplicate and sort, find the highest version below current
+    local fallback_ver=""
+    fallback_ver=$(printf '%s\n' "${all_versions[@]}" | sort -u -V | awk -v cur="$current_ver" '{
+      # Compare major versions: extract major part
+      split($0, a, ".")
+      split(cur, b, ".")
+      if (a[1]+0 < b[1]+0) ver=$0
+    } END { if (ver) print ver }')
+
+    if [[ -z "$fallback_ver" ]]; then
+      msg_error "No older $os_type template version found."
+      return 1
+    fi
+
+    msg_ok "Fallback version: $os_type $fallback_ver"
+
+    # Find the actual template file for this version
+    local fallback_search="${os_type}-${fallback_ver}"
+    local fallback_template=""
+
+    # Check local first
+    mapfile -t _fb_local < <(
+      pveam list "$TEMPLATE_STORAGE" 2>/dev/null |
+        awk -v search="$fallback_search" -v pat="$tpl_pattern" '$1 ~ search && $1 ~ pat {print $1}' |
+        sed 's|.*/||' | sort -t - -k 2 -V
+    )
+    if [[ ${#_fb_local[@]} -gt 0 ]]; then
+      fallback_template="${_fb_local[-1]}"
+    else
+      # Check online
+      mapfile -t _fb_online < <(
+        pveam available -section system 2>/dev/null |
+          awk '{print $2}' |
+          grep -E "^${fallback_search}.*${tpl_pattern}" |
+          sort -t - -k 2 -V 2>/dev/null || true
+      )
+      [[ ${#_fb_online[@]} -gt 0 ]] && fallback_template="${_fb_online[-1]}"
+    fi
+
+    if [[ -z "$fallback_template" ]]; then
+      msg_error "No template found for $os_type $fallback_ver."
+      return 1
+    fi
+
+    msg_ok "Found template: $fallback_template"
+
+    # Download if needed
+    local fallback_path
+    fallback_path="$(pvesm path "$TEMPLATE_STORAGE:vztmpl/$fallback_template" 2>/dev/null || true)"
+    [[ -z "$fallback_path" ]] && fallback_path="/var/lib/vz/template/cache/$fallback_template"
+
+    if [[ ! -f "$fallback_path" ]]; then
+      msg_info "Downloading $os_type $fallback_ver template"
+      if ! pveam download "$TEMPLATE_STORAGE" "$fallback_template" >>"${BUILD_LOG:-/dev/null}" 2>&1; then
+        msg_error "Failed to download $os_type $fallback_ver template."
+        return 1
+      fi
+      msg_ok "Template downloaded"
+    fi
+
+    # Update variables
+    TEMPLATE="$fallback_template"
+    TEMPLATE_PATH="$fallback_path"
+    PCT_OSVERSION="$fallback_ver"
+    export PCT_OSVERSION
+
+    # Retry pct create
+    msg_info "Retrying container creation with $os_type $fallback_ver"
+    if pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" $PCT_OPTIONS >>"$LOGFILE" 2>&1; then
+      msg_ok "Container created successfully with $os_type $fallback_ver (fallback from $old_template)."
+      return 0
+    else
+      msg_error "Container creation with $os_type $fallback_ver also failed. See $LOGFILE"
+      return 1
+    fi
+  }
+
   # Offer upgrade for pve-container/lxc-pve if candidate > installed; optional auto-retry pct create
   # Returns:
-  #   0 = no upgrade needed
+  #   0 = no upgrade needed / container created after upgrade or fallback
   #   1 = upgraded (and if do_retry=yes and retry succeeded, creation done)
   #   2 = user declined
   #   3 = upgrade attempted but failed OR retry failed
@@ -5280,13 +5404,58 @@ create_lxc_container() {
     echo "  pve-container: installed=${_pvec_i:-n/a}  candidate=${_pvec_c:-n/a}"
     echo "  lxc-pve     : installed=${_lxcp_i:-n/a}  candidate=${_lxcp_c:-n/a}"
     echo
-    read -rp "Do you want to upgrade now? [y/N] " _ans </dev/tty
+
+    # Offer older OS version fallback when template version might be too new for LXC stack
+    local _has_fallback_option=false
+    if [[ -n "${PCT_OSTYPE:-}" && -n "${PCT_OSVERSION:-}" ]]; then
+      _has_fallback_option=true
+      echo "  [1] Upgrade LXC stack now (recommended)"
+      echo "  [2] Use an older ${PCT_OSTYPE} template instead (may not work with all scripts)"
+      echo "  [3] Cancel"
+      echo
+      read -rp "Select option [1/2/3]: " _ans </dev/tty
+    else
+      read -rp "Do you want to upgrade now? [y/N] " _ans </dev/tty
+    fi
+
+    if [[ "$_has_fallback_option" == true ]]; then
+      case "$_ans" in
+      1)
+        _ans="y"
+        ;;
+      2)
+        if [[ "$do_retry" == "yes" ]]; then
+          if fallback_to_previous_os_version; then
+            return 0
+          else
+            return 3
+          fi
+        else
+          msg_custom "ℹ️" "${YW}" "OS version fallback is only available during container creation."
+          return 2
+        fi
+        ;;
+      *)
+        return 2
+        ;;
+      esac
+    fi
+
     case "${_ans,,}" in
     y | yes)
       msg_info "Upgrading Proxmox LXC stack (pve-container, lxc-pve)"
       apt_update_safe
       if $STD apt-get install -y --only-upgrade pve-container lxc-pve; then
         msg_ok "LXC stack upgraded."
+        # Verify pct binary still works after upgrade (partial upgrades can break Perl modules)
+        if ! pct list &>/dev/null; then
+          msg_error "LXC stack upgrade caused PVE tool breakage (likely Perl module incompatibility)."
+          msg_custom "⚠️" "${YW}" "A partial package upgrade has left the PVE stack in an inconsistent state."
+          msg_custom "🔧" "${YW}" "Please run the following on the Proxmox host, then retry:"
+          echo -e "${TAB}  apt update && apt dist-upgrade -y"
+          echo -e "${TAB}  reboot"
+          return 3
+        fi
         if [[ "$do_retry" == "yes" ]]; then
           msg_info "Retrying container creation after upgrade"
           if pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" $PCT_OPTIONS >>"$LOGFILE" 2>&1; then
@@ -5385,10 +5554,35 @@ create_lxc_container() {
   fi
 
   msg_info "Validating storage '$CONTAINER_STORAGE'"
-  STORAGE_TYPE=$(grep -E "^[^:]+: $CONTAINER_STORAGE$" /etc/pve/storage.cfg | cut -d: -f1 | head -1 || true)
+  # Check if storage.cfg is accessible (pmxcfs must be mounted)
+  if [[ ! -f /etc/pve/storage.cfg ]]; then
+    if ! mountpoint -q /etc/pve 2>/dev/null; then
+      msg_error "Proxmox cluster filesystem (pmxcfs) is not mounted at /etc/pve."
+      msg_custom "🔧" "${YW}" "Try: systemctl restart pve-cluster"
+    else
+      msg_error "/etc/pve/storage.cfg does not exist."
+      msg_custom "🔧" "${YW}" "Check Proxmox cluster filesystem integrity: pvecm status"
+    fi
+    exit 213
+  fi
+
+  STORAGE_TYPE=$(grep -E "^[^:]+:[[:space:]]*$CONTAINER_STORAGE[[:space:]]*$" /etc/pve/storage.cfg | cut -d: -f1 | head -1 || true)
+
+  # Fallback: use pvesm status to determine storage type
+  if [[ -z "$STORAGE_TYPE" ]]; then
+    STORAGE_TYPE=$(pvesm status -storage "$CONTAINER_STORAGE" 2>/dev/null | awk 'NR>1{print $2}')
+  fi
 
   if [[ -z "$STORAGE_TYPE" ]]; then
     msg_error "Storage '$CONTAINER_STORAGE' not found in /etc/pve/storage.cfg"
+    msg_custom "📋" "${YW}" "Available storages: $(pvesm status 2>/dev/null | awk 'NR>1{printf "%s (%s) ", $1, $2}' || echo 'n/a')"
+    if [[ -r /etc/pve/storage.cfg ]]; then
+      msg_custom "📋" "${YW}" "Storage definitions found in config:"
+      grep -E '^[a-z]+:' /etc/pve/storage.cfg 2>/dev/null | while IFS= read -r _line; do
+        echo "${TAB}  $_line"
+      done
+    fi
+    msg_custom "📖" "${YW}" "See https://pve.proxmox.com/wiki/Storage for storage configuration details."
     exit 213
   fi
 
@@ -5811,6 +6005,17 @@ create_lxc_container() {
   if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" $PCT_OPTIONS >"$LOGFILE" 2>&1; then
     msg_debug "Container creation failed on ${TEMPLATE_STORAGE}. Checking error..."
 
+    # Check for Perl module breakage (partial PVE upgrade)
+    if grep -qiE 'Compilation failed|Bareword.*not allowed' "$LOGFILE"; then
+      msg_error "Container creation failed due to broken Perl modules on the PVE host."
+      msg_custom "⚠️" "${YW}" "This usually happens after a partial PVE package upgrade."
+      msg_custom "🔧" "${YW}" "Please run the following on the Proxmox host, then retry:"
+      echo -e "${TAB}  apt update && apt dist-upgrade -y"
+      echo -e "${TAB}  reboot"
+      _flush_pct_log
+      exit 232
+    fi
+
     # Check if CTID collision (race condition: ID claimed between validation and creation)
     if grep -qiE 'already exists|already in use' "$LOGFILE"; then
       local old_ctid="$CTID"
@@ -5856,15 +6061,16 @@ create_lxc_container() {
               rc=$?
               case $rc in
               0) : ;; # success - container created, continue
-              2)
-                msg_error "Upgrade declined. Please update and re-run: apt update && apt install --only-upgrade pve-container lxc-pve"
-                _flush_pct_log
-                exit 231
-                ;;
-              3)
-                msg_error "Upgrade and/or retry failed. Please inspect: $LOGFILE"
-                _flush_pct_log
-                exit 231
+              2 | 3)
+                # Upgrade declined or failed — try older OS version as last resort
+                msg_warn "Attempting older ${PCT_OSTYPE:-} version as last resort"
+                if fallback_to_previous_os_version; then
+                  : # success
+                else
+                  msg_error "All recovery options exhausted. Please inspect: $LOGFILE"
+                  _flush_pct_log
+                  exit 231
+                fi
                 ;;
               esac
             else
@@ -5888,15 +6094,16 @@ create_lxc_container() {
             rc=$?
             case $rc in
             0) : ;; # success - container created, continue
-            2)
-              msg_error "Upgrade declined. Please update and re-run: apt update && apt install --only-upgrade pve-container lxc-pve"
-              _flush_pct_log
-              exit 231
-              ;;
-            3)
-              msg_error "Upgrade and/or retry failed. Please inspect: $LOGFILE"
-              _flush_pct_log
-              exit 231
+            2 | 3)
+              # Upgrade declined or failed — try older OS version as last resort
+              msg_warn "Attempting older ${PCT_OSTYPE:-} version as last resort"
+              if fallback_to_previous_os_version; then
+                : # success
+              else
+                msg_error "All recovery options exhausted. Please inspect: $LOGFILE"
+                _flush_pct_log
+                exit 231
+              fi
               ;;
             esac
           else
@@ -5915,7 +6122,7 @@ create_lxc_container() {
       fi
     fi # close CTID collision else-branch
   fi
-  set +f  # re-enable globbing after pct create block
+  set +f # re-enable globbing after pct create block
 
   # Verify container exists (allow up to 10s for pmxcfs sync in clusters)
   local _pct_visible=false
