@@ -69,7 +69,18 @@ function update_script() {
 
     msg_info "Running database migrations"
     cd /opt/pangolin
-    ENVIRONMENT=prod $STD npx drizzle-kit push --config drizzle.sqlite.config.ts
+
+    # Pre-apply potentially destructive schema changes safely so drizzle-kit
+    # does not recreate tables (which would delete all rows).
+    local DB="/opt/pangolin/config/db/db.sqlite"
+    if [[ -f "$DB" ]]; then
+      sqlite3 "$DB" "ALTER TABLE 'orgs' ADD COLUMN 'settingsLogRetentionDaysConnection' integer DEFAULT 0 NOT NULL;" 2>/dev/null || true
+      sqlite3 "$DB" "ALTER TABLE 'clientSitesAssociationsCache' ADD COLUMN 'isJitMode' integer DEFAULT 0 NOT NULL;" 2>/dev/null || true
+      # Migrate roleId from userOrgs → userOrgRoles before the column is dropped
+      sqlite3 "$DB" "INSERT OR IGNORE INTO 'userOrgRoles' (userId, orgId, roleId) SELECT userId, orgId, roleId FROM 'userOrgs' WHERE roleId IS NOT NULL;" 2>/dev/null || true
+    fi
+
+    ENVIRONMENT=prod $STD npx drizzle-kit push --force --config drizzle.sqlite.config.ts
     msg_ok "Ran database migrations"
 
     msg_info "Updating Badger plugin version"
