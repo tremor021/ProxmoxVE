@@ -337,8 +337,8 @@ jobs:
 
             if (infoMatch) {
               // ── INFO SUBCOMMAND ──────────────────────────────────────────────
-              const notesArr   = readJsonBlob(record.notes_json);
-              const methodsArr = readJsonBlob(record.install_methods_json);
+              const notesArr   = readJsonBlob(record.notes);
+              const methodsArr = readJsonBlob(record.install_methods);
 
               const out = [];
               out.push('ℹ️ **PocketBase Bot**: Info for **`' + slug + '`**\n');
@@ -382,13 +382,13 @@ jobs:
               // ── NOTE SUBCOMMAND ──────────────────────────────────────────────
               const noteAction  = noteMatch[1].toLowerCase();
               const noteArgsStr = rest.substring(noteMatch[0].length).trim();
-              let notesArr = readJsonBlob(record.notes_json);
+              let notesArr = readJsonBlob(record.notes);
 
               async function patchNotes(arr) {
                 const res = await request(recordsUrl + '/' + record.id, {
                   method: 'PATCH',
                   headers: { 'Authorization': token, 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ notes_json: arr })
+                  body: JSON.stringify({ notes: arr })
                 });
                 if (!res.ok) {
                   await addReaction('-1');
@@ -504,7 +504,7 @@ jobs:
               // ── METHOD SUBCOMMAND ────────────────────────────────────────────
               const methodArgs     = rest.replace(/^method\s*/i, '').trim();
               const methodListMode = !methodArgs || methodArgs.toLowerCase() === 'list';
-              let methodsArr = readJsonBlob(record.install_methods_json);
+              let methodsArr = readJsonBlob(record.install_methods);
 
               // Method field classification
               const RESOURCE_KEYS = { cpu: 'number', ram: 'number', hdd: 'number', os: 'string', version: 'string' };
@@ -526,7 +526,7 @@ jobs:
                 const res = await request(recordsUrl + '/' + record.id, {
                   method: 'PATCH',
                   headers: { 'Authorization': token, 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ install_methods_json: arr })
+                  body: JSON.stringify({ install_methods: arr })
                 });
                 if (!res.ok) {
                   await addReaction('-1');
