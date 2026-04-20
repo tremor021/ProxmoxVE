@@ -76,8 +76,23 @@ function update_script() {
     if [[ -f "$DB" ]]; then
       sqlite3 "$DB" "ALTER TABLE 'orgs' ADD COLUMN 'settingsLogRetentionDaysConnection' integer DEFAULT 0 NOT NULL;" 2>/dev/null || true
       sqlite3 "$DB" "ALTER TABLE 'clientSitesAssociationsCache' ADD COLUMN 'isJitMode' integer DEFAULT 0 NOT NULL;" 2>/dev/null || true
-      # Migrate roleId from userOrgs → userOrgRoles before the column is dropped
+
+      # Create new role-mapping tables and migrate data before drizzle-kit
+      # drops the roleId columns from userOrgs and userInvites.
+      sqlite3 "$DB" "CREATE TABLE IF NOT EXISTS 'userOrgRoles' (
+        'userId' text NOT NULL REFERENCES 'user'('id') ON DELETE CASCADE,
+        'orgId' text NOT NULL REFERENCES 'orgs'('orgId') ON DELETE CASCADE,
+        'roleId' integer NOT NULL REFERENCES 'roles'('roleId') ON DELETE CASCADE,
+        UNIQUE('userId', 'orgId', 'roleId')
+      );" 2>/dev/null || true
       sqlite3 "$DB" "INSERT OR IGNORE INTO 'userOrgRoles' (userId, orgId, roleId) SELECT userId, orgId, roleId FROM 'userOrgs' WHERE roleId IS NOT NULL;" 2>/dev/null || true
+
+      sqlite3 "$DB" "CREATE TABLE IF NOT EXISTS 'userInviteRoles' (
+        'inviteId' text NOT NULL REFERENCES 'userInvites'('inviteId') ON DELETE CASCADE,
+        'roleId' integer NOT NULL REFERENCES 'roles'('roleId') ON DELETE CASCADE,
+        PRIMARY KEY('inviteId', 'roleId')
+      );" 2>/dev/null || true
+      sqlite3 "$DB" "INSERT OR IGNORE INTO 'userInviteRoles' (inviteId, roleId) SELECT inviteId, roleId FROM 'userInvites' WHERE roleId IS NOT NULL;" 2>/dev/null || true
     fi
 
     ENVIRONMENT=prod $STD npx drizzle-kit push --force --config drizzle.sqlite.config.ts
