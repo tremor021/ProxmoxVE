@@ -388,7 +388,7 @@ jobs:
                 const res = await request(recordsUrl + '/' + record.id, {
                   method: 'PATCH',
                   headers: { 'Authorization': token, 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ notes_json: JSON.stringify(arr) })
+                  body: JSON.stringify({ notes_json: arr })
                 });
                 if (!res.ok) {
                   await addReaction('-1');
