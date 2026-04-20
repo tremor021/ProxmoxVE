@@ -29,7 +29,7 @@ function update_script() {
     exit
   fi
 
-  NODE_VERSION="22" setup_nodejs
+  NODE_VERSION="24" setup_nodejs
   PYTHON_VERSION="3.12" setup_uv
 
   if check_for_gh_release "shelfmark" "calibrain/shelfmark"; then

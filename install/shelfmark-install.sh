@@ -115,7 +115,7 @@ else
   msg_ok "Installed internal bypasser dependencies"
 fi
 
-NODE_VERSION="22" setup_nodejs
+NODE_VERSION="24" setup_nodejs
 PYTHON_VERSION="3.12" setup_uv
 
 fetch_and_deploy_gh_release "shelfmark" "calibrain/shelfmark" "tarball" "latest" "/opt/shelfmark"
