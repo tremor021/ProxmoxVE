@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: kkroboth
+# Author: kkroboth | Co-Author: tremor021 (Slaviša Arežina)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://fileflows.com/
 
-# Import Functions und Setup
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
@@ -17,10 +16,8 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt install -y \
   ffmpeg \
-  imagemagick
+  pciutils
 msg_ok "Installed Dependencies"
-
-setup_hwaccel
 
 msg_info "Installing ASP.NET Core Runtime"
 setup_deb822_repo \
@@ -35,6 +32,7 @@ fetch_and_deploy_from_url "https://fileflows.com/downloads/zip" "/opt/fileflows"
 
 $STD ln -svf /usr/bin/ffmpeg /usr/local/bin/ffmpeg
 $STD ln -svf /usr/bin/ffprobe /usr/local/bin/ffprobe
+$STD rm -rf /opt/fileflows/Server/runtimes/win-*
 
 read -r -p "${TAB3}Do you want to install FileFlows Server or Node? (S/N): " install_server
 
