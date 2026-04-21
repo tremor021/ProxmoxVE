@@ -20,6 +20,8 @@ $STD apt install -y \
   imagemagick
 msg_ok "Installed Dependencies"
 
+setup_hwaccel
+
 msg_info "Installing ASP.NET Core Runtime"
 setup_deb822_repo \
   "microsoft" \
