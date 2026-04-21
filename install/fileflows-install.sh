@@ -16,7 +16,8 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt install -y \
   ffmpeg \
-  pciutils
+  pciutils \
+  imagemagick
 msg_ok "Installed Dependencies"
 
 msg_info "Installing ASP.NET Core Runtime"
