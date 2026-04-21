@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: kkroboth | Co-Author: tremor021 (Slaviša Arežina)
+# Author: kkroboth
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://fileflows.com/
 
