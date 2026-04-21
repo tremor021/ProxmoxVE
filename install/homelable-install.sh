@@ -66,7 +66,7 @@ sed -i "s|^AUTH_PASSWORD_HASH=.*|AUTH_PASSWORD_HASH='${HASH}'|" /opt/homelable/b
 systemctl restart homelable
 echo "Password updated and service restarted successfully!"
 EOF
-chmod +x /opt/homelable/change_password.sh
+chmod +x /root/change_password.sh
 msg_ok "Created Password Reset Utility"
 
 msg_info "Building Frontend"
