@@ -30,8 +30,7 @@ $STD apt install -y \
   fontconfig \
   libjpeg-dev \
   libmariadb-dev \
-  python3-pip \
-  wkhtmltopdf
+  python3-pip
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="24" NODE_MODULE="yarn" setup_nodejs
@@ -49,6 +48,13 @@ default-character-set=utf8mb4
 EOF
 $STD systemctl restart mariadb
 msg_ok "Configured MariaDB for ERPNext"
+
+msg_info "Installing wkhtmltopdf"
+WKHTMLTOPDF_URL="https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-3/wkhtmltox_0.12.6.1-3.bookworm_amd64.deb"
+$STD curl -fsSL -o /tmp/wkhtmltox.deb "$WKHTMLTOPDF_URL"
+$STD apt install -y /tmp/wkhtmltox.deb
+rm -f /tmp/wkhtmltox.deb
+msg_ok "Installed wkhtmltopdf"
 
 msg_info "Installing Frappe Bench"
 useradd -m -s /bin/bash frappe
