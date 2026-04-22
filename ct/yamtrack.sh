@@ -43,7 +43,7 @@ function update_script() {
 
     msg_info "Installing Python Dependencies"
     cd /opt/yamtrack
-    $STD uv venv .venv
+    $STD uv venv --clear .venv
     $STD uv pip install --no-cache-dir -r requirements.txt
     msg_ok "Installed Python Dependencies"
 

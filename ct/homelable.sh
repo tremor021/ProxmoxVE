@@ -43,7 +43,7 @@ function update_script() {
 
     msg_info "Updating Python Dependencies"
     cd /opt/homelable/backend
-    $STD uv venv /opt/homelable/backend/.venv
+    $STD uv venv --clear /opt/homelable/backend/.venv
     $STD uv pip install --python /opt/homelable/backend/.venv/bin/python -r requirements.txt
     msg_ok "Updated Python Dependencies"
 
