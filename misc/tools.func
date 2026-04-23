@@ -6336,11 +6336,14 @@ function setup_nodejs() {
     }
   fi
 
-  # Scenario 1: Already installed at target version - just update packages/modules
+  # Scenario 1: Already installed at target version - upgrade to latest minor/patch + update packages/modules
   if [[ -n "$CURRENT_NODE_VERSION" && "$CURRENT_NODE_VERSION" == "$NODE_VERSION" ]]; then
     msg_info "Update Node.js $NODE_VERSION"
 
     ensure_apt_working || return 100
+
+    # Upgrade to the latest minor/patch release from NodeSource
+    $STD apt-get install -y --only-upgrade nodejs 2>/dev/null || true
 
     # Pin npm to 11.11.0 to work around Node.js 22.22.2 regression (nodejs/node#62425)
     $STD npm install -g npm@11.11.0 2>/dev/null || true
