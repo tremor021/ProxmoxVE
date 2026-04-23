@@ -5376,13 +5376,59 @@ create_lxc_container() {
 
   # Offer upgrade for pve-container/lxc-pve if candidate > installed; optional auto-retry pct create
   # Returns:
-  #   0 = no upgrade needed / container created after upgrade or fallback
+  #   0 = no upgrade needed / container created after upgrade or explicit fallback
   #   1 = upgraded (and if do_retry=yes and retry succeeded, creation done)
-  #   2 = user declined
+  #   2 = user chose ignore
   #   3 = upgrade attempted but failed OR retry failed
+  #   4 = user cancelled
   offer_lxc_stack_upgrade_and_maybe_retry() {
     local do_retry="${1:-no}" # yes|no
     local _pvec_i _pvec_c _lxcp_i _lxcp_c need=0
+    local _ans
+
+    has_previous_os_version_template() {
+      local os_type="${PCT_OSTYPE:-}"
+      local current_ver="${PCT_OSVERSION:-}"
+      local tpl_pattern="${TEMPLATE_PATTERN:-${TEMPLATE:-}}"
+      local -a all_versions=()
+
+      [[ -n "$os_type" && -n "$current_ver" ]] || return 1
+
+      mapfile -t _local_vers < <(
+        pveam list "$TEMPLATE_STORAGE" 2>/dev/null |
+          awk '{print $1}' |
+          sed 's|.*/||' |
+          grep -E "^${os_type}-[0-9]" |
+          { [[ -n "$tpl_pattern" ]] && grep "$tpl_pattern" || cat; } |
+          sed -E "s/^${os_type}-([0-9]+(\.[0-9]+)?).*/\1/" |
+          sort -u -V
+      )
+      all_versions+=("${_local_vers[@]}")
+
+      if command -v timeout &>/dev/null; then
+        timeout 30 pveam update >/dev/null 2>&1 || true
+      else
+        pveam update >/dev/null 2>&1 || true
+      fi
+      mapfile -t _online_vers < <(
+        pveam available -section system 2>/dev/null |
+          awk '{print $2}' |
+          grep -E "^${os_type}-[0-9]" |
+          { [[ -n "$tpl_pattern" ]] && grep "$tpl_pattern" || cat; } |
+          sed -E "s/^${os_type}-([0-9]+(\.[0-9]+)?).*/\1/" |
+          sort -u -V 2>/dev/null || true
+      )
+      all_versions+=("${_online_vers[@]}")
+
+      printf '%s\n' "${all_versions[@]}" | sort -u -V | awk -v cur="$current_ver" '
+        {
+          split($0, a, ".")
+          split(cur, b, ".")
+          if (a[1]+0 < b[1]+0) found=1
+        }
+        END { exit found ? 0 : 1 }
+      '
+    }
 
     _pvec_i="$(pkg_ver pve-container)"
     _lxcp_i="$(pkg_ver lxc-pve)"
@@ -5403,19 +5449,25 @@ create_lxc_container() {
     msg_warn "An update for the Proxmox LXC stack is available"
     echo "  pve-container: installed=${_pvec_i:-n/a}  candidate=${_pvec_c:-n/a}"
     echo "  lxc-pve     : installed=${_lxcp_i:-n/a}  candidate=${_lxcp_c:-n/a}"
+    echo "  note        : option 1 runs host apt update + apt upgrade"
     echo
 
     # Offer older OS version fallback when template version might be too new for LXC stack
     local _has_fallback_option=false
-    if [[ -n "${PCT_OSTYPE:-}" && -n "${PCT_OSVERSION:-}" ]]; then
+    if [[ "$do_retry" == "yes" ]] && has_previous_os_version_template; then
       _has_fallback_option=true
-      echo "  [1] Upgrade LXC stack now (recommended)"
+      echo "  [1] Run host upgrade now (recommended). WARNING: this runs apt upgrade and updates all Packeages on your host!"
       echo "  [2] Use an older ${PCT_OSTYPE} template instead (may not work with all scripts)"
+      echo "  [3] Ignore"
+      echo "  [4] Cancel"
+      echo
+      read -rp "Select option [1/2/3/4]: " _ans </dev/tty
+    else
+      echo "  [1] Run host upgrade now (recommended). WARNING: this runs apt upgrade and updates all Packeages on your host!"
+      echo "  [2] Ignore"
       echo "  [3] Cancel"
       echo
       read -rp "Select option [1/2/3]: " _ans </dev/tty
-    else
-      read -rp "Do you want to upgrade now? [y/N] " _ans </dev/tty
     fi
 
     if [[ "$_has_fallback_option" == true ]]; then
@@ -5424,35 +5476,48 @@ create_lxc_container() {
         _ans="y"
         ;;
       2)
-        if [[ "$do_retry" == "yes" ]]; then
-          if fallback_to_previous_os_version; then
-            return 0
-          else
-            return 3
-          fi
+        if fallback_to_previous_os_version; then
+          return 0
         else
-          msg_custom "ℹ️" "${YW}" "OS version fallback is only available during container creation."
-          return 2
+          return 3
         fi
         ;;
-      *)
+      3)
         return 2
+        ;;
+      4)
+        return 4
+        ;;
+      *)
+        return 4
+        ;;
+      esac
+    else
+      case "$_ans" in
+      1)
+        _ans="y"
+        ;;
+      2)
+        return 2
+        ;;
+      *)
+        return 4
         ;;
       esac
     fi
 
     case "${_ans,,}" in
     y | yes)
-      msg_info "Upgrading Proxmox LXC stack (pve-container, lxc-pve)"
+      msg_info "Running host upgrade for LXC stack compatibility"
       apt_update_safe
-      if $STD apt-get install -y --only-upgrade pve-container lxc-pve; then
+      if $STD apt-get upgrade -y; then
         msg_ok "LXC stack upgraded."
         # Verify pct binary still works after upgrade (partial upgrades can break Perl modules)
         if ! pct list &>/dev/null; then
           msg_error "LXC stack upgrade caused PVE tool breakage (likely Perl module incompatibility)."
           msg_custom "⚠️" "${YW}" "A partial package upgrade has left the PVE stack in an inconsistent state."
           msg_custom "🔧" "${YW}" "Please run the following on the Proxmox host, then retry:"
-          echo -e "${TAB}  apt update && apt dist-upgrade -y"
+          echo -e "${TAB}  apt update && apt upgrade -y"
           echo -e "${TAB}  reboot"
           return 3
         fi
@@ -6061,16 +6126,20 @@ create_lxc_container() {
               rc=$?
               case $rc in
               0) : ;; # success - container created, continue
-              2 | 3)
-                # Upgrade declined or failed — try older OS version as last resort
-                msg_warn "Attempting older ${PCT_OSTYPE:-} version as last resort"
-                if fallback_to_previous_os_version; then
-                  : # success
-                else
-                  msg_error "All recovery options exhausted. Please inspect: $LOGFILE"
-                  _flush_pct_log
-                  exit 231
-                fi
+              2)
+                msg_error "LXC stack upgrade ignored. Please inspect: $LOGFILE"
+                _flush_pct_log
+                exit 231
+                ;;
+              3)
+                msg_error "LXC stack upgrade failed. Please inspect: $LOGFILE"
+                _flush_pct_log
+                exit 231
+                ;;
+              4)
+                msg_error "Cancelled by user."
+                _flush_pct_log
+                exit 231
                 ;;
               esac
             else
@@ -6094,16 +6163,20 @@ create_lxc_container() {
             rc=$?
             case $rc in
             0) : ;; # success - container created, continue
-            2 | 3)
-              # Upgrade declined or failed — try older OS version as last resort
-              msg_warn "Attempting older ${PCT_OSTYPE:-} version as last resort"
-              if fallback_to_previous_os_version; then
-                : # success
-              else
-                msg_error "All recovery options exhausted. Please inspect: $LOGFILE"
-                _flush_pct_log
-                exit 231
-              fi
+            2)
+              msg_error "LXC stack upgrade ignored. Please inspect: $LOGFILE"
+              _flush_pct_log
+              exit 231
+              ;;
+            3)
+              msg_error "LXC stack upgrade failed. Please inspect: $LOGFILE"
+              _flush_pct_log
+              exit 231
+              ;;
+            4)
+              msg_error "Cancelled by user."
+              _flush_pct_log
+              exit 231
               ;;
             esac
           else
