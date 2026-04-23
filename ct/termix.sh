@@ -155,6 +155,8 @@ EOF
       /opt/termix/nginx/client_body
     msg_ok "Recreated Directories"
 
+    NODE_VERSION="24" setup_nodejs
+
     msg_info "Building Frontend"
     cd /opt/termix
     export COREPACK_ENABLE_DOWNLOAD_PROMPT=0

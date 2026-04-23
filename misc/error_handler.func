@@ -313,6 +313,51 @@ error_handler() {
     echo -e "${TAB}-----------------------------------\n"
   fi
 
+  # Detect probable Node.js heap OOM and print actionable guidance.
+  # This avoids generic SIGABRT/SIGKILL confusion for frontend build failures.
+  local node_oom_detected="false"
+  local node_build_context="false"
+  if [[ "$command" =~ (npm|pnpm|yarn|node|vite|turbo) ]]; then
+    node_build_context="true"
+  fi
+  if [[ "$exit_code" == "243" ]]; then
+    node_oom_detected="true"
+  elif [[ -n "$active_log" && -s "$active_log" ]]; then
+    if tail -n 200 "$active_log" 2>/dev/null | grep -Eqi 'Reached heap limit|JavaScript heap out of memory|Allocation failed - JavaScript heap out of memory|FATAL ERROR: Reached heap limit'; then
+      node_oom_detected="true"
+    fi
+  fi
+
+  if [[ "$node_oom_detected" == "true" ]] || { [[ "$node_build_context" == "true" ]] && [[ "$exit_code" =~ ^(134|137)$ ]]; }; then
+    local heap_hint_mb=""
+
+    # If explicitly configured, prefer the current value for troubleshooting output.
+    if [[ -n "${NODE_OPTIONS:-}" ]] && [[ "${NODE_OPTIONS}" =~ max-old-space-size=([0-9]+) ]]; then
+      heap_hint_mb="${BASH_REMATCH[1]}"
+    elif [[ -n "${var_ram:-}" ]] && [[ "${var_ram}" =~ ^[0-9]+$ ]]; then
+      heap_hint_mb=$((var_ram * 75 / 100))
+    else
+      local mem_kb=""
+      mem_kb=$(awk '/^MemTotal:/ {print $2; exit}' /proc/meminfo 2>/dev/null || echo "")
+      if [[ "$mem_kb" =~ ^[0-9]+$ ]]; then
+        local mem_mb=$((mem_kb / 1024))
+        heap_hint_mb=$((mem_mb * 75 / 100))
+      fi
+    fi
+
+    if [[ -z "$heap_hint_mb" ]] || ((heap_hint_mb < 1024)); then
+      heap_hint_mb=1024
+    elif ((heap_hint_mb > 12288)); then
+      heap_hint_mb=12288
+    fi
+
+    if declare -f msg_warn >/dev/null 2>&1; then
+      msg_warn "Possible Node.js heap OOM. Try: export NODE_OPTIONS=\"--max-old-space-size=${heap_hint_mb}\" and rerun the build."
+    else
+      echo -e "${YW}Possible Node.js heap OOM. Try: export NODE_OPTIONS=\"--max-old-space-size=${heap_hint_mb}\" and rerun the build.${CL}"
+    fi
+  fi
+
   # Detect context: Container (INSTALL_LOG set + inside container /root) vs Host
   if [[ -n "${INSTALL_LOG:-}" && -f "${INSTALL_LOG:-}" && -d /root ]]; then
     # CONTAINER CONTEXT: Copy log and create flag file for host
