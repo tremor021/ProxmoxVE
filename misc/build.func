@@ -3520,14 +3520,10 @@ msg_menu() {
 # ------------------------------------------------------------------------------
 resolve_phs_mode() {
   if [[ -n "${PHS_SILENT+x}" ]] && [[ "${PHS_SILENT}" == "1" ]] && [[ -n "${PHS_VERBOSE+x}" ]] && [[ "${PHS_VERBOSE}" == "1" ]]; then
-    # Conflict handling must never block unattended/non-TTY updates.
-    # Prefer silent mode to keep automation safe.
-    if [[ -t 0 ]] && [[ -t 1 ]] && command -v whiptail >/dev/null 2>&1; then
-      whiptail --backtitle "Proxmox VE Helper Scripts" \
-        --title "Configuration Conflict Warning" \
-        --msgbox "PHS_SILENT and PHS_VERBOSE are both set.\n\nFalling back to silent mode." 10 58 || true
-    fi
-    PHS_MODE="silent"
+    whiptail --backtitle "Proxmox VE Helper Scripts" \
+      --title "⚠️ Configuration Conflict Warning" \
+      --msgbox "PHS_SILENT and PHS_VERBOSE environment variables are both set.\n\nFalling back to interactive mode." 10 58
+    PHS_MODE="interactive"
   elif [[ -n "${PHS_SILENT+x}" ]] && [[ "${PHS_SILENT}" == "1" ]]; then
     PHS_MODE="silent"
   elif [[ -n "${PHS_VERBOSE+x}" ]] && [[ "${PHS_VERBOSE}" == "1" ]]; then
