@@ -120,7 +120,7 @@ fetch_and_deploy_gh_release "RAHasher" "RetroAchievements/RALibretro" "prebuild"
 cp /opt/RALibretro/RAHasher /usr/bin/RAHasher
 chmod +x /usr/bin/RAHasher
 
-fetch_and_deploy_gh_release "romm" "rommapp/romm"
+fetch_and_deploy_gh_release "romm" "rommapp/romm" "tarball"
 
 msg_info "Creating environment file"
 sed -i 's/^supervised no/supervised systemd/' /etc/redis/redis.conf
