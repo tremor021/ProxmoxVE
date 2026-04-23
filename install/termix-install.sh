@@ -55,7 +55,7 @@ rm -rf /opt/guacamole-server
 msg_ok "Built Guacamole Server (guacd)"
 
 NODE_VERSION="22" setup_nodejs
-fetch_and_deploy_gh_release "termix" "Termix-SSH/Termix"
+fetch_and_deploy_gh_release "termix" "Termix-SSH/Termix" "tarball"
 
 msg_info "Building Frontend"
 cd /opt/termix
