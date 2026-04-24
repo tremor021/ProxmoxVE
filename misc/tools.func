@@ -4014,6 +4014,11 @@ function setup_ffmpeg() {
       libdav1d-dev libsvtav1-dev zlib1g-dev libnuma-dev
       libva-dev libdrm-dev
     )
+    if apt-cache show libsvtav1enc-dev &>/dev/null; then
+      DEPS+=(libsvtav1enc-dev)
+    elif apt-cache show libsvtav1-dev &>/dev/null; then
+      DEPS+=(libsvtav1-dev)
+    fi
     ;;
   *)
     msg_error "Invalid FFMPEG_TYPE: $TYPE"
