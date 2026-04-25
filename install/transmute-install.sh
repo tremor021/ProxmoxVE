@@ -15,12 +15,12 @@ update_os
 
 UV_PYTHON="3.13" setup_uv
 NODE_VERSION="25" setup_nodejs
-setup_ffmpeg
-setup_gs
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
   inkscape \
+  ffmpeg \
+  ghostscript \
   tesseract-ocr \
   libreoffice-impress \
   libreoffice-common \
