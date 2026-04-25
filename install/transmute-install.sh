@@ -15,12 +15,12 @@ update_os
 
 UV_PYTHON="3.13" setup_uv
 NODE_VERSION="25" setup_nodejs
+setup_ffmpeg
+setup_gs
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
   inkscape \
-  ffmpeg \
-  ghostscript \
   tesseract-ocr \
   libreoffice-impress \
   libreoffice-common \
@@ -45,6 +45,7 @@ msg_ok "Installed Dependencies"
 fetch_and_deploy_gh_release "pandoc" "jgm/pandoc" "binary" "latest" "" "pandoc-*-amd64.deb"
 fetch_and_deploy_gh_release "calibre" "kovidgoyal/calibre" "prebuild" "latest" "/opt/calibre" "calibre-*-x86_64.txz"
 ln -sf /opt/calibre/ebook-convert /usr/bin/ebook-convert
+ln -sf /usr/local/bin/ffmpeg /usr/bin/ffmpeg
 fetch_and_deploy_gh_release "drawio" "jgraph/drawio-desktop" "binary" "latest" "" "drawio-amd64-*.deb"
 fetch_and_deploy_gh_release "transmute" "transmute-app/transmute" "tarball"
 
