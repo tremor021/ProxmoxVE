@@ -60,7 +60,7 @@ function update_script() {
     msg_ok "Restored backup"
 
     msg_info "Restarting Services"
-    systemctl reload apache2
+    systemctl start apache2
     msg_ok "Restarted Services"
     msg_ok "Updated successfully!"
   fi
