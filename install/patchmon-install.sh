@@ -21,7 +21,7 @@ PG_VERSION="17" setup_postgresql
 PG_DB_NAME="patchmon_db" PG_DB_USER="patchmon_usr" setup_postgresql_db
 
 RELEASE="v2.0.2"
-fetch_and_deploy_gh_release "PatchMon" "PatchMon/PatchMon" "singlefile" "$RELEASE" "/opt/patchmon" "patchmon-server-linux-amd64"
+fetch_and_deploy_gh_release "PatchMon" "PatchMon/PatchMon" "singlefile" "latest" "/opt/patchmon" "patchmon-server-linux-amd64"
 mv /opt/patchmon/PatchMon /opt/patchmon/patchmon-server
 
 msg_info "Configuring PatchMon"
@@ -64,8 +64,9 @@ EOF
 msg_ok "Configured PatchMon"
 
 msg_info "Fetching PatchMon agent binaries"
+RELEASE=$(get_latest_github_release "PatchMon/PatchMon")
 mkdir -p /opt/patchmon/agents
-FILE_URL="https://github.com/PatchMon/PatchMon/releases/download/${RELEASE}/patchmon-agent-"
+FILE_URL="https://github.com/PatchMon/PatchMon/releases/download/v${RELEASE}/patchmon-agent-"
 AGENT_NAME=(
   "linux-amd64"
   "linux-arm64"
