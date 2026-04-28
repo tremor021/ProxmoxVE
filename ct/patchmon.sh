@@ -3,7 +3,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: vhsdream
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: https://github.com/PatcMmon/PatchMon
+# Source: https://github.com/PatchMon/PatchMon
 
 APP="PatchMon"
 var_tags="${var_tags:-monitoring}"
@@ -29,7 +29,7 @@ function update_script() {
     exit
   fi
 
-  RELEASE="v2.0.1"
+  RELEASE="v2.0.2"
   if check_for_gh_release "PatchMon" "PatchMon/PatchMon" "${RELEASE}"; then
     msg_info "Stopping Service"
     systemctl stop patchmon-server
