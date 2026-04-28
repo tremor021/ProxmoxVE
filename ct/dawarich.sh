@@ -54,7 +54,15 @@ function update_script() {
     eval "$(/root/.rbenv/bin/rbenv init - bash)"
 
     if ! grep -q "OTP_ENCRYPTION_PRIMARY_KEY" /opt/dawarich/.env; then
-      echo "OTP_ENCRYPTION_PRIMARY_KEY=$(openssl rand -hex 32)" >>/opt/dawarich/.env
+      echo "OTP_ENCRYPTION_PRIMARY_KEY=$(openssl rand -hex 64)" >>/opt/dawarich/.env
+    fi
+
+    if ! grep -q "OTP_ENCRYPTION_DETERMINISTIC_KEY" /opt/dawarich/.env; then
+      echo "OTP_ENCRYPTION_DETERMINISTIC_KEY=$(openssl rand -hex 64)" >>/opt/dawarich/.env
+    fi
+
+    if ! grep -q "OTP_ENCRYPTION_KEY_DERIVATION_SALT" /opt/dawarich/.env; then
+      echo "OTP_ENCRYPTION_KEY_DERIVATION_SALT=$(openssl rand -hex 64)" >>/opt/dawarich/.env
     fi
 
     set -a && source /opt/dawarich/.env && set +a
