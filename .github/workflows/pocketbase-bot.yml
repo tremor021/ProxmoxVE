@@ -7,7 +7,7 @@ on:
 permissions:
   issues: write
   pull-requests: write
-  contents: read
+  contents: write
 
 jobs:
   pocketbase-bot:
@@ -93,6 +93,149 @@ jobs:
               const bodyStr = body ? JSON.stringify(body) : undefined;
               if (bodyStr) headers['Content-Type'] = 'application/json';
               return request('https://api.github.com' + path, { method: method || 'GET', headers, body: bodyStr });
+            }
+
+            function encodeContentPath(filePath) {
+              return filePath.split('/').map(encodeURIComponent).join('/');
+            }
+
+            function decodeGitHubContent(content) {
+              return Buffer.from((content || '').replace(/\n/g, ''), 'base64').toString('utf8');
+            }
+
+            function sanitizeBranchPart(value) {
+              return (value || '')
+                .toLowerCase()
+                .replace(/[^a-z0-9._/-]+/g, '-')
+                .replace(/\/+/g, '/')
+                .replace(/^-+|-+$/g, '');
+            }
+
+            function applyCtDefaultChanges(scriptText, varChanges) {
+              let nextText = scriptText;
+              const updatedVars = [];
+              const unchangedVars = [];
+              for (const [varName, rawValue] of Object.entries(varChanges)) {
+                const newValue = String(rawValue);
+                const pattern = new RegExp('(^\\s*' + varName + '="\\$\\{' + varName + ':-)([^"}]*)(\\}"\\s*$)', 'm');
+                const match = nextText.match(pattern);
+                if (!match) continue;
+                if (match[2] === newValue) {
+                  unchangedVars.push(varName);
+                  continue;
+                }
+                nextText = nextText.replace(pattern, '$1' + newValue + '$3');
+                updatedVars.push(varName);
+              }
+              return { nextText, updatedVars, unchangedVars };
+            }
+
+            async function ensureBranch(defaultBranch, branchName) {
+              const branchRefRes = await ghRequest('/repos/' + owner + '/' + repo + '/git/ref/heads/' + encodeURIComponent(branchName));
+              if (branchRefRes.ok) return;
+
+              const defaultRefRes = await ghRequest('/repos/' + owner + '/' + repo + '/git/ref/heads/' + encodeURIComponent(defaultBranch));
+              if (!defaultRefRes.ok) {
+                throw new Error('Could not read default branch ref: ' + defaultRefRes.body);
+              }
+              const defaultRef = JSON.parse(defaultRefRes.body);
+              const createBranchRes = await ghRequest('/repos/' + owner + '/' + repo + '/git/refs', 'POST', {
+                ref: 'refs/heads/' + branchName,
+                sha: defaultRef.object.sha
+              });
+              if (!createBranchRes.ok) {
+                throw new Error('Could not create branch: ' + createBranchRes.body);
+              }
+            }
+
+            async function upsertCtDefaultsPr(slugValue, varChanges) {
+              const wantedEntries = Object.entries(varChanges || {}).filter(function ([, v]) {
+                return v !== undefined && v !== null && String(v) !== '';
+              });
+              if (wantedEntries.length === 0) {
+                return { status: 'skipped', reason: 'No mapped CT defaults changed.' };
+              }
+
+              const repoRes = await ghRequest('/repos/' + owner + '/' + repo);
+              if (!repoRes.ok) {
+                throw new Error('Could not read repository metadata: ' + repoRes.body);
+              }
+              const repoInfo = JSON.parse(repoRes.body);
+              const defaultBranch = repoInfo.default_branch;
+
+              const ctPath = 'ct/' + slugValue + '.sh';
+              const encodedCtPath = encodeContentPath(ctPath);
+              const defaultFileRes = await ghRequest('/repos/' + owner + '/' + repo + '/contents/' + encodedCtPath + '?ref=' + encodeURIComponent(defaultBranch));
+              if (defaultFileRes.statusCode === 404) {
+                return { status: 'skipped', reason: 'No matching CT file found at `' + ctPath + '`.' };
+              }
+              if (!defaultFileRes.ok) {
+                throw new Error('Could not read CT file from default branch: ' + defaultFileRes.body);
+              }
+
+              const branchName = 'pocketbase-sync/' + sanitizeBranchPart(slugValue || 'unknown');
+              await ensureBranch(defaultBranch, branchName);
+
+              const branchFileRes = await ghRequest('/repos/' + owner + '/' + repo + '/contents/' + encodedCtPath + '?ref=' + encodeURIComponent(branchName));
+              if (!branchFileRes.ok) {
+                throw new Error('Could not read CT file from sync branch: ' + branchFileRes.body);
+              }
+              const branchFile = JSON.parse(branchFileRes.body);
+              const currentBranchText = decodeGitHubContent(branchFile.content);
+
+              const updateResult = applyCtDefaultChanges(currentBranchText, Object.fromEntries(wantedEntries));
+              if (updateResult.updatedVars.length === 0) {
+                return { status: 'skipped', reason: 'CT defaults already up to date.', unchangedVars: updateResult.unchangedVars };
+              }
+
+              const commitMessage = 'chore(ct): sync ' + slugValue + ' defaults from PocketBase';
+              const putRes = await ghRequest('/repos/' + owner + '/' + repo + '/contents/' + encodedCtPath, 'PUT', {
+                message: commitMessage,
+                content: Buffer.from(updateResult.nextText, 'utf8').toString('base64'),
+                sha: branchFile.sha,
+                branch: branchName
+              });
+              if (!putRes.ok) {
+                throw new Error('Could not update CT file: ' + putRes.body);
+              }
+
+              const openPrRes = await ghRequest(
+                '/repos/' + owner + '/' + repo + '/pulls?state=open&head=' + encodeURIComponent(owner + ':' + branchName) + '&base=' + encodeURIComponent(defaultBranch)
+              );
+              if (!openPrRes.ok) {
+                throw new Error('Could not query existing PRs: ' + openPrRes.body);
+              }
+              const openPrs = JSON.parse(openPrRes.body);
+              if (openPrs.length > 0) {
+                return { status: 'updated', prUrl: openPrs[0].html_url, updatedVars: updateResult.updatedVars };
+              }
+
+              const prTitle = 'chore(ct): sync ' + slugValue + ' defaults with PocketBase';
+              const prBody =
+                '## Summary\n' +
+                '- Sync default CT variables for `' + slugValue + '` after `/pocketbase` update.\n' +
+                '- Updated vars: `' + updateResult.updatedVars.join('`, `') + '`.\n\n' +
+                '## Source\n' +
+                '- Triggered by @' + actor + ' via PocketBase bot.\n';
+              const createPrRes = await ghRequest('/repos/' + owner + '/' + repo + '/pulls', 'POST', {
+                title: prTitle,
+                body: prBody,
+                head: branchName,
+                base: defaultBranch
+              });
+              if (!createPrRes.ok) {
+                throw new Error('Could not create PR: ' + createPrRes.body);
+              }
+              const pr = JSON.parse(createPrRes.body);
+              return { status: 'created', prUrl: pr.html_url, updatedVars: updateResult.updatedVars };
+            }
+
+            function formatCtSyncResult(syncResult) {
+              if (!syncResult) return '';
+              if (syncResult.status === 'created') return '\n\n**CT sync PR:** ' + syncResult.prUrl;
+              if (syncResult.status === 'updated') return '\n\n**CT sync PR updated:** ' + syncResult.prUrl;
+              if (syncResult.status === 'skipped') return '\n\n**CT sync skipped:** ' + syncResult.reason;
+              return '';
             }
 
             async function addReaction(content) {
@@ -510,6 +653,7 @@ jobs:
               const RESOURCE_KEYS = { cpu: 'number', ram: 'number', hdd: 'number', os: 'string', version: 'string' };
               const METHOD_KEYS   = { config_path: 'string', script: 'string' };
               const ALL_METHOD_KEYS = Object.assign({}, RESOURCE_KEYS, METHOD_KEYS);
+              const RESOURCE_TO_CT_VAR = { cpu: 'var_cpu', ram: 'var_ram', hdd: 'var_disk', os: 'var_os', version: 'var_version' };
 
               function applyMethodChanges(method, parsed) {
                 if (!method.resources) method.resources = {};
@@ -550,6 +694,7 @@ jobs:
                 if (addMatch) {
                   // ── METHOD ADD ───────────────────────────────────────────────
                   const newType = addMatch[1];
+                  const parsed = addMatch[2] ? parseKVPairs(addMatch[2]) : {};
                   if (methodsArr.some(function (im) { return (im.type || '').toLowerCase() === newType.toLowerCase(); })) {
                     await addReaction('-1');
                     await postComment('❌ **PocketBase Bot**: Install method `' + newType + '` already exists for `' + slug + '`.\n\nUse `/pocketbase ' + slug + ' method list` to see all methods.');
@@ -557,7 +702,6 @@ jobs:
                   }
                   const newMethod = { type: newType, resources: { cpu: 1, ram: 512, hdd: 4, os: 'debian', version: '13' } };
                   if (addMatch[2]) {
-                    const parsed = parseKVPairs(addMatch[2]);
                     const unknown = Object.keys(parsed).filter(function (k) { return !ALL_METHOD_KEYS[k]; });
                     if (unknown.length > 0) {
                       await addReaction('-1');
@@ -569,10 +713,21 @@ jobs:
                   methodsArr.push(newMethod);
                   await patchMethods(methodsArr);
                   await revalidate(slug);
+                  const addCtChanges = {};
+                  for (const [k, v] of Object.entries(parsed)) {
+                    if (RESOURCE_TO_CT_VAR[k]) addCtChanges[RESOURCE_TO_CT_VAR[k]] = v;
+                  }
+                  let addCtSync = null;
+                  try {
+                    addCtSync = await upsertCtDefaultsPr(slug, addCtChanges);
+                  } catch (e) {
+                    addCtSync = { status: 'skipped', reason: 'CT sync failed: ' + e.message };
+                  }
                   await addReaction('+1');
                   await postComment(
                     '✅ **PocketBase Bot**: Added install method **`' + newType + '`** to **`' + slug + '`**\n\n' +
                     formatMethodsList([newMethod]) + '\n\n' +
+                    formatCtSyncResult(addCtSync) + '\n\n' +
                     '*Executed by @' + actor + '*'
                   );
 
@@ -640,6 +795,16 @@ jobs:
                   applyMethodChanges(methodsArr[idx], parsed);
                   await patchMethods(methodsArr);
                   await revalidate(slug);
+                  const editCtChanges = {};
+                  for (const [k, v] of Object.entries(parsed)) {
+                    if (RESOURCE_TO_CT_VAR[k]) editCtChanges[RESOURCE_TO_CT_VAR[k]] = v;
+                  }
+                  let editCtSync = null;
+                  try {
+                    editCtSync = await upsertCtDefaultsPr(slug, editCtChanges);
+                  } catch (e) {
+                    editCtSync = { status: 'skipped', reason: 'CT sync failed: ' + e.message };
+                  }
 
                   const changesLines = Object.entries(parsed)
                     .map(function ([k, v]) {
@@ -650,6 +815,7 @@ jobs:
                   await postComment(
                     '✅ **PocketBase Bot**: Updated install method **`' + methodsArr[idx].type + '`** for **`' + slug + '`**\n\n' +
                     '**Changes applied:**\n' + changesLines + '\n\n' +
+                    formatCtSyncResult(editCtSync) + '\n\n' +
                     '*Executed by @' + actor + '*'
                   );
                 }
@@ -712,9 +878,11 @@ jobs:
                 project_url:      'string',
                 github:           'string',
                 config_path:      'string',
+                tags:             'string',
                 port:             'number',
                 default_user:     'nullable_string',
                 default_passwd:   'nullable_string',
+                unprivileged:     'number',
                 updateable:       'boolean',
                 privileged:       'boolean',
                 has_arm:          'boolean',
@@ -781,6 +949,17 @@ jobs:
                 process.exit(1);
               }
               await revalidate(slug);
+              const FIELD_TO_CT_VAR = { tags: 'var_tags', unprivileged: 'var_unprivileged' };
+              const fieldCtChanges = {};
+              for (const [k, v] of Object.entries(payload)) {
+                if (FIELD_TO_CT_VAR[k]) fieldCtChanges[FIELD_TO_CT_VAR[k]] = v;
+              }
+              let fieldCtSync = null;
+              try {
+                fieldCtSync = await upsertCtDefaultsPr(slug, fieldCtChanges);
+              } catch (e) {
+                fieldCtSync = { status: 'skipped', reason: 'CT sync failed: ' + e.message };
+              }
               await addReaction('+1');
               const changesLines = Object.entries(payload)
                 .map(function ([k, v]) { return '- `' + k + '` → `' + JSON.stringify(v) + '`'; })
@@ -788,6 +967,7 @@ jobs:
               await postComment(
                 '✅ **PocketBase Bot**: Updated **`' + slug + '`** successfully!\n\n' +
                 '**Changes applied:**\n' + changesLines + '\n\n' +
+                formatCtSyncResult(fieldCtSync) + '\n\n' +
                 '*Executed by @' + actor + '*'
               );
             }
