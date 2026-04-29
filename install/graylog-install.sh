@@ -38,6 +38,8 @@ sed -i "s/password_secret =/password_secret = $PASSWORD_SECRET/g" /etc/graylog/s
 sed -i "s/root_password_sha2 =/root_password_sha2 = $ROOT_PASSWORD/g" /etc/graylog/server/server.conf
 sed -i 's/#http_bind_address = 127.0.0.1.*/http_bind_address = 0.0.0.0:9000/g' /etc/graylog/server/server.conf
 systemctl enable -q --now graylog-server
+sleep 5
+sed -i "s/0\.0\.0\.0:9000/$LOCAL_IP:9000/g" /var/log/graylog-server/server.log
 msg_ok "Setup ${APPLICATION}"
 
 motd_ssh
