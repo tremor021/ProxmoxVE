@@ -29,8 +29,7 @@ function update_script() {
     exit
   fi
 
-  RELEASE="v2.0.2"
-  if check_for_gh_release "PatchMon" "PatchMon/PatchMon" "${RELEASE}"; then
+  if check_for_gh_release "PatchMon" "PatchMon/PatchMon"; then
     msg_info "Stopping Service"
     systemctl stop patchmon-server
     msg_ok "Stopped Service"
@@ -73,12 +72,13 @@ function update_script() {
       msg_ok "Migration complete!"
     fi
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "PatchMon" "PatchMon/PatchMon" "singlefile" "${RELEASE}" "/opt/patchmon" "patchmon-server-linux-amd64"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "PatchMon" "PatchMon/PatchMon" "singlefile" "latest" "/opt/patchmon" "patchmon-server-linux-amd64"
     mv /opt/patchmon/PatchMon /opt/patchmon/patchmon-server
 
     msg_info "Fetching PatchMon agent binaries"
+    RELEASE=$(get_latest_github_release "PatchMon/PatchMon")
     [[ ! -d /opt/patchmon/agents ]] && mkdir -p /opt/patchmon/agents
-    FILE_URL="https://github.com/PatchMon/PatchMon/releases/download/${RELEASE}/patchmon-agent-"
+    FILE_URL="https://github.com/PatchMon/PatchMon/releases/download/v${RELEASE}/patchmon-agent-"
     AGENT_NAME=(
       "linux-amd64"
       "linux-arm64"
