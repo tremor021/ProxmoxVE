@@ -52,6 +52,7 @@ function update_script() {
     $STD make install-webconf
     $STD a2enmod rewrite
     $STD a2enmod cgi
+    setcap cap_net_raw+p /bin/ping
     msg_ok "Built Nagios Core"
 
     msg_info "Starting Nagios"
