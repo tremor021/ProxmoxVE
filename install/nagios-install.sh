@@ -59,6 +59,7 @@ $STD ./tools/setup
 $STD ./configure
 $STD make
 $STD make install
+setcap cap_net_raw+p /bin/ping
 msg_ok "Built Nagios Plugins"
 
 msg_info "Configuring Web Authentication"
