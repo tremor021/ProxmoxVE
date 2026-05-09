@@ -14,7 +14,6 @@ network_check
 update_os
 
 fetch_and_deploy_gh_release "inspircd" "inspircd/inspircd" "binary" "latest" "/opt/inspircd" "inspircd_*.deb13u1_amd64.deb"
-systemctl enable -q --now inspircd
 
 msg_info "Configuring InspIRCd"
 cat <<EOF >/etc/inspircd/inspircd.conf
@@ -31,6 +30,7 @@ cat <<EOF >/etc/inspircd/inspircd.conf
        email="irc@&networkDomain;">
 <bind address="" port="6667" type="clients">
 EOF
+systemctl enable -q --now inspircd
 msg_ok "Installed InspIRCd"
 
 motd_ssh
