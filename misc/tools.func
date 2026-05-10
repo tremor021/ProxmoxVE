@@ -6493,6 +6493,14 @@ function setup_nodejs() {
   # Install global Node modules
   if [[ -n "$NODE_MODULE" ]]; then
     IFS=',' read -ra MODULES <<<"$NODE_MODULE"
+
+    # Pin pnpm to v10 to avoid breaking changes from newer major versions
+    for i in "${!MODULES[@]}"; do
+      if [[ "${MODULES[$i]}" =~ ^pnpm(@.*)?$ ]]; then
+        MODULES[$i]="pnpm@^10"
+      fi
+    done
+
     local failed_modules=0
     for mod in "${MODULES[@]}"; do
       local MODULE_NAME MODULE_REQ_VERSION MODULE_INSTALLED_VERSION
