@@ -39,13 +39,11 @@ function update_script() {
     msg_ok "Created Backup"
 
     msg_info "Updating SonarQube"
-    temp_file=$(mktemp)
-    RELEASE=$(get_latest_github_release "SonarSource/sonarqube")
-    curl -fsSL "https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-${RELEASE}.zip" -o $temp_file
-    unzip -q "$temp_file" -d /opt
-    rm -f "$temp_file"
-    mv /opt/sonarqube-${RELEASE} /opt/sonarqube
-    echo "${RELEASE}" > ~/.sonarqube
+    RELEASE=$(curl -fsSL "https://binaries.sonarsource.com/s3api?prefix=Distribution/sonarqube/sonarqube-&delimiter=/" |
+      grep -oP 'sonarqube-[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\.zip' |
+      sort -V | tail -n1)
+    fetch_and_deploy_from_url "https://binaries.sonarsource.com/Distribution/sonarqube/${RELEASE}" /opt/sonarqube
+    echo "${RELEASE}" >~/.sonarqube
     msg_ok "Updated SonarQube"
 
     msg_info "Restoring Backup"
