@@ -26,6 +26,7 @@ function update_script() {
   check_container_resources
 
   ensure_dependencies zstd build-essential libmariadb-dev
+  [[ -f /root/.ollama ]] && rm -f /root/.ollama
 
   if [[ -d /opt/open-webui ]]; then
     msg_warn "Legacy installation detected — migrating to uv based install..."

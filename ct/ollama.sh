@@ -27,6 +27,9 @@ function update_script() {
     msg_error "No Ollama Installation Found!"
     exit
   fi
+
+  [[ -f /root/.ollama ]] && rm -f /root/.ollama
+
   if check_for_gh_release "ollama-com" "ollama/ollama"; then
     ensure_dependencies zstd
     msg_info "Stopping Services"
