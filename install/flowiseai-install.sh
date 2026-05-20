@@ -13,6 +13,10 @@ setting_up_container
 network_check
 update_os
 
+msg_info "Installing Dependencies"
+$STD apt install -y build-essential python3-dev
+msg_ok "Installed Dependencies"
+
 NODE_VERSION="20" NODE_MODULE="pnpm" setup_nodejs
 
 msg_info "Installing FlowiseAI (Patience)"
@@ -21,7 +25,8 @@ $STD pnpm add -g flowise \
   @opentelemetry/exporter-trace-otlp-grpc \
   @opentelemetry/exporter-trace-otlp-proto \
   @opentelemetry/sdk-trace-node \
-  langchainhub
+  langchainhub \
+  sqlite3
 mkdir -p /opt/flowiseai
 curl -fsSL "https://raw.githubusercontent.com/FlowiseAI/Flowise/main/packages/server/.env.example" -o "/opt/flowiseai/.env"
 msg_ok "Installed FlowiseAI"
