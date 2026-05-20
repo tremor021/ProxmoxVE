@@ -16,6 +16,7 @@ update_os
 NODE_VERSION="20" NODE_MODULE="pnpm" setup_nodejs
 
 msg_info "Installing FlowiseAI (Patience)"
+$STD pnpm config set global-bin-dir /usr/local/bin
 $STD pnpm add -g flowise \
   @opentelemetry/exporter-trace-otlp-grpc \
   @opentelemetry/exporter-trace-otlp-proto \
