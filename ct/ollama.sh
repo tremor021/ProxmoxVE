@@ -27,7 +27,10 @@ function update_script() {
     msg_error "No Ollama Installation Found!"
     exit
   fi
-  if check_for_gh_release "ollama" "ollama/ollama"; then
+
+  [[ -f /root/.ollama ]] && rm -f /root/.ollama
+
+  if check_for_gh_release "ollama-com" "ollama/ollama"; then
     ensure_dependencies zstd
     msg_info "Stopping Services"
     systemctl stop ollama
@@ -36,7 +39,7 @@ function update_script() {
     OLLAMA_INSTALL_DIR="/usr/local/lib/ollama"
     rm -rf "$OLLAMA_INSTALL_DIR" /usr/local/bin/ollama
     mkdir -p "$OLLAMA_INSTALL_DIR"
-    if ! fetch_and_deploy_gh_release "ollama" "ollama/ollama" "prebuild" "latest" "$OLLAMA_INSTALL_DIR" "ollama-linux-amd64.tar.zst"; then
+    if ! fetch_and_deploy_gh_release "ollama-com" "ollama/ollama" "prebuild" "latest" "$OLLAMA_INSTALL_DIR" "ollama-linux-amd64.tar.zst"; then
       msg_error "Download or deployment failed – check network connectivity and GitHub API availability"
       exit 250
     fi

@@ -26,6 +26,7 @@ function update_script() {
   check_container_resources
 
   ensure_dependencies zstd build-essential libmariadb-dev
+  [[ -f /root/.ollama ]] && rm -f /root/.ollama
 
   if [[ -d /opt/open-webui ]]; then
     msg_warn "Legacy installation detected — migrating to uv based install..."
@@ -91,13 +92,13 @@ EOF
 
   if [ -x "/usr/bin/ollama" ]; then
     msg_info "Checking for Ollama Update"
-    if check_for_gh_release "ollama" "ollama/ollama"; then
+    if check_for_gh_release "ollama-com" "ollama/ollama"; then
       msg_info "Stopping Ollama Service"
       systemctl stop ollama
       msg_ok "Stopped Service"
 
       rm -rf /usr/lib/ollama /usr/bin/ollama
-      if ! fetch_and_deploy_gh_release "ollama" "ollama/ollama" "prebuild" "latest" "/usr/lib/ollama" "ollama-linux-amd64.tar.zst"; then
+      if ! fetch_and_deploy_gh_release "ollama-com" "ollama/ollama" "prebuild" "latest" "/usr/lib/ollama" "ollama-linux-amd64.tar.zst"; then
         msg_error "Ollama download or deployment failed – check network connectivity and GitHub API availability"
       else
         ln -sf /usr/lib/ollama/bin/ollama /usr/bin/ollama

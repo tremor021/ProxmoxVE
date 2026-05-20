@@ -65,7 +65,7 @@ msg_info "Installing Ollama (Patience)"
 OLLAMA_INSTALL_DIR="/usr/local/lib/ollama"
 BINDIR="/usr/local/bin"
 mkdir -p "$OLLAMA_INSTALL_DIR"
-if ! fetch_and_deploy_gh_release "ollama" "ollama/ollama" "prebuild" "latest" "$OLLAMA_INSTALL_DIR" "ollama-linux-amd64.tar.zst"; then
+if ! fetch_and_deploy_gh_release "ollama-com" "ollama/ollama" "prebuild" "latest" "$OLLAMA_INSTALL_DIR" "ollama-linux-amd64.tar.zst"; then
   msg_error "Failed to download or deploy Ollama – check network connectivity and GitHub API availability"
   exit 250
 fi
