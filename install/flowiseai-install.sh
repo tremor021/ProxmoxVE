@@ -17,16 +17,14 @@ msg_info "Installing Dependencies"
 $STD apt install -y build-essential python3-dev
 msg_ok "Installed Dependencies"
 
-NODE_VERSION="20" NODE_MODULE="pnpm" setup_nodejs
+NODE_VERSION="20" setup_nodejs
 
 msg_info "Installing FlowiseAI (Patience)"
-$STD pnpm config set global-bin-dir /usr/local/bin
-$STD pnpm add -g flowise \
+$STD npm install -g flowise \
   @opentelemetry/exporter-trace-otlp-grpc \
   @opentelemetry/exporter-trace-otlp-proto \
   @opentelemetry/sdk-trace-node \
-  langchainhub \
-  sqlite3
+  langchainhub
 mkdir -p /opt/flowiseai
 curl -fsSL "https://raw.githubusercontent.com/FlowiseAI/Flowise/main/packages/server/.env.example" -o "/opt/flowiseai/.env"
 msg_ok "Installed FlowiseAI"
