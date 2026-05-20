@@ -22,12 +22,12 @@ catch_errors
 function update_script() {
   header_info
   if [[ ! -d /opt/mylar3 ]]; then
-    msg_error "No ${APP} Installation Found!"
+    msg_error "No Mylar3 Installation Found!"
     exit
   fi
 
-  if check_for_gh_release "mylar3" "mylar3/mylar3"; then
-    fetch_and_deploy_gh_release "mylar3" "mylar3/mylar3" "tarball"
+  if check_for_gh_release "mylar3" "MylarComics/mylar3"; then
+    fetch_and_deploy_gh_release "mylar3" "MylarComics/mylar3" "tarball"
     systemctl restart mylar3
     msg_ok "Updated successfully!"
   fi
