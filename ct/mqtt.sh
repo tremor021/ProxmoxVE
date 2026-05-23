@@ -21,18 +21,28 @@ color
 catch_errors
 
 function update_script() {
-    header_info
-    check_container_storage
-    check_container_resources
-    if [[ ! -f /etc/mosquitto/conf.d/default.conf ]]; then
-        msg_error "No ${APP} Installation Found!"
-        exit
-    fi
-    msg_info "Updating ${APP} LXC"
-    $STD apt update
-    $STD apt -y upgrade
-    msg_ok "Updated successfully!"
+  header_info
+  check_container_storage
+  check_container_resources
+
+  if [[ ! -f /etc/mosquitto/conf.d/default.conf ]]; then
+    msg_error "No ${APP} Installation Found!"
     exit
+  fi
+
+  if [[ ! -f /etc/apt/sources.list.d/mqtt.sources ]]; then
+    setup_deb822_repo \
+      "mqtt" \
+      "https://repo.mosquitto.org/debian/mosquitto-repo.gpg" \
+      "https://repo.mosquitto.org/debian" \
+      "trixie"
+  fi
+
+  msg_info "Updating MQTT"
+  $STD apt update
+  $STD apt upgrade -y
+  msg_ok "Updated successfully!"
+  exit
 }
 
 start
