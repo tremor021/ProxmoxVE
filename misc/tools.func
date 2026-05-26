@@ -40,7 +40,7 @@
 # Usage: debug_log "message"
 # ------------------------------------------------------------------------------
 debug_log() {
-  if [[ "${TOOLS_DEBUG:-false}" == "true" || "${TOOLS_DEBUG:-0}" == "1" || "${DEBUG:-0}" == "1" ]]; then
+  if [[ ${TOOLS_DEBUG:-false} == "true" || ${TOOLS_DEBUG:-0} == "1" || ${DEBUG:-0} == "1" ]]; then
     echo "[DEBUG] $*" >&2
   fi
 }
@@ -91,9 +91,9 @@ curl_with_retry() {
     debug_log "curl attempt $attempt/$retries: $url"
 
     local curl_cmd="curl -fsSL --connect-timeout $connect_timeout --max-time $timeout"
-    [[ -n "$extra_opts" ]] && curl_cmd="$curl_cmd $extra_opts"
+    [[ -n $extra_opts ]] && curl_cmd="$curl_cmd $extra_opts"
 
-    if [[ "$output" == "-" ]]; then
+    if [[ $output == "-" ]]; then
       if $curl_cmd "$url"; then
         success=true
         break
@@ -115,7 +115,7 @@ curl_with_retry() {
     ((attempt++))
   done
 
-  if [[ "$success" == "true" ]]; then
+  if [[ $success == "true" ]]; then
     debug_log "curl successful: $url"
     return 0
   else
@@ -153,22 +153,22 @@ curl_api_with_retry() {
     debug_log "curl API attempt $attempt/$retries: $url"
 
     local curl_cmd="curl -fsSL --connect-timeout $connect_timeout --max-time $timeout -w '%{http_code}'"
-    [[ -n "$extra_opts" ]] && curl_cmd="$curl_cmd $extra_opts"
+    [[ -n $extra_opts ]] && curl_cmd="$curl_cmd $extra_opts"
 
-    if [[ -n "$body_file" ]]; then
+    if [[ -n $body_file ]]; then
       http_code=$($curl_cmd -o "$body_file" "$url" 2>/dev/null) || true
     else
       # Capture body and http_code separately
       local tmp_body="/tmp/curl_api_body_$$"
       http_code=$($curl_cmd -o "$tmp_body" "$url" 2>/dev/null) || true
-      if [[ -f "$tmp_body" ]]; then
+      if [[ -f $tmp_body ]]; then
         cat "$tmp_body"
         rm -f "$tmp_body"
       fi
     fi
 
     # Success on 2xx codes
-    if [[ "$http_code" =~ ^2[0-9]{2}$ ]]; then
+    if [[ $http_code =~ ^2[0-9]{2}$ ]]; then
       debug_log "curl API successful: $url (HTTP $http_code)"
       echo "$http_code"
       return 0
@@ -229,20 +229,20 @@ download_gpg_key() {
     fi
 
     # Auto-detect key format if mode is auto
-    if [[ "$mode" == "auto" ]]; then
-      if file "$temp_key" 2>/dev/null | grep -qi "pgp\\|gpg\\|public key"; then
+    if [[ $mode == "auto" ]]; then
+      if file "$temp_key" 2>/dev/null | grep -qi 'pgp\|gpg\|public key'; then
         mode="binary"
       elif grep -q "BEGIN PGP" "$temp_key" 2>/dev/null; then
         mode="dearmor"
       else
         # Try to detect by extension
-        [[ "$url" == *.asc || "$url" == *.txt ]] && mode="dearmor" || mode="binary"
+        [[ $url == *.asc || $url == *.txt ]] && mode="dearmor" || mode="binary"
       fi
     fi
 
     # Process based on mode
-    if [[ "$mode" == "dearmor" ]]; then
-      if gpg --dearmor --yes -o "$output" <"$temp_key" 2>/dev/null && [[ -s "$output" ]]; then
+    if [[ $mode == "dearmor" ]]; then
+      if gpg --dearmor --yes -o "$output" <"$temp_key" 2>/dev/null && [[ -s $output ]]; then
         rm -f "$temp_key"
         debug_log "GPG key installed (dearmored): $output"
         return 0
@@ -312,7 +312,7 @@ stop_all_services() {
     services=$(systemctl list-units --type=service --all 2>/dev/null |
       grep -oE "${pattern}[^ ]*\.service" 2>/dev/null | sort -u) || true
 
-    if [[ -n "$services" ]]; then
+    if [[ -n $services ]]; then
       while read -r service; do
         $STD systemctl stop "$service" 2>/dev/null || true
         $STD systemctl disable "$service" 2>/dev/null || true
@@ -336,7 +336,7 @@ verify_tool_version() {
   local expected_major="${expected_version%%.*}"
   local installed_major="${installed_version%%.*}"
 
-  if [[ "$installed_major" != "$expected_major" ]]; then
+  if [[ $installed_major != "$expected_major" ]]; then
     msg_warn "$tool_name version mismatch: expected $expected_version, got $installed_version"
     return 1
   fi
@@ -574,11 +574,11 @@ is_tool_installed() {
     ;;
   esac
 
-  if [[ -z "$installed_version" ]]; then
+  if [[ -z $installed_version ]]; then
     return 1 # Not installed
   fi
 
-  if [[ -n "$required_version" && "$installed_version" != "$required_version" ]]; then
+  if [[ -n $required_version && $installed_version != "$required_version" ]]; then
     echo "$installed_version"
     return 1 # Version mismatch
   fi
@@ -680,7 +680,7 @@ should_update_tool() {
   current_version=$(is_tool_installed "$tool_name" 2>/dev/null) || return 0 # Not installed = needs install
 
   # If versions are identical, no update needed
-  if [[ "$current_version" == "$target_version" ]]; then
+  if [[ $current_version == "$target_version" ]]; then
     return 1 # No update needed
   fi
 
@@ -704,7 +704,7 @@ manage_tool_repository() {
 
   case "$tool_name" in
   mariadb)
-    if [[ -z "$repo_url" || -z "$gpg_key_url" ]]; then
+    if [[ -z $repo_url || -z $gpg_key_url ]]; then
       msg_error "MariaDB repository requires repo_url and gpg_key_url"
       return 65
     fi
@@ -728,7 +728,7 @@ manage_tool_repository() {
     ;;
 
   mongodb)
-    if [[ -z "$repo_url" || -z "$gpg_key_url" ]]; then
+    if [[ -z $repo_url || -z $gpg_key_url ]]; then
       msg_error "MongoDB repository requires repo_url and gpg_key_url"
       return 65
     fi
@@ -748,7 +748,7 @@ manage_tool_repository() {
     distro_codename=$(awk -F= '/^VERSION_CODENAME=/{print $2}' /etc/os-release)
 
     # Suite mapping with fallback for newer releases not yet supported by upstream
-    if [[ "$distro_id" == "debian" ]]; then
+    if [[ $distro_id == "debian" ]]; then
       case "$distro_codename" in
       trixie | forky | sid)
         # Testing/unstable releases fallback to latest stable suite
@@ -766,7 +766,7 @@ manage_tool_repository() {
         suite="bookworm"
         ;;
       esac
-    elif [[ "$distro_id" == "ubuntu" ]]; then
+    elif [[ $distro_id == "ubuntu" ]]; then
       case "$distro_codename" in
       oracular | plucky)
         # Newer releases fallback to latest LTS
@@ -793,7 +793,7 @@ manage_tool_repository() {
     fi
 
     repo_component="main"
-    [[ "$distro_id" == "ubuntu" ]] && repo_component="multiverse"
+    [[ $distro_id == "ubuntu" ]] && repo_component="multiverse"
 
     cat <<EOF >/etc/apt/sources.list.d/mongodb-org-${version}.sources
 Types: deb
@@ -807,7 +807,7 @@ EOF
     ;;
 
   nodejs)
-    if [[ -z "$repo_url" || -z "$gpg_key_url" ]]; then
+    if [[ -z $repo_url || -z $gpg_key_url ]]; then
       msg_error "Node.js repository requires repo_url and gpg_key_url"
       return 65
     fi
@@ -836,7 +836,7 @@ EOF
     ;;
 
   php)
-    if [[ -z "$gpg_key_url" ]]; then
+    if [[ -z $gpg_key_url ]]; then
       msg_error "PHP repository requires gpg_key_url"
       return 65
     fi
@@ -871,7 +871,7 @@ EOF
     ;;
 
   postgresql)
-    if [[ -z "$gpg_key_url" ]]; then
+    if [[ -z $gpg_key_url ]]; then
       msg_error "PostgreSQL repository requires gpg_key_url"
       return 65
     fi
@@ -918,7 +918,7 @@ upgrade_package() {
   local current_time=$(date +%s)
   local last_update=0
 
-  if [[ -f "$apt_cache_file" ]]; then
+  if [[ -f $apt_cache_file ]]; then
     last_update=$(cat "$apt_cache_file" 2>/dev/null || echo 0)
   fi
 
@@ -951,12 +951,12 @@ verify_repo_available() {
   local cache_ttl=300 # 5 minutes
 
   # Check cache first (avoid repeated HTTP requests)
-  if [[ -n "${_REPO_CACHE[$cache_key]:-}" ]]; then
+  if [[ -n ${_REPO_CACHE[$cache_key]:-} ]]; then
     local cached_time cached_result
     cached_time=$(echo "${_REPO_CACHE[$cache_key]}" | cut -d'|' -f1)
     cached_result=$(echo "${_REPO_CACHE[$cache_key]}" | cut -d'|' -f2)
     if (($(date +%s) - cached_time < cache_ttl)); then
-      [[ "$cached_result" == "1" ]] && return 0 || return 1
+      [[ $cached_result == "1" ]] && return 0 || return 1
     fi
   fi
 
@@ -1032,7 +1032,7 @@ ensure_dependencies() {
     current_time=$(date +%s)
     local last_update=0
 
-    if [[ -f "$apt_cache_file" ]]; then
+    if [[ -f $apt_cache_file ]]; then
       last_update=$(cat "$apt_cache_file" 2>/dev/null || echo 0)
     fi
 
@@ -1082,13 +1082,13 @@ get_system_arch() {
     ;;
   uname)
     arch=$(uname -m)
-    [[ "$arch" == "x86_64" ]] && arch="amd64"
-    [[ "$arch" == "aarch64" ]] && arch="arm64"
+    [[ $arch == "x86_64" ]] && arch="amd64"
+    [[ $arch == "aarch64" ]] && arch="arm64"
     ;;
   both | *)
     arch=$(dpkg --print-architecture 2>/dev/null || uname -m)
-    [[ "$arch" == "x86_64" ]] && arch="amd64"
-    [[ "$arch" == "aarch64" ]] && arch="arm64"
+    [[ $arch == "x86_64" ]] && arch="amd64"
+    [[ $arch == "aarch64" ]] && arch="arm64"
     ;;
   esac
 
@@ -1129,7 +1129,7 @@ is_package_installed() {
 # ------------------------------------------------------------------------------
 validate_github_token() {
   local token="${1:-${GITHUB_TOKEN:-}}"
-  [[ -z "$token" ]] && return 3
+  [[ -z $token ]] && return 3
 
   local response headers http_code expiry_date scopes
   headers=$(mktemp)
@@ -1155,13 +1155,13 @@ validate_github_token() {
 
   case "$http_code" in
   200)
-    if [[ -n "$expiry_date" ]]; then
+    if [[ -n $expiry_date ]]; then
       msg_ok "GitHub token is valid (expires: $expiry_date)."
     else
       msg_ok "GitHub token is valid (no expiry / fine-grained PAT)."
     fi
     # Warn if classic PAT has no public_repo scope
-    if [[ -n "$scopes" && "$scopes" != *"public_repo"* && "$scopes" != *"repo"* ]]; then
+    if [[ -n $scopes && $scopes != *"public_repo"* && $scopes != *"repo"* ]]; then
       msg_warn "Token has no 'public_repo' scope - private repos and some release APIs may fail."
       return 2
     fi
@@ -1185,7 +1185,7 @@ validate_github_token() {
 prompt_for_github_token() {
   if [[ ! -t 0 ]]; then
     # Non-interactive: pick up var_github_token if set (from default.vars / app.vars / env)
-    if [[ -z "${GITHUB_TOKEN:-}" && -n "${var_github_token:-}" ]]; then
+    if [[ -z ${GITHUB_TOKEN:-} && -n ${var_github_token:-} ]]; then
       export GITHUB_TOKEN="${var_github_token}"
       msg_ok "GitHub token loaded from var_github_token."
       return 0
@@ -1194,7 +1194,7 @@ prompt_for_github_token() {
   fi
 
   # Prefer var_github_token when already set and no interactive override needed
-  if [[ -z "${GITHUB_TOKEN:-}" && -n "${var_github_token:-}" ]]; then
+  if [[ -z ${GITHUB_TOKEN:-} && -n ${var_github_token:-} ]]; then
     export GITHUB_TOKEN="${var_github_token}"
     msg_ok "GitHub token loaded from var_github_token."
     validate_github_token || true
@@ -1205,7 +1205,7 @@ prompt_for_github_token() {
   read -rp "${TAB}Would you like to enter a GitHub Personal Access Token (PAT)? [y/N]: " reply
   reply="${reply:-n}"
 
-  if [[ ! "${reply,,}" =~ ^(y|yes)$ ]]; then
+  if [[ ! ${reply,,} =~ ^(y|yes)$ ]]; then
     return 1
   fi
 
@@ -1214,11 +1214,11 @@ prompt_for_github_token() {
     read -rp "${TAB}Enter your GitHub PAT: " token
     # Trim leading/trailing whitespace
     token="$(echo "$token" | xargs)"
-    if [[ -z "$token" ]]; then
+    if [[ -z $token ]]; then
       msg_warn "Token cannot be empty. Please try again."
       continue
     fi
-    if [[ "$token" =~ [[:space:]] ]]; then
+    if [[ $token =~ [[:space:]] ]]; then
       msg_warn "Token must not contain spaces. Please try again."
       continue
     fi
@@ -1246,7 +1246,7 @@ github_api_call() {
   local retry_delay=2
 
   local header_args=()
-  [[ -n "${GITHUB_TOKEN:-}" ]] && header_args=(-H "Authorization: Bearer $GITHUB_TOKEN")
+  [[ -n ${GITHUB_TOKEN:-} ]] && header_args=(-H "Authorization: Bearer $GITHUB_TOKEN")
 
   local attempt=1
   while ((attempt <= max_retries)); do
@@ -1263,7 +1263,7 @@ github_api_call() {
       ;;
     401)
       msg_error "GitHub API authentication failed (HTTP 401)."
-      if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+      if [[ -n ${GITHUB_TOKEN:-} ]]; then
         msg_error "Your GITHUB_TOKEN appears to be invalid or expired."
       else
         msg_error "The repository may require authentication."
@@ -1291,7 +1291,7 @@ github_api_call() {
         continue
       fi
       msg_error "To increase the limit, export a GitHub token before running the script:"
-      msg_error "  export GITHUB_TOKEN=\"ghp_your_token_here\""
+      msg_error '  export GITHUB_TOKEN="ghp_your_token_here"'
       return 22
       ;;
     404)
@@ -1391,7 +1391,7 @@ should_upgrade() {
   local current="$1"
   local target="$2"
 
-  [[ -z "$current" ]] && return 0
+  [[ -z $current ]] && return 0
   version_gt "$target" "$current" && return 0
   return 1
 }
@@ -1403,7 +1403,7 @@ get_os_info() {
   local field="${1:-all}" # id, codename, version, version_id, all
 
   # Cache OS info to avoid repeated file reads
-  if [[ -z "${_OS_ID:-}" ]]; then
+  if [[ -z ${_OS_ID:-} ]]; then
     export _OS_ID=$(awk -F= '/^ID=/{gsub(/"/,"",$2); print $2}' /etc/os-release)
     export _OS_CODENAME=$(awk -F= '/^VERSION_CODENAME=/{gsub(/"/,"",$2); print $2}' /etc/os-release)
     export _OS_VERSION=$(awk -F= '/^VERSION_ID=/{gsub(/"/,"",$2); print $2}' /etc/os-release)
@@ -1454,7 +1454,7 @@ download_file() {
   local show_progress="${4:-false}"
 
   local curl_opts=(-fsSL)
-  [[ "$show_progress" == "true" ]] && curl_opts=(-fL#)
+  [[ $show_progress == "true" ]] && curl_opts=(-fL#)
 
   for attempt in $(seq 1 $max_retries); do
     if curl "${curl_opts[@]}" -o "$output" "$url"; then
@@ -1566,12 +1566,12 @@ is_lts_version() {
   local os_id=$(get_os_info id)
   local codename=$(get_os_info codename)
 
-  if [[ "$os_id" == "ubuntu" ]]; then
+  if [[ $os_id == "ubuntu" ]]; then
     case "$codename" in
     focal | jammy | noble) return 0 ;; # 20.04, 22.04, 24.04
     *) return 1 ;;
     esac
-  elif [[ "$os_id" == "debian" ]]; then
+  elif [[ $os_id == "debian" ]]; then
     # Debian releases are all "stable"
     case "$codename" in
     bullseye | bookworm | trixie) return 0 ;;
@@ -1591,7 +1591,7 @@ is_lts_version() {
 #   - Container/VM detection for conservative limits
 # ------------------------------------------------------------------------------
 get_parallel_jobs() {
-  if [[ -z "${_PARALLEL_JOBS:-}" ]]; then
+  if [[ -z ${_PARALLEL_JOBS:-} ]]; then
     local cpu_count
     cpu_count=$(nproc 2>/dev/null || grep -c ^processor /proc/cpuinfo 2>/dev/null || echo 1)
 
@@ -1772,14 +1772,14 @@ cleanup_orphaned_sources() {
   local sources_dir="/etc/apt/sources.list.d"
   local keyrings_dir="/etc/apt/keyrings"
 
-  [[ ! -d "$sources_dir" ]] && return 0
+  [[ ! -d $sources_dir ]] && return 0
 
   while IFS= read -r -d '' sources_file; do
     local basename_file
     basename_file=$(basename "$sources_file")
 
     # NEVER remove debian.sources - this is the standard Debian repository
-    if [[ "$basename_file" == "debian.sources" ]]; then
+    if [[ $basename_file == "debian.sources" ]]; then
       continue
     fi
 
@@ -1788,13 +1788,13 @@ cleanup_orphaned_sources() {
     keyring_path=$(grep -E '^Signed-By:' "$sources_file" 2>/dev/null | awk '{print $2}' 2>/dev/null || true)
 
     # If keyring doesn't exist, remove the .sources file
-    if [[ -n "$keyring_path" ]] && [[ ! -f "$keyring_path" ]]; then
+    if [[ -n $keyring_path ]] && [[ ! -f $keyring_path ]]; then
       rm -f "$sources_file"
     fi
   done < <(find "$sources_dir" -name "*.sources" -print0 2>/dev/null)
 
   # Also check for broken symlinks in keyrings directory
-  if [[ -d "$keyrings_dir" ]]; then
+  if [[ -d $keyrings_dir ]]; then
     find "$keyrings_dir" -type l ! -exec test -e {} \; -delete 2>/dev/null || true
   fi
 }
@@ -1878,7 +1878,7 @@ setup_deb822_repo() {
   local enabled="${7-}"       # optional: "true" or "false"
 
   # Validate required parameters
-  if [[ -z "$name" || -z "$gpg_url" || -z "$repo_url" || -z "$suite" ]]; then
+  if [[ -z $name || -z $gpg_url || -z $repo_url || -z $suite ]]; then
     msg_error "setup_deb822_repo: missing required parameters (name=$name repo=$repo_url suite=$suite)"
     return 65
   fi
@@ -1925,12 +1925,12 @@ setup_deb822_repo() {
     echo "URIs: $repo_url"
     echo "Suites: $suite"
     # Flat repositories (suite ending with "/" or "./") must not have Components
-    if [[ "$suite" != *"/" && -n "$component" ]]; then
+    if [[ $suite != *"/" && -n $component ]]; then
       echo "Components: $component"
     fi
-    [[ -n "$architectures" ]] && echo "Architectures: $architectures"
+    [[ -n $architectures ]] && echo "Architectures: $architectures"
     echo "Signed-By: /etc/apt/keyrings/${name}.gpg"
-    [[ -n "$enabled" ]] && echo "Enabled: $enabled"
+    [[ -n $enabled ]] && echo "Enabled: $enabled"
   } >/etc/apt/sources.list.d/${name}.sources
 
   $STD apt update || {
@@ -2048,12 +2048,12 @@ extract_version_from_json() {
   local version
   version=$(echo "$json" | jq -r ".${field} // empty")
 
-  if [[ -z "$version" ]]; then
+  if [[ -z $version ]]; then
     msg_warn "JSON field '${field}' is empty in API response"
     return 250
   fi
 
-  if [[ "$strip_v" == "true" ]]; then
+  if [[ $strip_v == "true" ]]; then
     echo "${version#v}"
   else
     echo "$version"
@@ -2081,7 +2081,7 @@ get_latest_gh_tag() {
 
   local tag=""
 
-  if [[ -n "$prefix" ]]; then
+  if [[ -n $prefix ]]; then
     # Use git/matching-refs API for server-side prefix filtering. This avoids
     # paging through unrelated tags (e.g. mongodb/mongo-tools where 100.x tags
     # only appear after page 4 of /tags). Returns ALL tags matching the prefix
@@ -2094,7 +2094,7 @@ get_latest_gh_tag() {
 
     local count
     count=$(jq 'length' "$temp_file" 2>/dev/null || echo 0)
-    if [[ "$count" -gt 0 ]]; then
+    if [[ $count -gt 0 ]]; then
       tag=$(jq -r '.[].ref' "$temp_file" |
         sed 's|^refs/tags/||' |
         sort -V |
@@ -2111,7 +2111,7 @@ get_latest_gh_tag() {
 
   rm -f "$temp_file"
 
-  if [[ -z "$tag" ]]; then
+  if [[ -z $tag ]]; then
     msg_error "No tags found for ${repo}"
     return 250
   fi
@@ -2138,7 +2138,7 @@ get_latest_github_release() {
   version=$(extract_version_from_json "$(cat "$temp_file")" "tag_name" "$strip_v")
   rm -f "$temp_file"
 
-  if [[ -z "$version" ]]; then
+  if [[ -z $version ]]; then
     msg_error "Could not determine latest version for ${repo}"
     return 250
   fi
@@ -2165,13 +2165,13 @@ get_latest_codeberg_release() {
   # Codeberg uses same JSON structure but releases endpoint returns array
   version=$(jq -r '[.[] | select(.draft==false and .prerelease==false)][0].tag_name // empty' "$temp_file")
 
-  if [[ "$strip_v" == "true" ]]; then
+  if [[ $strip_v == "true" ]]; then
     version="${version#v}"
   fi
 
   rm -f "$temp_file"
 
-  if [[ -z "$version" ]]; then
+  if [[ -z $version ]]; then
     msg_error "Could not determine latest version for ${repo}"
     return 250
   fi
@@ -2208,7 +2208,7 @@ verify_gpg_fingerprint() {
   local actual_fingerprint
   actual_fingerprint=$(gpg --show-keys --with-fingerprint --with-colons "$key_file" 2>&1 | grep -m1 '^fpr:' | cut -d: -f10)
 
-  if [[ "$actual_fingerprint" == "$expected_fingerprint" ]]; then
+  if [[ $actual_fingerprint == "$expected_fingerprint" ]]; then
     return 0
   fi
 
@@ -2247,7 +2247,7 @@ fetch_and_deploy_gh_tag() {
   app_lc="$(echo "${app,,}" | tr -d ' ')"
   local version_file="$HOME/.${app_lc}"
 
-  if [[ "$version" == "latest" ]]; then
+  if [[ $version == "latest" ]]; then
     version=$(get_latest_gh_tag "$repo") || {
       msg_error "Failed to determine latest tag for ${repo}"
       return 250
@@ -2255,9 +2255,9 @@ fetch_and_deploy_gh_tag() {
   fi
 
   local current_version=""
-  [[ -f "$version_file" ]] && current_version=$(<"$version_file")
+  [[ -f $version_file ]] && current_version=$(<"$version_file")
 
-  if [[ "$current_version" == "$version" ]]; then
+  if [[ $current_version == "$version" ]]; then
     msg_ok "$app is already up-to-date ($version)"
     return 0
   fi
@@ -2276,7 +2276,7 @@ fetch_and_deploy_gh_tag() {
   }
 
   mkdir -p "$target"
-  if [[ "${CLEAN_INSTALL:-0}" == "1" ]]; then
+  if [[ ${CLEAN_INSTALL:-0} == "1" ]]; then
     rm -rf "${target:?}/"*
   fi
 
@@ -2330,9 +2330,9 @@ check_for_gh_tag() {
   latest=$(get_latest_gh_tag "$repo" "$prefix") || return 22
 
   local current=""
-  [[ -f "$current_file" ]] && current="$(<"$current_file")"
+  [[ -f $current_file ]] && current="$(<"$current_file")"
 
-  if [[ -z "$current" || "$current" != "$latest" ]]; then
+  if [[ -z $current || $current != "$latest" ]]; then
     CHECK_UPDATE_RELEASE="$latest"
     msg_ok "Update available: ${app} ${current:-not installed} → ${latest}"
     return 0
@@ -2387,13 +2387,13 @@ check_for_gh_release() {
 
   # Build auth header if token is available
   local header_args=()
-  [[ -n "${GITHUB_TOKEN:-}" ]] && header_args=(-H "Authorization: Bearer $GITHUB_TOKEN")
+  [[ -n ${GITHUB_TOKEN:-} ]] && header_args=(-H "Authorization: Bearer $GITHUB_TOKEN")
 
   # Try /latest endpoint for non-pinned versions (most efficient)
   local releases_json="" http_code=""
 
   # For pinned versions, query the specific release tag directly
-  if [[ -n "$pinned_version_in" ]]; then
+  if [[ -n $pinned_version_in ]]; then
     local pinned_version_encoded="${pinned_version_in//\//%2F}"
     http_code=$(curl -sSL --max-time 20 -w "%{http_code}" -o /tmp/gh_check.json \
       -H 'Accept: application/vnd.github+json' \
@@ -2401,49 +2401,49 @@ check_for_gh_release() {
       "${header_args[@]}" \
       "https://api.github.com/repos/${source}/releases/tags/${pinned_version_encoded}" 2>/dev/null) || true
 
-    if [[ "$http_code" == "200" ]] && [[ -s /tmp/gh_check.json ]]; then
+    if [[ $http_code == "200" ]] && [[ -s /tmp/gh_check.json ]]; then
       releases_json="[$(</tmp/gh_check.json)]"
-    elif [[ "$http_code" == "401" ]]; then
+    elif [[ $http_code == "401" ]]; then
       msg_error "GitHub API authentication failed (HTTP 401)."
-      if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+      if [[ -n ${GITHUB_TOKEN:-} ]]; then
         msg_error "Your GITHUB_TOKEN appears to be invalid or expired."
       else
-        msg_error "The repository may require authentication. Try: export GITHUB_TOKEN=\"ghp_your_token\""
+        msg_error 'The repository may require authentication. Try: export GITHUB_TOKEN="ghp_your_token"'
       fi
       rm -f /tmp/gh_check.json
       return 22
-    elif [[ "$http_code" == "403" ]]; then
+    elif [[ $http_code == "403" ]]; then
       msg_error "GitHub API rate limit exceeded (HTTP 403)."
       msg_error "To increase the limit, export a GitHub token before running the script:"
-      msg_error "  export GITHUB_TOKEN=\"ghp_your_token_here\""
+      msg_error '  export GITHUB_TOKEN="ghp_your_token_here"'
       rm -f /tmp/gh_check.json
       return 22
     fi
     rm -f /tmp/gh_check.json
   fi
 
-  if [[ -z "$pinned_version_in" ]]; then
+  if [[ -z $pinned_version_in ]]; then
     http_code=$(curl -sSL --max-time 20 -w "%{http_code}" -o /tmp/gh_check.json \
       -H 'Accept: application/vnd.github+json' \
       -H 'X-GitHub-Api-Version: 2022-11-28' \
       "${header_args[@]}" \
       "https://api.github.com/repos/${source}/releases/latest" 2>/dev/null) || true
 
-    if [[ "$http_code" == "200" ]] && [[ -s /tmp/gh_check.json ]]; then
+    if [[ $http_code == "200" ]] && [[ -s /tmp/gh_check.json ]]; then
       releases_json="[$(</tmp/gh_check.json)]"
-    elif [[ "$http_code" == "401" ]]; then
+    elif [[ $http_code == "401" ]]; then
       msg_error "GitHub API authentication failed (HTTP 401)."
-      if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+      if [[ -n ${GITHUB_TOKEN:-} ]]; then
         msg_error "Your GITHUB_TOKEN appears to be invalid or expired."
       else
-        msg_error "The repository may require authentication. Try: export GITHUB_TOKEN=\"ghp_your_token\""
+        msg_error 'The repository may require authentication. Try: export GITHUB_TOKEN="ghp_your_token"'
       fi
       rm -f /tmp/gh_check.json
       return 22
-    elif [[ "$http_code" == "403" ]]; then
+    elif [[ $http_code == "403" ]]; then
       msg_error "GitHub API rate limit exceeded (HTTP 403)."
       msg_error "To increase the limit, export a GitHub token before running the script:"
-      msg_error "  export GITHUB_TOKEN=\"ghp_your_token_here\""
+      msg_error '  export GITHUB_TOKEN="ghp_your_token_here"'
       rm -f /tmp/gh_check.json
       return 22
     fi
@@ -2451,31 +2451,31 @@ check_for_gh_release() {
   fi
 
   # If no releases yet (pinned version OR /latest failed), fetch up to 100
-  if [[ -z "$releases_json" ]]; then
+  if [[ -z $releases_json ]]; then
     http_code=$(curl -sSL --max-time 20 -w "%{http_code}" -o /tmp/gh_check.json \
       -H 'Accept: application/vnd.github+json' \
       -H 'X-GitHub-Api-Version: 2022-11-28' \
       "${header_args[@]}" \
       "https://api.github.com/repos/${source}/releases?per_page=100" 2>/dev/null) || true
 
-    if [[ "$http_code" == "200" ]] && [[ -s /tmp/gh_check.json ]]; then
+    if [[ $http_code == "200" ]] && [[ -s /tmp/gh_check.json ]]; then
       releases_json=$(</tmp/gh_check.json)
-    elif [[ "$http_code" == "401" ]]; then
+    elif [[ $http_code == "401" ]]; then
       msg_error "GitHub API authentication failed (HTTP 401)."
-      if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+      if [[ -n ${GITHUB_TOKEN:-} ]]; then
         msg_error "Your GITHUB_TOKEN appears to be invalid or expired."
       else
-        msg_error "The repository may require authentication. Try: export GITHUB_TOKEN=\"ghp_your_token\""
+        msg_error 'The repository may require authentication. Try: export GITHUB_TOKEN="ghp_your_token"'
       fi
       rm -f /tmp/gh_check.json
       return 22
-    elif [[ "$http_code" == "403" ]]; then
+    elif [[ $http_code == "403" ]]; then
       msg_error "GitHub API rate limit exceeded (HTTP 403)."
       msg_error "To increase the limit, export a GitHub token before running the script:"
-      msg_error "  export GITHUB_TOKEN=\"ghp_your_token_here\""
+      msg_error '  export GITHUB_TOKEN="ghp_your_token_here"'
       rm -f /tmp/gh_check.json
       return 22
-    elif [[ "$http_code" == "000" || -z "$http_code" ]]; then
+    elif [[ $http_code == "000" || -z $http_code ]]; then
       msg_error "GitHub API connection failed (no response)."
       msg_error "Check your network/DNS: curl -sSL https://api.github.com/rate_limit"
       rm -f /tmp/gh_check.json
@@ -2497,7 +2497,7 @@ check_for_gh_release() {
   local clean_tags=()
   for t in "${raw_tags[@]}"; do
     # Only strip leading 'v' when followed by a digit (e.g. v1.2.3)
-    if [[ "$t" =~ ^v[0-9] ]]; then
+    if [[ $t =~ ^v[0-9] ]]; then
       clean_tags+=("${t:1}")
     else
       clean_tags+=("$t")
@@ -2509,7 +2509,7 @@ check_for_gh_release() {
 
   # current installed (stored without v)
   local current=""
-  if [[ -f "$current_file" ]]; then
+  if [[ -f $current_file ]]; then
     current="$(<"$current_file")"
   else
     # Migration: search for any /opt/*_version.txt
@@ -2521,38 +2521,38 @@ check_for_gh_release() {
       rm -f "${legacy_files[0]}"
     fi
   fi
-  if [[ "$current" =~ ^v[0-9] ]]; then
+  if [[ $current =~ ^v[0-9] ]]; then
     current="${current:1}"
   fi
 
   # Pinned version handling
-  if [[ -n "$pinned_version_in" ]]; then
+  if [[ -n $pinned_version_in ]]; then
     local pin_clean
-    if [[ "$pinned_version_in" =~ ^v[0-9] ]]; then
+    if [[ $pinned_version_in =~ ^v[0-9] ]]; then
       pin_clean="${pinned_version_in:1}"
     else
       pin_clean="$pinned_version_in"
     fi
     local match_raw=""
     for i in "${!clean_tags[@]}"; do
-      if [[ "${clean_tags[$i]}" == "$pin_clean" ]]; then
+      if [[ ${clean_tags[$i]} == "$pin_clean" ]]; then
         match_raw="${raw_tags[$i]}"
         break
       fi
     done
 
-    if [[ -z "$match_raw" ]]; then
+    if [[ -z $match_raw ]]; then
       msg_error "Pinned version ${pinned_version_in} not found upstream"
       return 250
     fi
 
-    if [[ "$current" != "$pin_clean" ]]; then
+    if [[ $current != "$pin_clean" ]]; then
       CHECK_UPDATE_RELEASE="$match_raw"
       msg_ok "Update available: ${app} ${current:-not installed} → ${pin_clean}"
       return 0
     fi
 
-    if [[ -n "$pin_reason" ]]; then
+    if [[ -n $pin_reason ]]; then
       msg_ok "No update available: ${app} (${current}) - update held back: ${pin_reason}"
     else
       msg_ok "No update available: ${app} (${current}) - update temporarily held back due to issues with newer releases"
@@ -2561,7 +2561,7 @@ check_for_gh_release() {
   fi
 
   # No pinning → use latest
-  if [[ -z "$current" || "$current" != "$latest_clean" ]]; then
+  if [[ -z $current || $current != "$latest_clean" ]]; then
     CHECK_UPDATE_RELEASE="$latest_raw"
     msg_ok "Update available: ${app} ${current:-not installed} → ${latest_clean}"
     return 0
@@ -2626,7 +2626,7 @@ check_for_codeberg_release() {
   local clean_tags=()
   for t in "${raw_tags[@]}"; do
     # Only strip leading 'v' when followed by a digit (e.g. v1.2.3)
-    if [[ "$t" =~ ^v[0-9] ]]; then
+    if [[ $t =~ ^v[0-9] ]]; then
       clean_tags+=("${t:1}")
     else
       clean_tags+=("$t")
@@ -2638,7 +2638,7 @@ check_for_codeberg_release() {
 
   # current installed (stored without v)
   local current=""
-  if [[ -f "$current_file" ]]; then
+  if [[ -f $current_file ]]; then
     current="$(<"$current_file")"
   else
     # Migration: search for any /opt/*_version.txt
@@ -2653,28 +2653,28 @@ check_for_codeberg_release() {
   current="${current#v}"
 
   # Pinned version handling
-  if [[ -n "$pinned_version_in" ]]; then
+  if [[ -n $pinned_version_in ]]; then
     local pin_clean="${pinned_version_in#v}"
     local match_raw=""
     for i in "${!clean_tags[@]}"; do
-      if [[ "${clean_tags[$i]}" == "$pin_clean" ]]; then
+      if [[ ${clean_tags[$i]} == "$pin_clean" ]]; then
         match_raw="${raw_tags[$i]}"
         break
       fi
     done
 
-    if [[ -z "$match_raw" ]]; then
+    if [[ -z $match_raw ]]; then
       msg_error "Pinned version ${pinned_version_in} not found upstream"
       return 250
     fi
 
-    if [[ "$current" != "$pin_clean" ]]; then
+    if [[ $current != "$pin_clean" ]]; then
       CHECK_UPDATE_RELEASE="$match_raw"
       msg_ok "Update available: ${app} ${current:-not installed} → ${pin_clean}"
       return 0
     fi
 
-    if [[ -n "$pin_reason" ]]; then
+    if [[ -n $pin_reason ]]; then
       msg_ok "No update available: ${app} (${current}) - update held back: ${pin_reason}"
     else
       msg_ok "No update available: ${app} (${current}) - update temporarily held back due to issues with newer releases"
@@ -2683,7 +2683,7 @@ check_for_codeberg_release() {
   fi
 
   # No pinning → use latest
-  if [[ -z "$current" || "$current" != "$latest_clean" ]]; then
+  if [[ -z $current || $current != "$latest_clean" ]]; then
     CHECK_UPDATE_RELEASE="$latest_raw"
     msg_ok "Update available: ${app} ${current:-not installed} → ${latest_clean}"
     return 0
@@ -2711,7 +2711,7 @@ create_self_signed_cert() {
   local CERT_KEY="${CERT_DIR}/${APP_NAME_LC}.key"
   local CERT_CRT="${CERT_DIR}/${APP_NAME_LC}.crt"
 
-  if [[ -f "$CERT_CRT" && -f "$CERT_KEY" ]]; then
+  if [[ -f $CERT_CRT && -f $CERT_KEY ]]; then
     return 0
   fi
 
@@ -2755,7 +2755,7 @@ function download_with_progress() {
   local content_length
   content_length=$(curl -fsSLI "$url" | awk '/Content-Length/ {print $2}' | tr -d '\r' || true)
 
-  if [[ -z "$content_length" ]]; then
+  if [[ -z $content_length ]]; then
     if ! curl -fL# -o "$output" "$url"; then
       msg_error "Download failed: $url"
       return 7
@@ -2782,14 +2782,14 @@ function ensure_usr_local_bin_persist() {
 
   # Login shells: /etc/profile.d/
   local PROFILE_FILE="/etc/profile.d/custom_path.sh"
-  if [[ ! -f "$PROFILE_FILE" ]]; then
+  if [[ ! -f $PROFILE_FILE ]]; then
     echo 'export PATH="/usr/local/bin:$PATH"' >"$PROFILE_FILE"
     chmod +x "$PROFILE_FILE"
   fi
 
   # Non-login shells (pct enter): /root/.bashrc
   local BASHRC="/root/.bashrc"
-  if [[ -f "$BASHRC" ]] && ! grep -q '/usr/local/bin' "$BASHRC"; then
+  if [[ -f $BASHRC ]] && ! grep -q '/usr/local/bin' "$BASHRC"; then
     echo 'export PATH="/usr/local/bin:$PATH"' >>"$BASHRC"
   fi
 }
@@ -2887,21 +2887,21 @@ function fetch_and_deploy_codeberg_release() {
   local api_timeouts=(60 120 240)
 
   local current_version=""
-  [[ -f "$version_file" ]] && current_version=$(<"$version_file")
+  [[ -f $version_file ]] && current_version=$(<"$version_file")
 
   ensure_dependencies jq
 
   ### Tag Mode (bypass Release API) ###
-  if [[ "$mode" == "tag" ]]; then
-    if [[ "$version" == "latest" ]]; then
+  if [[ $mode == "tag" ]]; then
+    if [[ $version == "latest" ]]; then
       msg_error "Mode 'tag' requires explicit version (not 'latest')"
       return 65
     fi
 
     local tag_name="$version"
-    [[ "$tag_name" =~ ^v ]] && version="${tag_name:1}" || version="$tag_name"
+    [[ $tag_name =~ ^v ]] && version="${tag_name:1}" || version="$tag_name"
 
-    if [[ "$current_version" == "$version" ]]; then
+    if [[ $current_version == "$version" ]]; then
       $STD msg_ok "$app is already up-to-date (v$version)"
       return 0
     fi
@@ -2928,14 +2928,14 @@ function fetch_and_deploy_codeberg_release() {
       download_success=true
     fi
 
-    if [[ "$download_success" != "true" ]]; then
+    if [[ $download_success != "true" ]]; then
       msg_error "Download failed for $app ($tag_name)"
       rm -rf "$tmpdir"
       return 250
     fi
 
     mkdir -p "$target"
-    if [[ "${CLEAN_INSTALL:-0}" == "1" ]]; then
+    if [[ ${CLEAN_INSTALL:-0} == "1" ]]; then
       rm -rf "${target:?}/"*
     fi
 
@@ -2960,7 +2960,7 @@ function fetch_and_deploy_codeberg_release() {
 
   # Codeberg API: https://codeberg.org/api/v1/repos/{owner}/{repo}/releases
   local api_url="https://codeberg.org/api/v1/repos/$repo/releases"
-  if [[ "$version" != "latest" ]]; then
+  if [[ $version != "latest" ]]; then
     # Get release by tag: /repos/{owner}/{repo}/releases/tags/{tag}
     api_url="https://codeberg.org/api/v1/repos/$repo/releases/tags/$version"
   fi
@@ -2986,8 +2986,8 @@ function fetch_and_deploy_codeberg_release() {
     return 22
   fi
 
-  http_code="${resp:(-3)}"
-  [[ "$http_code" != "200" ]] && {
+  http_code="${resp: -3}"
+  [[ $http_code != "200" ]] && {
     msg_error "Codeberg API returned HTTP $http_code"
     return 22
   }
@@ -2996,14 +2996,14 @@ function fetch_and_deploy_codeberg_release() {
   json=$(</tmp/codeberg_rel.json)
 
   # For "latest", the API returns an array - take the first (most recent) release
-  if [[ "$version" == "latest" ]]; then
+  if [[ $version == "latest" ]]; then
     json=$(echo "$json" | jq '.[0]')
   fi
 
   tag_name=$(echo "$json" | jq -r '.tag_name // .name // empty')
-  [[ "$tag_name" =~ ^v ]] && version="${tag_name:1}" || version="$tag_name"
+  [[ $tag_name =~ ^v ]] && version="${tag_name:1}" || version="$tag_name"
 
-  if [[ "$current_version" == "$version" ]]; then
+  if [[ $current_version == "$version" ]]; then
     $STD msg_ok "$app is already up-to-date (v$version)"
     return 0
   fi
@@ -3015,7 +3015,7 @@ function fetch_and_deploy_codeberg_release() {
   msg_info "Fetching Codeberg release: $app ($version)"
 
   ### Tarball Mode ###
-  if [[ "$mode" == "tarball" || "$mode" == "source" ]]; then
+  if [[ $mode == "tarball" || $mode == "source" ]]; then
     local safe_version="${version//@/_}"
     safe_version="${safe_version//\//_}"
     filename="${app_lc}-${safe_version}.tar.gz"
@@ -3027,14 +3027,14 @@ function fetch_and_deploy_codeberg_release() {
       download_success=true
     fi
 
-    if [[ "$download_success" != "true" ]]; then
+    if [[ $download_success != "true" ]]; then
       msg_error "Download failed for $app ($tag_name)"
       rm -rf "$tmpdir"
       return 250
     fi
 
     mkdir -p "$target"
-    if [[ "${CLEAN_INSTALL:-0}" == "1" ]]; then
+    if [[ ${CLEAN_INSTALL:-0} == "1" ]]; then
       rm -rf "${target:?}/"*
     fi
 
@@ -3051,18 +3051,18 @@ function fetch_and_deploy_codeberg_release() {
     shopt -u dotglob nullglob
 
   ### Binary Mode ###
-  elif [[ "$mode" == "binary" ]]; then
+  elif [[ $mode == "binary" ]]; then
     local arch
     arch=$(dpkg --print-architecture 2>/dev/null || uname -m)
-    [[ "$arch" == "x86_64" ]] && arch="amd64"
-    [[ "$arch" == "aarch64" ]] && arch="arm64"
+    [[ $arch == "x86_64" ]] && arch="amd64"
+    [[ $arch == "aarch64" ]] && arch="arm64"
 
     local assets url_match=""
     # Codeberg assets are in .assets[].browser_download_url
     assets=$(echo "$json" | jq -r '.assets[].browser_download_url')
 
     # If explicit filename pattern is provided, match that first
-    if [[ -n "$asset_pattern" ]]; then
+    if [[ -n $asset_pattern ]]; then
       for u in $assets; do
         case "${u##*/}" in
         $asset_pattern)
@@ -3074,9 +3074,9 @@ function fetch_and_deploy_codeberg_release() {
     fi
 
     # Fall back to architecture heuristic
-    if [[ -z "$url_match" ]]; then
+    if [[ -z $url_match ]]; then
       for u in $assets; do
-        if [[ "$u" =~ ($arch|amd64|x86_64|aarch64|arm64).*\.deb$ ]]; then
+        if [[ $u =~ ($arch|amd64|x86_64|aarch64|arm64).*\.deb$ ]]; then
           url_match="$u"
           break
         fi
@@ -3084,13 +3084,13 @@ function fetch_and_deploy_codeberg_release() {
     fi
 
     # Fallback: any .deb file
-    if [[ -z "$url_match" ]]; then
+    if [[ -z $url_match ]]; then
       for u in $assets; do
-        [[ "$u" =~ \.deb$ ]] && url_match="$u" && break
+        [[ $u =~ \.deb$ ]] && url_match="$u" && break
       done
     fi
 
-    if [[ -z "$url_match" ]]; then
+    if [[ -z $url_match ]]; then
       msg_error "No suitable .deb asset found for $app"
       rm -rf "$tmpdir"
       return 252
@@ -3113,10 +3113,10 @@ function fetch_and_deploy_codeberg_release() {
     }
 
   ### Prebuild Mode ###
-  elif [[ "$mode" == "prebuild" ]]; then
+  elif [[ $mode == "prebuild" ]]; then
     local pattern="${6%\"}"
     pattern="${pattern#\"}"
-    [[ -z "$pattern" ]] && {
+    [[ -z $pattern ]] && {
       msg_error "Mode 'prebuild' requires 6th parameter (asset filename pattern)"
       rm -rf "$tmpdir"
       return 65
@@ -3133,7 +3133,7 @@ function fetch_and_deploy_codeberg_release() {
       esac
     done
 
-    [[ -z "$asset_url" ]] && {
+    [[ -z $asset_url ]] && {
       msg_error "No asset matching '$pattern' found"
       rm -rf "$tmpdir"
       return 252
@@ -3149,18 +3149,18 @@ function fetch_and_deploy_codeberg_release() {
     local unpack_tmp
     unpack_tmp=$(mktemp -d)
     mkdir -p "$target"
-    if [[ "${CLEAN_INSTALL:-0}" == "1" ]]; then
+    if [[ ${CLEAN_INSTALL:-0} == "1" ]]; then
       rm -rf "${target:?}/"*
     fi
 
-    if [[ "$filename" == *.zip ]]; then
+    if [[ $filename == *.zip ]]; then
       ensure_dependencies unzip
       unzip -q "$tmpdir/$filename" -d "$unpack_tmp" || {
         msg_error "Failed to extract ZIP archive"
         rm -rf "$tmpdir" "$unpack_tmp"
         return 251
       }
-    elif [[ "$filename" == *.tar.* || "$filename" == *.tgz ]]; then
+    elif [[ $filename == *.tar.* || $filename == *.tgz ]]; then
       tar --no-same-owner -xf "$tmpdir/$filename" -C "$unpack_tmp" || {
         msg_error "Failed to extract TAR archive"
         rm -rf "$tmpdir" "$unpack_tmp"
@@ -3176,7 +3176,7 @@ function fetch_and_deploy_codeberg_release() {
     top_dirs=$(find "$unpack_tmp" -mindepth 1 -maxdepth 1 -type d | wc -l)
     local top_entries inner_dir
     top_entries=$(find "$unpack_tmp" -mindepth 1 -maxdepth 1)
-    if [[ "$(echo "$top_entries" | wc -l)" -eq 1 && -d "$top_entries" ]]; then
+    if [[ "$(echo "$top_entries" | wc -l)" -eq 1 && -d $top_entries ]]; then
       inner_dir="$top_entries"
       shopt -s dotglob nullglob
       if compgen -G "$inner_dir/*" >/dev/null; then
@@ -3208,10 +3208,10 @@ function fetch_and_deploy_codeberg_release() {
     fi
 
   ### Singlefile Mode ###
-  elif [[ "$mode" == "singlefile" ]]; then
+  elif [[ $mode == "singlefile" ]]; then
     local pattern="${6%\"}"
     pattern="${pattern#\"}"
-    [[ -z "$pattern" ]] && {
+    [[ -z $pattern ]] && {
       msg_error "Mode 'singlefile' requires 6th parameter (asset filename pattern)"
       rm -rf "$tmpdir"
       return 65
@@ -3228,7 +3228,7 @@ function fetch_and_deploy_codeberg_release() {
       esac
     done
 
-    [[ -z "$asset_url" ]] && {
+    [[ -z $asset_url ]] && {
       msg_error "No asset matching '$pattern' found"
       rm -rf "$tmpdir"
       return 252
@@ -3239,7 +3239,7 @@ function fetch_and_deploy_codeberg_release() {
 
     local use_filename="${USE_ORIGINAL_FILENAME:-false}"
     local target_file="$app"
-    [[ "$use_filename" == "true" ]] && target_file="$filename"
+    [[ $use_filename == "true" ]] && target_file="$filename"
 
     curl_download "$target/$target_file" "$asset_url" || {
       msg_error "Download failed: $asset_url"
@@ -3247,7 +3247,7 @@ function fetch_and_deploy_codeberg_release() {
       return 250
     }
 
-    if [[ "$target_file" != *.jar && -f "$target/$target_file" ]]; then
+    if [[ $target_file != *.jar && -f "$target/$target_file" ]]; then
       chmod +x "$target/$target_file"
     fi
 
@@ -3332,7 +3332,7 @@ _gh_scan_older_releases() {
   local skip_tag="$4"
 
   local header=()
-  [[ -n "${GITHUB_TOKEN:-}" ]] && header=(-H "Authorization: token $GITHUB_TOKEN")
+  [[ -n ${GITHUB_TOKEN:-} ]] && header=(-H "Authorization: token $GITHUB_TOKEN")
 
   local releases_list
   releases_list=$(curl --connect-timeout 10 --max-time 30 -fsSL \
@@ -3354,19 +3354,19 @@ _gh_scan_older_releases() {
     rel_prerelease=$(echo "$releases_list" | jq -r ".[$i].prerelease")
 
     # Skip drafts, prereleases, and the tag we already checked
-    [[ "$rel_draft" == "true" || "$rel_prerelease" == "true" ]] && continue
-    [[ "$rel_tag" == "$skip_tag" ]] && continue
+    [[ $rel_draft == "true" || $rel_prerelease == "true" ]] && continue
+    [[ $rel_tag == "$skip_tag" ]] && continue
 
     local has_match=false
 
-    if [[ "$mode" == "binary" ]]; then
+    if [[ $mode == "binary" ]]; then
       local arch
       arch=$(dpkg --print-architecture 2>/dev/null || uname -m)
-      [[ "$arch" == "x86_64" ]] && arch="amd64"
-      [[ "$arch" == "aarch64" ]] && arch="arm64"
+      [[ $arch == "x86_64" ]] && arch="amd64"
+      [[ $arch == "aarch64" ]] && arch="arm64"
 
       # Check with explicit pattern first, then arch heuristic, then any .deb
-      if [[ -n "$asset_pattern" ]]; then
+      if [[ -n $asset_pattern ]]; then
         has_match=$(echo "$releases_list" | jq -r --arg pat "$asset_pattern" ".[$i].assets[].name" | while read -r name; do
           case "$name" in $asset_pattern)
             echo true
@@ -3375,14 +3375,14 @@ _gh_scan_older_releases() {
           esac
         done)
       fi
-      if [[ "$has_match" != "true" ]]; then
+      if [[ $has_match != "true" ]]; then
         has_match=$(echo "$releases_list" | jq -r ".[$i].assets[].browser_download_url" | grep -qE "($arch|amd64|x86_64|aarch64|arm64).*\.deb$" && echo true)
       fi
-      if [[ "$has_match" != "true" ]]; then
+      if [[ $has_match != "true" ]]; then
         has_match=$(echo "$releases_list" | jq -r ".[$i].assets[].browser_download_url" | grep -qE '\.deb$' && echo true)
       fi
 
-    elif [[ "$mode" == "prebuild" || "$mode" == "singlefile" ]]; then
+    elif [[ $mode == "prebuild" || $mode == "singlefile" ]]; then
       has_match=$(echo "$releases_list" | jq -r ".[$i].assets[].name" | while read -r name; do
         case "$name" in $asset_pattern)
           echo true
@@ -3392,9 +3392,9 @@ _gh_scan_older_releases() {
       done)
     fi
 
-    if [[ "$has_match" == "true" ]]; then
+    if [[ $has_match == "true" ]]; then
       local rel_version="$rel_tag"
-      [[ "$rel_tag" =~ ^v ]] && rel_version="${rel_tag:1}"
+      [[ $rel_tag =~ ^v ]] && rel_version="${rel_tag:1}"
 
       local use_fallback="y"
       if [[ -t 0 ]]; then
@@ -3403,7 +3403,7 @@ _gh_scan_older_releases() {
         use_fallback="${use_fallback:-y}"
       fi
 
-      if [[ "${use_fallback,,}" == "y" || "${use_fallback,,}" == "yes" ]]; then
+      if [[ ${use_fallback,,} == "y" || ${use_fallback,,} == "yes" ]]; then
         echo "$releases_list" | jq ".[$i]"
         return 0
       else
@@ -3424,10 +3424,10 @@ function fetch_and_deploy_gh_release() {
   local asset_pattern="${6:-}"
 
   # Validate app name to prevent /root/. directory issues
-  if [[ -z "$app" ]]; then
+  if [[ -z $app ]]; then
     # Derive app name from repo if not provided
     app="${repo##*/}"
-    if [[ -z "$app" ]]; then
+    if [[ -z $app ]]; then
       msg_error "fetch_and_deploy_gh_release requires app name or valid repo"
       return 65
     fi
@@ -3439,14 +3439,14 @@ function fetch_and_deploy_gh_release() {
   local api_timeouts=(60 120 240)
 
   local current_version=""
-  [[ -f "$version_file" ]] && current_version=$(<"$version_file")
+  [[ -f $version_file ]] && current_version=$(<"$version_file")
 
   ensure_dependencies jq
 
   local api_url="https://api.github.com/repos/$repo/releases"
-  [[ "$version" != "latest" ]] && api_url="$api_url/tags/$version" || api_url="$api_url/latest"
+  [[ $version != "latest" ]] && api_url="$api_url/tags/$version" || api_url="$api_url/latest"
   local header=()
-  [[ -n "${GITHUB_TOKEN:-}" ]] && header=(-H "Authorization: token $GITHUB_TOKEN")
+  [[ -n ${GITHUB_TOKEN:-} ]] && header=(-H "Authorization: token $GITHUB_TOKEN")
 
   # dns pre check
   local gh_host
@@ -3460,12 +3460,12 @@ function fetch_and_deploy_gh_release() {
 
   while ((attempt <= max_retries)); do
     http_code=$(curl --connect-timeout 10 --max-time "${api_timeouts[$((attempt - 1))]:-240}" -sSL -w "%{http_code}" -o /tmp/gh_rel.json "${header[@]}" "$api_url" 2>/dev/null) || true
-    if [[ "$http_code" == "200" ]]; then
+    if [[ $http_code == "200" ]]; then
       success=true
       break
-    elif [[ "$http_code" == "401" ]]; then
+    elif [[ $http_code == "401" ]]; then
       msg_error "GitHub API authentication failed (HTTP 401)."
-      if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+      if [[ -n ${GITHUB_TOKEN:-} ]]; then
         msg_error "Your GITHUB_TOKEN appears to be invalid or expired."
       else
         msg_error "The repository may require authentication."
@@ -3475,7 +3475,7 @@ function fetch_and_deploy_gh_release() {
         continue
       fi
       break
-    elif [[ "$http_code" == "403" ]]; then
+    elif [[ $http_code == "403" ]]; then
       if ((attempt < max_retries)); then
         msg_warn "GitHub API rate limit hit, retrying in ${retry_delay}s... (attempt $attempt/$max_retries)"
         sleep "$retry_delay"
@@ -3496,10 +3496,10 @@ function fetch_and_deploy_gh_release() {
   done
 
   if ! $success; then
-    if [[ "$http_code" == "000" || -z "$http_code" ]]; then
+    if [[ $http_code == "000" || -z $http_code ]]; then
       msg_error "GitHub API connection failed (no response)."
       msg_error "Check your network/DNS: curl -sSL https://api.github.com/rate_limit"
-    elif [[ "$http_code" != "401" ]]; then
+    elif [[ $http_code != "401" ]]; then
       msg_error "Failed to fetch release metadata (HTTP $http_code)"
     fi
     return 22
@@ -3509,11 +3509,11 @@ function fetch_and_deploy_gh_release() {
   json=$(</tmp/gh_rel.json)
   tag_name=$(echo "$json" | jq -r '.tag_name // .name // empty')
   # Only strip leading 'v' when followed by a digit (e.g. v1.2.3), not words like "version/..."
-  [[ "$tag_name" =~ ^v[0-9] ]] && version="${tag_name:1}" || version="$tag_name"
+  [[ $tag_name =~ ^v[0-9] ]] && version="${tag_name:1}" || version="$tag_name"
   # Sanitize version for use in filenames (replace / with -)
   local version_safe="${version//\//-}"
 
-  if [[ "$current_version" == "$version" ]]; then
+  if [[ $current_version == "$version" ]]; then
     $STD msg_ok "$app is already up-to-date (v$version)"
     return 0
   fi
@@ -3525,10 +3525,10 @@ function fetch_and_deploy_gh_release() {
   msg_info "Fetching GitHub release: $app ($version)"
 
   local clean_install=false
-  [[ -n "${CLEAN_INSTALL:-}" && "$CLEAN_INSTALL" == "1" ]] && clean_install=true
+  [[ -n ${CLEAN_INSTALL:-} && $CLEAN_INSTALL == "1" ]] && clean_install=true
 
   ### Tarball Mode ###
-  if [[ "$mode" == "tarball" || "$mode" == "source" ]]; then
+  if [[ $mode == "tarball" || $mode == "source" ]]; then
     # GitHub API's tarball_url/zipball_url can return HTTP 300 Multiple Choices
     # when a branch and tag share the same name. Use explicit refs/tags/ URL instead.
     local direct_tarball_url="https://github.com/$repo/archive/refs/tags/$tag_name.tar.gz"
@@ -3541,7 +3541,7 @@ function fetch_and_deploy_gh_release() {
     }
 
     mkdir -p "$target"
-    if [[ "${CLEAN_INSTALL:-0}" == "1" ]]; then
+    if [[ ${CLEAN_INSTALL:-0} == "1" ]]; then
       rm -rf "${target:?}/"*
     fi
 
@@ -3558,17 +3558,17 @@ function fetch_and_deploy_gh_release() {
     shopt -u dotglob nullglob
 
     ### Binary Mode ###
-  elif [[ "$mode" == "binary" ]]; then
+  elif [[ $mode == "binary" ]]; then
     local arch
     arch=$(dpkg --print-architecture 2>/dev/null || uname -m)
-    [[ "$arch" == "x86_64" ]] && arch="amd64"
-    [[ "$arch" == "aarch64" ]] && arch="arm64"
+    [[ $arch == "x86_64" ]] && arch="amd64"
+    [[ $arch == "aarch64" ]] && arch="arm64"
 
     local assets url_match=""
     assets=$(echo "$json" | jq -r '.assets[].browser_download_url')
 
     # If explicit filename pattern is provided (param $6), match that first
-    if [[ -n "$asset_pattern" ]]; then
+    if [[ -n $asset_pattern ]]; then
       for u in $assets; do
         case "${u##*/}" in
         $asset_pattern)
@@ -3580,9 +3580,9 @@ function fetch_and_deploy_gh_release() {
     fi
 
     # If no match via explicit pattern, fall back to architecture heuristic
-    if [[ -z "$url_match" ]]; then
+    if [[ -z $url_match ]]; then
       for u in $assets; do
-        if [[ "$u" =~ ($arch|amd64|x86_64|aarch64|arm64).*\.deb$ ]]; then
+        if [[ $u =~ ($arch|amd64|x86_64|aarch64|arm64).*\.deb$ ]]; then
           url_match="$u"
           break
         fi
@@ -3590,22 +3590,22 @@ function fetch_and_deploy_gh_release() {
     fi
 
     # Fallback: any .deb file
-    if [[ -z "$url_match" ]]; then
+    if [[ -z $url_match ]]; then
       for u in $assets; do
-        [[ "$u" =~ \.deb$ ]] && url_match="$u" && break
+        [[ $u =~ \.deb$ ]] && url_match="$u" && break
       done
     fi
 
     # Fallback: scan older releases for a matching .deb asset
-    if [[ -z "$url_match" ]]; then
+    if [[ -z $url_match ]]; then
       local fallback_json
       if fallback_json=$(_gh_scan_older_releases "$repo" "binary" "$asset_pattern" "$tag_name"); then
         json="$fallback_json"
         tag_name=$(echo "$json" | jq -r '.tag_name // .name // empty')
-        [[ "$tag_name" =~ ^v ]] && version="${tag_name:1}" || version="$tag_name"
+        [[ $tag_name =~ ^v ]] && version="${tag_name:1}" || version="$tag_name"
         msg_info "Fetching GitHub release: $app ($version)"
         assets=$(echo "$json" | jq -r '.assets[].browser_download_url')
-        if [[ -n "$asset_pattern" ]]; then
+        if [[ -n $asset_pattern ]]; then
           for u in $assets; do
             case "${u##*/}" in $asset_pattern)
               url_match="$u"
@@ -3614,23 +3614,23 @@ function fetch_and_deploy_gh_release() {
             esac
           done
         fi
-        if [[ -z "$url_match" ]]; then
+        if [[ -z $url_match ]]; then
           for u in $assets; do
-            if [[ "$u" =~ ($arch|amd64|x86_64|aarch64|arm64).*\.deb$ ]]; then
+            if [[ $u =~ ($arch|amd64|x86_64|aarch64|arm64).*\.deb$ ]]; then
               url_match="$u"
               break
             fi
           done
         fi
-        if [[ -z "$url_match" ]]; then
+        if [[ -z $url_match ]]; then
           for u in $assets; do
-            [[ "$u" =~ \.deb$ ]] && url_match="$u" && break
+            [[ $u =~ \.deb$ ]] && url_match="$u" && break
           done
         fi
       fi
     fi
 
-    if [[ -z "$url_match" ]]; then
+    if [[ -z $url_match ]]; then
       msg_error "No suitable .deb asset found for $app"
       rm -rf "$tmpdir"
       return 252
@@ -3647,8 +3647,8 @@ function fetch_and_deploy_gh_release() {
     # SYSTEMD_OFFLINE=1 prevents systemd-tmpfiles failures in unprivileged LXC (Debian 13+/systemd 257+)
     # Support DPKG_CONFOLD/DPKG_CONFNEW env vars for config file handling during .deb upgrades
     local dpkg_opts=""
-    [[ "${DPKG_FORCE_CONFOLD:-}" == "1" ]] && dpkg_opts="-o Dpkg::Options::=--force-confold"
-    [[ "${DPKG_FORCE_CONFNEW:-}" == "1" ]] && dpkg_opts="-o Dpkg::Options::=--force-confnew"
+    [[ ${DPKG_FORCE_CONFOLD:-} == "1" ]] && dpkg_opts="-o Dpkg::Options::=--force-confold"
+    [[ ${DPKG_FORCE_CONFNEW:-} == "1" ]] && dpkg_opts="-o Dpkg::Options::=--force-confnew"
     DEBIAN_FRONTEND=noninteractive SYSTEMD_OFFLINE=1 $STD apt install -y $dpkg_opts "$tmpdir/$filename" || {
       SYSTEMD_OFFLINE=1 $STD dpkg -i "$tmpdir/$filename" || {
         msg_error "Both apt and dpkg installation failed"
@@ -3658,10 +3658,10 @@ function fetch_and_deploy_gh_release() {
     }
 
     ### Prebuild Mode ###
-  elif [[ "$mode" == "prebuild" ]]; then
+  elif [[ $mode == "prebuild" ]]; then
     local pattern="${6%\"}"
     pattern="${pattern#\"}"
-    [[ -z "$pattern" ]] && {
+    [[ -z $pattern ]] && {
       msg_error "Mode 'prebuild' requires 6th parameter (asset filename pattern)"
       rm -rf "$tmpdir"
       return 65
@@ -3679,12 +3679,12 @@ function fetch_and_deploy_gh_release() {
     done
 
     # Fallback: scan older releases for a matching asset
-    if [[ -z "$asset_url" ]]; then
+    if [[ -z $asset_url ]]; then
       local fallback_json
       if fallback_json=$(_gh_scan_older_releases "$repo" "prebuild" "$pattern" "$tag_name"); then
         json="$fallback_json"
         tag_name=$(echo "$json" | jq -r '.tag_name // .name // empty')
-        [[ "$tag_name" =~ ^v ]] && version="${tag_name:1}" || version="$tag_name"
+        [[ $tag_name =~ ^v ]] && version="${tag_name:1}" || version="$tag_name"
         msg_info "Fetching GitHub release: $app ($version)"
         for u in $(echo "$json" | jq -r '.assets[].browser_download_url'); do
           filename_candidate="${u##*/}"
@@ -3697,7 +3697,7 @@ function fetch_and_deploy_gh_release() {
       fi
     fi
 
-    [[ -z "$asset_url" ]] && {
+    [[ -z $asset_url ]] && {
       msg_error "No asset matching '$pattern' found"
       rm -rf "$tmpdir"
       return 252
@@ -3713,18 +3713,18 @@ function fetch_and_deploy_gh_release() {
     local unpack_tmp
     unpack_tmp=$(mktemp -d)
     mkdir -p "$target"
-    if [[ "${CLEAN_INSTALL:-0}" == "1" ]]; then
+    if [[ ${CLEAN_INSTALL:-0} == "1" ]]; then
       rm -rf "${target:?}/"*
     fi
 
-    if [[ "$filename" == *.zip ]]; then
+    if [[ $filename == *.zip ]]; then
       ensure_dependencies unzip
       unzip -q "$tmpdir/$filename" -d "$unpack_tmp" || {
         msg_error "Failed to extract ZIP archive"
         rm -rf "$tmpdir" "$unpack_tmp"
         return 251
       }
-    elif [[ "$filename" == *.tar.* || "$filename" == *.tgz || "$filename" == *.txz ]]; then
+    elif [[ $filename == *.tar.* || $filename == *.tgz || $filename == *.txz ]]; then
       tar --no-same-owner -xf "$tmpdir/$filename" -C "$unpack_tmp" || {
         msg_error "Failed to extract TAR archive"
         rm -rf "$tmpdir" "$unpack_tmp"
@@ -3740,7 +3740,7 @@ function fetch_and_deploy_gh_release() {
     top_dirs=$(find "$unpack_tmp" -mindepth 1 -maxdepth 1 -type d | wc -l)
     local top_entries inner_dir
     top_entries=$(find "$unpack_tmp" -mindepth 1 -maxdepth 1)
-    if [[ "$(echo "$top_entries" | wc -l)" -eq 1 && -d "$top_entries" ]]; then
+    if [[ "$(echo "$top_entries" | wc -l)" -eq 1 && -d $top_entries ]]; then
       # Strip leading folder
       inner_dir="$top_entries"
       shopt -s dotglob nullglob
@@ -3774,10 +3774,10 @@ function fetch_and_deploy_gh_release() {
     fi
 
     ### Singlefile Mode ###
-  elif [[ "$mode" == "singlefile" ]]; then
+  elif [[ $mode == "singlefile" ]]; then
     local pattern="${6%\"}"
     pattern="${pattern#\"}"
-    [[ -z "$pattern" ]] && {
+    [[ -z $pattern ]] && {
       msg_error "Mode 'singlefile' requires 6th parameter (asset filename pattern)"
       rm -rf "$tmpdir"
       return 65
@@ -3795,12 +3795,12 @@ function fetch_and_deploy_gh_release() {
     done
 
     # Fallback: scan older releases for a matching asset
-    if [[ -z "$asset_url" ]]; then
+    if [[ -z $asset_url ]]; then
       local fallback_json
       if fallback_json=$(_gh_scan_older_releases "$repo" "singlefile" "$pattern" "$tag_name"); then
         json="$fallback_json"
         tag_name=$(echo "$json" | jq -r '.tag_name // .name // empty')
-        [[ "$tag_name" =~ ^v ]] && version="${tag_name:1}" || version="$tag_name"
+        [[ $tag_name =~ ^v ]] && version="${tag_name:1}" || version="$tag_name"
         msg_info "Fetching GitHub release: $app ($version)"
         for u in $(echo "$json" | jq -r '.assets[].browser_download_url'); do
           filename_candidate="${u##*/}"
@@ -3812,7 +3812,7 @@ function fetch_and_deploy_gh_release() {
         done
       fi
     fi
-    [[ -z "$asset_url" ]] && {
+    [[ -z $asset_url ]] && {
       msg_error "No asset matching '$pattern' found"
       rm -rf "$tmpdir"
       return 252
@@ -3823,7 +3823,7 @@ function fetch_and_deploy_gh_release() {
 
     local use_filename="${USE_ORIGINAL_FILENAME:-false}"
     local target_file="$app"
-    [[ "$use_filename" == "true" ]] && target_file="$filename"
+    [[ $use_filename == "true" ]] && target_file="$filename"
 
     curl_download "$target/$target_file" "$asset_url" || {
       msg_error "Download failed: $asset_url"
@@ -3831,7 +3831,7 @@ function fetch_and_deploy_gh_release() {
       return 250
     }
 
-    if [[ "$target_file" != *.jar && -f "$target/$target_file" ]]; then
+    if [[ $target_file != *.jar && -f "$target/$target_file" ]]; then
       chmod +x "$target/$target_file"
     fi
 
@@ -3897,12 +3897,12 @@ function setup_composer() {
 
   # Get currently installed version
   local INSTALLED_VERSION=""
-  if [[ -x "$COMPOSER_BIN" ]]; then
+  if [[ -x $COMPOSER_BIN ]]; then
     INSTALLED_VERSION=$("$COMPOSER_BIN" --version 2>/dev/null | awk '{print $3}')
   fi
 
   # Scenario 1: Already installed - just self-update
-  if [[ -n "$INSTALLED_VERSION" ]]; then
+  if [[ -n $INSTALLED_VERSION ]]; then
     msg_info "Update Composer $INSTALLED_VERSION"
     $STD "$COMPOSER_BIN" self-update --no-interaction || {
       msg_warn "Composer self-update failed, continuing with current version"
@@ -3918,7 +3918,7 @@ function setup_composer() {
   msg_info "Setup Composer"
 
   for old in /usr/bin/composer /bin/composer /root/.composer/vendor/bin/composer; do
-    [[ -e "$old" && "$old" != "$COMPOSER_BIN" ]] && rm -f "$old"
+    [[ -e $old && $old != "$COMPOSER_BIN" ]] && rm -f "$old"
   done
 
   ensure_usr_local_bin_persist
@@ -3936,7 +3936,7 @@ function setup_composer() {
   }
   rm -f /tmp/composer-setup.php
 
-  if [[ ! -x "$COMPOSER_BIN" ]]; then
+  if [[ ! -x $COMPOSER_BIN ]]; then
     msg_error "Composer installation failed"
     return 127
   fi
@@ -3986,7 +3986,7 @@ function setup_ffmpeg() {
   msg_info "Setup FFmpeg ${VERSION} ($TYPE)"
 
   # Binary fallback mode
-  if [[ "$TYPE" == "binary" ]]; then
+  if [[ $TYPE == "binary" ]]; then
     if ! CURL_TIMEOUT=300 curl_with_retry "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz" "$TMP_DIR/ffmpeg.tar.xz"; then
       msg_error "Failed to download FFmpeg binary"
       rm -rf "$TMP_DIR"
@@ -4006,18 +4006,18 @@ function setup_ffmpeg() {
     rm -rf "$TMP_DIR"
     cache_installed_version "ffmpeg" "$FINAL_VERSION"
     ensure_usr_local_bin_persist
-    [[ -n "$INSTALLED_VERSION" ]] && msg_ok "Upgrade FFmpeg $INSTALLED_VERSION → $FINAL_VERSION" || msg_ok "Setup FFmpeg $FINAL_VERSION"
+    [[ -n $INSTALLED_VERSION ]] && msg_ok "Upgrade FFmpeg $INSTALLED_VERSION → $FINAL_VERSION" || msg_ok "Setup FFmpeg $FINAL_VERSION"
     return 0
   fi
 
   ensure_dependencies jq
 
   # Auto-detect latest stable version if none specified
-  if [[ "$VERSION" == "latest" || -z "$VERSION" ]]; then
+  if [[ $VERSION == "latest" || -z $VERSION ]]; then
     local ffmpeg_tags
     ffmpeg_tags=$(curl -fsSL --max-time 15 "https://api.github.com/repos/${GITHUB_REPO}/tags" 2>/dev/null || echo "")
 
-    if [[ -z "$ffmpeg_tags" ]]; then
+    if [[ -z $ffmpeg_tags ]]; then
       msg_warn "Could not fetch FFmpeg versions from GitHub, trying binary fallback"
       VERSION="" # Will trigger binary fallback below
     else
@@ -4027,7 +4027,7 @@ function setup_ffmpeg() {
     fi
   fi
 
-  if [[ -z "$VERSION" ]]; then
+  if [[ -z $VERSION ]]; then
     msg_info "Could not determine FFmpeg source version, using pre-built binary"
     VERSION="" # Will use binary fallback
   fi
@@ -4064,7 +4064,7 @@ function setup_ffmpeg() {
   ensure_dependencies "${DEPS[@]}"
 
   # Try to download source if VERSION is set
-  if [[ -n "$VERSION" ]]; then
+  if [[ -n $VERSION ]]; then
     if ! CURL_TIMEOUT=300 curl_with_retry "https://github.com/${GITHUB_REPO}/archive/refs/tags/${VERSION}.tar.gz" "$TMP_DIR/ffmpeg.tar.gz"; then
       msg_warn "Failed to download FFmpeg source ${VERSION}, falling back to pre-built binary"
       VERSION=""
@@ -4072,7 +4072,7 @@ function setup_ffmpeg() {
   fi
 
   # If no source download (either VERSION empty or download failed), use binary
-  if [[ -z "$VERSION" ]]; then
+  if [[ -z $VERSION ]]; then
     msg_info "Setup FFmpeg from pre-built binary"
     if ! CURL_TIMEOUT=300 curl_with_retry "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz" "$TMP_DIR/ffmpeg.tar.xz"; then
       msg_error "Failed to download FFmpeg pre-built binary"
@@ -4120,11 +4120,11 @@ function setup_ffmpeg() {
     --enable-libmp3lame
   )
 
-  if [[ "$TYPE" != "minimal" ]]; then
+  if [[ $TYPE != "minimal" ]]; then
     args+=(--enable-libfreetype --enable-libass --enable-libopus --enable-libvorbis)
   fi
 
-  if [[ "$TYPE" == "full" ]]; then
+  if [[ $TYPE == "full" ]]; then
     args+=(--enable-libx265 --enable-libdav1d --enable-zlib)
     args+=(--enable-vaapi --enable-libdrm)
   fi
@@ -4170,7 +4170,7 @@ function setup_ffmpeg() {
   rm -rf "$TMP_DIR"
   cache_installed_version "ffmpeg" "$FINAL_VERSION"
   ensure_usr_local_bin_persist
-  [[ -n "$INSTALLED_VERSION" ]] && msg_ok "Upgrade FFmpeg $INSTALLED_VERSION → $FINAL_VERSION" || msg_ok "Setup FFmpeg $FINAL_VERSION"
+  [[ -n $INSTALLED_VERSION ]] && msg_ok "Upgrade FFmpeg $INSTALLED_VERSION → $FINAL_VERSION" || msg_ok "Setup FFmpeg $FINAL_VERSION"
 }
 
 # ------------------------------------------------------------------------------
@@ -4197,10 +4197,10 @@ function setup_go() {
 
   # Resolve "latest" version
   local GO_VERSION="${GO_VERSION:-latest}"
-  if [[ "$GO_VERSION" == "latest" ]]; then
+  if [[ $GO_VERSION == "latest" ]]; then
     local go_version_tmp
     go_version_tmp=$(curl_with_retry "https://go.dev/VERSION?m=text" "-" 2>/dev/null | head -n1 | sed 's/^go//') || true
-    if [[ -z "$go_version_tmp" ]]; then
+    if [[ -z $go_version_tmp ]]; then
       msg_error "Could not determine latest Go version"
       return 250
     fi
@@ -4212,18 +4212,18 @@ function setup_go() {
 
   # Get currently installed version
   local CURRENT_VERSION=""
-  if [[ -x "$GO_BIN" ]]; then
+  if [[ -x $GO_BIN ]]; then
     CURRENT_VERSION=$("$GO_BIN" version 2>/dev/null | awk '{print $3}' | sed 's/go//')
   fi
 
   # Scenario 1: Already at target version
-  if [[ -n "$CURRENT_VERSION" && "$CURRENT_VERSION" == "$GO_VERSION" ]]; then
+  if [[ -n $CURRENT_VERSION && $CURRENT_VERSION == "$GO_VERSION" ]]; then
     cache_installed_version "go" "$GO_VERSION"
     return 0
   fi
 
   # Scenario 2: Different version or not installed
-  if [[ -n "$CURRENT_VERSION" && "$CURRENT_VERSION" != "$GO_VERSION" ]]; then
+  if [[ -n $CURRENT_VERSION && $CURRENT_VERSION != "$GO_VERSION" ]]; then
     msg_info "Upgrade Go from $CURRENT_VERSION to $GO_VERSION"
     remove_old_tool_version "go"
   else
@@ -4282,12 +4282,12 @@ function setup_gs() {
     return 250
   }
   LATEST_VERSION="${LATEST_VERSION#gs}"
-  local LATEST_VERSION_DOTTED="$LATEST_VERSION"
+  local LATEST_VERSION_DOTTED=$(echo "$LATEST_VERSION" | sed 's/\([0-9]\{2\}\)\([0-9]\{2\}\)\([0-9]\{1\}\)/\1.\2.\3/')
 
-  if [[ -z "$LATEST_VERSION" || -z "$LATEST_VERSION_DOTTED" ]]; then
+  if [[ -z $LATEST_VERSION || -z $LATEST_VERSION_DOTTED ]]; then
     msg_warn "Could not determine latest Ghostscript version from GitHub - checking system"
     # Fallback: try to use system version or return error
-    if [[ "$CURRENT_VERSION" == "0" ]]; then
+    if [[ $CURRENT_VERSION == "0" ]]; then
       msg_error "Ghostscript not installed and cannot determine latest version"
       rm -rf "$TMP_DIR"
       return 250
@@ -4297,14 +4297,14 @@ function setup_gs() {
   fi
 
   # Scenario 1: Already at latest version
-  if [[ -n "$LATEST_VERSION_DOTTED" ]] && dpkg --compare-versions "$CURRENT_VERSION" ge "$LATEST_VERSION_DOTTED" 2>/dev/null; then
+  if [[ -n $LATEST_VERSION_DOTTED ]] && dpkg --compare-versions "$CURRENT_VERSION" ge "$LATEST_VERSION_DOTTED" 2>/dev/null; then
     cache_installed_version "ghostscript" "$LATEST_VERSION_DOTTED"
     rm -rf "$TMP_DIR"
     return 0
   fi
 
   # Scenario 2: New install or upgrade
-  if [[ "$CURRENT_VERSION" != "0" && "$CURRENT_VERSION" != "$LATEST_VERSION_DOTTED" ]]; then
+  if [[ $CURRENT_VERSION != "0" && $CURRENT_VERSION != "$LATEST_VERSION_DOTTED" ]]; then
     msg_info "Upgrade Ghostscript from $CURRENT_VERSION to $LATEST_VERSION_DOTTED"
   else
     msg_info "Setup Ghostscript $LATEST_VERSION_DOTTED"
@@ -4387,7 +4387,7 @@ function setup_hwaccel() {
 
   # Check if user explicitly disabled GPU in advanced settings
   # ENABLE_GPU is exported from build.func
-  if [[ "${ENABLE_GPU:-no}" == "no" ]]; then
+  if [[ ${ENABLE_GPU:-no} == "no" ]]; then
     return 0
   fi
 
@@ -4421,7 +4421,7 @@ function setup_hwaccel() {
 
   # Get all GPU entries from lspci
   while IFS= read -r line; do
-    [[ -z "$line" ]] && continue
+    [[ -z $line ]] && continue
     local pci_addr gpu_name gpu_type=""
 
     pci_addr=$(echo "$line" | awk '{print $1}')
@@ -4450,7 +4450,7 @@ function setup_hwaccel() {
       gpu_type="NVIDIA"
     fi
 
-    if [[ -n "$gpu_type" ]]; then
+    if [[ -n $gpu_type ]]; then
       GPU_LIST+=("$pci_addr")
       GPU_TYPES+=("$gpu_type")
       GPU_NAMES+=("$gpu_name")
@@ -4463,7 +4463,7 @@ function setup_hwaccel() {
   cpu_vendor=$(lscpu 2>/dev/null | grep -i 'Vendor ID' | awk '{print $3}' 2>/dev/null || echo "")
 
   if [[ $gpu_count -eq 0 ]]; then
-    if [[ "$cpu_vendor" == "AuthenticAMD" ]]; then
+    if [[ $cpu_vendor == "AuthenticAMD" ]]; then
       GPU_LIST+=("integrated")
       GPU_TYPES+=("AMD_APU")
       GPU_NAMES+=("AMD APU (Integrated Graphics)")
@@ -4517,17 +4517,17 @@ function setup_hwaccel() {
     fi
 
     # Parse selection
-    if [[ "$selection" == "A" || -z "$selection" ]]; then
+    if [[ $selection == "A" || -z $selection ]]; then
       # Select all
       for i in "${!GPU_LIST[@]}"; do
         SELECTED_INDICES+=("$i")
       done
-    elif [[ "$selection" =~ ^[0-9,]+$ ]]; then
+    elif [[ $selection =~ ^[0-9,]+$ ]]; then
       # Parse comma-separated numbers
       IFS=',' read -ra nums <<<"$selection"
       for num in "${nums[@]}"; do
         num=$(echo "$num" | tr -d ' ')
-        if [[ "$num" =~ ^[0-9]+$ ]] && ((num >= 1 && num <= gpu_count)); then
+        if [[ $num =~ ^[0-9]+$ ]] && ((num >= 1 && num <= gpu_count)); then
           SELECTED_INDICES+=("$((num - 1))")
         fi
       done
@@ -4543,14 +4543,14 @@ function setup_hwaccel() {
   # Ask whether to install NVIDIA drivers in the container
   local nvidia_selected="no"
   for idx in "${SELECTED_INDICES[@]}"; do
-    if [[ "${GPU_TYPES[$idx]}" == "NVIDIA" ]]; then
+    if [[ ${GPU_TYPES[$idx]} == "NVIDIA" ]]; then
       nvidia_selected="yes"
       break
     fi
   done
 
-  if [[ "$nvidia_selected" == "yes" ]]; then
-    if [[ -n "${INSTALL_NVIDIA_DRIVERS:-}" ]]; then
+  if [[ $nvidia_selected == "yes" ]]; then
+    if [[ -n ${INSTALL_NVIDIA_DRIVERS:-} ]]; then
       install_nvidia_drivers="${INSTALL_NVIDIA_DRIVERS}"
     else
       echo ""
@@ -4571,7 +4571,7 @@ function setup_hwaccel() {
   os_id=$(grep -oP '(?<=^ID=).+' /etc/os-release 2>/dev/null | tr -d '"' || echo "debian")
   os_codename=$(grep -oP '(?<=^VERSION_CODENAME=).+' /etc/os-release 2>/dev/null | tr -d '"' || echo "unknown")
   os_version=$(grep -oP '(?<=^VERSION_ID=).+' /etc/os-release 2>/dev/null | tr -d '"' || echo "")
-  [[ -z "$os_id" ]] && os_id="debian"
+  [[ -z $os_id ]] && os_id="debian"
 
   local in_ct="${CTTYPE:-0}"
 
@@ -4624,7 +4624,7 @@ function setup_hwaccel() {
     # NVIDIA GPUs
     # ─────────────────────────────────────────────────────────────────────────
     NVIDIA)
-      if [[ "$install_nvidia_drivers" == "yes" ]]; then
+      if [[ $install_nvidia_drivers == "yes" ]]; then
         _setup_nvidia_gpu "$os_id" "$os_codename" "$os_version"
       else
         msg_warn "Skipping NVIDIA driver installation (user opted to install manually)"
@@ -4655,7 +4655,7 @@ _resolve_igc_tag() {
     local _body _parsed
     _body=$(jq -r '.body // empty' /tmp/gh_rel.json 2>/dev/null) || return 0
     _parsed=$(grep -oP 'intel-graphics-compiler/releases/tag/\K[^\s\)]+' <<<"$_body" | head -1)
-    [[ -n "$_parsed" ]] && _out_ref="$_parsed"
+    [[ -n $_parsed ]] && _out_ref="$_parsed"
   fi
 }
 
@@ -4667,7 +4667,7 @@ _setup_intel_arc() {
 
   msg_info "Installing Intel Arc GPU drivers"
 
-  if [[ "$os_id" == "ubuntu" ]]; then
+  if [[ $os_id == "ubuntu" ]]; then
     # Ubuntu 22.04+ has Arc support in HWE kernel
     $STD apt -y install \
       intel-media-va-driver-non-free \
@@ -4676,13 +4676,13 @@ _setup_intel_arc() {
       vainfo \
       intel-gpu-tools 2>/dev/null || msg_warn "Some Intel Arc packages failed"
 
-  elif [[ "$os_id" == "debian" ]]; then
+  elif [[ $os_id == "debian" ]]; then
     # Add non-free repos
     _add_debian_nonfree "$os_codename"
 
     # For Trixie/Sid: Fetch latest drivers from GitHub (Debian repo packages may be too old or missing)
     # For Bookworm: Use repo packages (GitHub latest requires libstdc++6 >= 13.1, unavailable on Bookworm)
-    if [[ "$os_codename" == "trixie" || "$os_codename" == "sid" ]]; then
+    if [[ $os_codename == "trixie" || $os_codename == "sid" ]]; then
       msg_info "Fetching Intel compute-runtime from GitHub for Arc support"
 
       # Fetch a compute-runtime package first so /tmp/gh_rel.json is populated,
@@ -4711,7 +4711,7 @@ _setup_intel_arc() {
       intel-gpu-tools 2>/dev/null || msg_warn "Some Intel Arc packages failed"
 
     # Bookworm has compatible versions of these packages in repos
-    [[ "$os_codename" == "bookworm" ]] && $STD apt -y install intel-opencl-icd libigdgmm12 2>/dev/null || true
+    [[ $os_codename == "bookworm" ]] && $STD apt -y install intel-opencl-icd libigdgmm12 2>/dev/null || true
   fi
 
   msg_ok "Intel Arc GPU configured"
@@ -4725,7 +4725,7 @@ _setup_intel_modern() {
 
   msg_info "Installing Intel Gen 9+ GPU drivers"
 
-  if [[ "$os_id" == "ubuntu" ]]; then
+  if [[ $os_id == "ubuntu" ]]; then
     $STD apt -y install \
       va-driver-all \
       intel-media-va-driver \
@@ -4738,11 +4738,11 @@ _setup_intel_modern() {
     $STD apt -y install intel-opencl-icd 2>/dev/null || true
     $STD apt -y install libmfx-gen1.2 2>/dev/null || true
 
-  elif [[ "$os_id" == "debian" ]]; then
+  elif [[ $os_id == "debian" ]]; then
     _add_debian_nonfree "$os_codename"
 
     # For Trixie/Sid: Fetch from GitHub (Debian packages too old or missing)
-    if [[ "$os_codename" == "trixie" || "$os_codename" == "sid" ]]; then
+    if [[ $os_codename == "trixie" || $os_codename == "sid" ]]; then
       msg_info "Fetching Intel compute-runtime from GitHub"
 
       # Fetch a compute-runtime package first so /tmp/gh_rel.json is populated,
@@ -4769,7 +4769,7 @@ _setup_intel_modern() {
       intel-gpu-tools 2>/dev/null || msg_warn "Some Intel packages failed"
 
     # Bookworm has intel-opencl-icd in repos (compatible version)
-    [[ "$os_codename" == "bookworm" ]] && $STD apt -y install intel-opencl-icd libigdgmm12 2>/dev/null || true
+    [[ $os_codename == "bookworm" ]] && $STD apt -y install intel-opencl-icd libigdgmm12 2>/dev/null || true
   fi
 
   msg_ok "Intel Gen 9+ GPU configured"
@@ -4824,7 +4824,7 @@ _setup_amd_gpu() {
     clinfo 2>/dev/null || msg_warn "Some AMD packages failed"
 
   # Firmware for AMD GPUs
-  if [[ "$os_id" == "debian" ]]; then
+  if [[ $os_id == "debian" ]]; then
     _add_debian_nonfree_firmware "$os_codename"
     $STD apt -y install firmware-amd-graphics 2>/dev/null || msg_warn "AMD firmware not available"
   fi
@@ -4851,7 +4851,7 @@ _setup_amd_apu() {
     ocl-icd-libopencl1 \
     vainfo 2>/dev/null || msg_warn "Some AMD APU packages failed"
 
-  if [[ "$os_id" == "debian" ]]; then
+  if [[ $os_id == "debian" ]]; then
     _add_debian_nonfree_firmware "$os_codename"
     $STD apt -y install firmware-amd-graphics 2>/dev/null || true
   fi
@@ -4984,7 +4984,7 @@ _setup_nvidia_gpu() {
     nvidia_host_version=$(grep -oP '\d{3,}\.\d+(\.\d+)?' /proc/driver/nvidia/version 2>/dev/null | head -1 || true)
   fi
 
-  if [[ -z "$nvidia_host_version" ]]; then
+  if [[ -z $nvidia_host_version ]]; then
     msg_warn "NVIDIA host driver version not found in /proc/driver/nvidia/version"
     msg_warn "Ensure NVIDIA drivers are installed on host and GPU passthrough is enabled"
     $STD apt-get -y install va-driver-all vainfo 2>/dev/null || true
@@ -4993,7 +4993,7 @@ _setup_nvidia_gpu() {
 
   msg_info "Host NVIDIA driver version: ${nvidia_host_version}"
 
-  if [[ "$os_id" == "debian" ]]; then
+  if [[ $os_id == "debian" ]]; then
     # Enable non-free components
     if [[ -f /etc/apt/sources.list.d/debian.sources ]]; then
       if ! grep -q "non-free" /etc/apt/sources.list.d/debian.sources 2>/dev/null; then
@@ -5004,7 +5004,7 @@ _setup_nvidia_gpu() {
 
     # For Debian 13 Trixie/Sid: Use Debian's own nvidia packages first (better compatibility)
     # NVIDIA's CUDA repo targets Debian 12 and may not have amd64 packages for Trixie
-    if [[ "$os_codename" == "trixie" || "$os_codename" == "sid" ]]; then
+    if [[ $os_codename == "trixie" || $os_codename == "sid" ]]; then
       msg_info "Debian ${os_codename}: Using Debian's NVIDIA packages"
 
       # Extract major version for flexible matching (580.126.09 -> 580)
@@ -5014,7 +5014,7 @@ _setup_nvidia_gpu() {
       local available_version=""
       available_version=$(apt-cache madison libcuda1 2>/dev/null | awk '{print $3}' | grep -E "^${nvidia_major_version}\." | head -1 || true)
 
-      if [[ -n "$available_version" ]]; then
+      if [[ -n $available_version ]]; then
         msg_info "Found available NVIDIA version: ${available_version}"
         local nvidia_pkgs="libcuda1=${available_version} libnvcuvid1=${available_version} libnvidia-encode1=${available_version} libnvidia-ml1=${available_version}"
         if $STD apt-get -y -o Dpkg::Options::="--force-confold" install --no-install-recommends $nvidia_pkgs 2>/dev/null; then
@@ -5027,7 +5027,7 @@ _setup_nvidia_gpu() {
         # No matching major version - try latest available or unversioned
         msg_warn "No NVIDIA packages for version ${nvidia_major_version}.x found in repos"
         available_version=$(apt-cache madison libcuda1 2>/dev/null | awk '{print $3}' | head -1 || true)
-        if [[ -n "$available_version" ]]; then
+        if [[ -n $available_version ]]; then
           msg_info "Trying latest available: ${available_version} (may cause version mismatch)"
           $STD apt-get -y -o Dpkg::Options::="--force-confold" install --no-install-recommends \
             libcuda1="${available_version}" libnvcuvid1="${available_version}" \
@@ -5078,7 +5078,7 @@ NVIDIA_PIN
       local available_version=""
       available_version=$(apt-cache madison libcuda1 2>/dev/null | awk '{print $3}' | grep -E "^${nvidia_major_version}\." | head -1 || true)
 
-      if [[ -n "$available_version" ]]; then
+      if [[ -n $available_version ]]; then
         msg_info "Installing NVIDIA libraries (version ${available_version})"
         local nvidia_pkgs="libcuda1=${available_version} libnvcuvid1=${available_version} libnvidia-encode1=${available_version} libnvidia-ml1=${available_version}"
         if $STD apt-get -y -o Dpkg::Options::="--force-confold" install --no-install-recommends $nvidia_pkgs 2>/dev/null; then
@@ -5092,7 +5092,7 @@ NVIDIA_PIN
         msg_warn "No NVIDIA packages for version ${nvidia_major_version}.x in CUDA repo (host: ${nvidia_host_version})"
         # Try latest available version
         available_version=$(apt-cache madison libcuda1 2>/dev/null | awk '{print $3}' | head -1 || true)
-        if [[ -n "$available_version" ]]; then
+        if [[ -n $available_version ]]; then
           msg_info "Trying latest available: ${available_version} (version mismatch warning)"
           if $STD apt-get -y -o Dpkg::Options::="--force-confold" install --no-install-recommends \
             libcuda1="${available_version}" libnvcuvid1="${available_version}" \
@@ -5110,7 +5110,7 @@ NVIDIA_PIN
       $STD apt-get -y -o Dpkg::Options::="--force-confold" install --no-install-recommends nvidia-smi 2>/dev/null || true
     fi
 
-  elif [[ "$os_id" == "ubuntu" ]]; then
+  elif [[ $os_id == "ubuntu" ]]; then
     # Ubuntu versioning
     local ubuntu_cuda_repo=""
     case "$os_version" in
@@ -5141,7 +5141,7 @@ NVIDIA_PIN
     local available_version=""
     available_version=$(apt-cache madison libcuda1 2>/dev/null | awk '{print $3}' | grep -E "^${nvidia_major_version}\." | head -1 || true)
 
-    if [[ -n "$available_version" ]]; then
+    if [[ -n $available_version ]]; then
       msg_info "Installing NVIDIA libraries (version ${available_version})"
       local nvidia_pkgs="libcuda1=${available_version} libnvcuvid1=${available_version} libnvidia-encode1=${available_version} libnvidia-ml1=${available_version}"
       if $STD apt-get -y -o Dpkg::Options::="--force-confold" install --no-install-recommends $nvidia_pkgs 2>/dev/null; then
@@ -5300,7 +5300,7 @@ _setup_gpu_permissions() {
   local service_user="${2:-}"
 
   # /dev/dri permissions (Intel/AMD)
-  if [[ "$in_ct" == "0" && -d /dev/dri ]]; then
+  if [[ $in_ct == "0" && -d /dev/dri ]]; then
     if ls /dev/dri/card* /dev/dri/renderD* &>/dev/null; then
       chgrp video /dev/dri 2>/dev/null || true
       chmod 755 /dev/dri 2>/dev/null || true
@@ -5312,10 +5312,10 @@ _setup_gpu_permissions() {
       local host_video_gid host_render_gid
       host_video_gid=$(getent group video | cut -d: -f3)
       host_render_gid=$(getent group render | cut -d: -f3)
-      if [[ -n "$host_video_gid" ]]; then
+      if [[ -n $host_video_gid ]]; then
         sed -i "s/^video:x:[0-9]*:/video:x:$host_video_gid:/" /etc/group 2>/dev/null || true
       fi
-      if [[ -n "$host_render_gid" ]]; then
+      if [[ -n $host_render_gid ]]; then
         sed -i "s/^render:x:[0-9]*:/render:x:$host_render_gid:/" /etc/group 2>/dev/null || true
       fi
 
@@ -5334,7 +5334,7 @@ _setup_gpu_permissions() {
   if ls /dev/nvidia* &>/dev/null 2>&1; then
     msg_info "Configuring NVIDIA device permissions"
     for nvidia_dev in /dev/nvidia*; do
-      [[ -e "$nvidia_dev" ]] && {
+      [[ -e $nvidia_dev ]] && {
         chgrp video "$nvidia_dev" 2>/dev/null || true
         chmod 660 "$nvidia_dev" 2>/dev/null || true
       }
@@ -5342,7 +5342,7 @@ _setup_gpu_permissions() {
     if [[ -d /dev/nvidia-caps ]]; then
       chmod 755 /dev/nvidia-caps 2>/dev/null || true
       for caps_dev in /dev/nvidia-caps/*; do
-        [[ -e "$caps_dev" ]] && {
+        [[ -e $caps_dev ]] && {
           chgrp video "$caps_dev" 2>/dev/null || true
           chmod 660 "$caps_dev" 2>/dev/null || true
         }
@@ -5367,7 +5367,7 @@ _setup_gpu_permissions() {
   fi
 
   # Add service user to render and video groups for GPU hardware acceleration
-  if [[ -n "$service_user" ]]; then
+  if [[ -n $service_user ]]; then
     usermod -aG render "$service_user" 2>/dev/null || true
     usermod -aG video "$service_user" 2>/dev/null || true
   fi
@@ -5451,7 +5451,7 @@ function setup_imagemagick() {
   }
   $STD ldconfig /usr/local/lib
 
-  if [[ ! -x "$BINARY_PATH" ]]; then
+  if [[ ! -x $BINARY_PATH ]]; then
     msg_error "ImageMagick installation failed"
     rm -rf "$TMP_DIR"
     return 150
@@ -5463,7 +5463,7 @@ function setup_imagemagick() {
   cache_installed_version "imagemagick" "$FINAL_VERSION"
   ensure_usr_local_bin_persist
 
-  if [[ -n "$INSTALLED_VERSION" ]]; then
+  if [[ -n $INSTALLED_VERSION ]]; then
     msg_ok "Upgrade ImageMagick $INSTALLED_VERSION → $FINAL_VERSION"
   else
     msg_ok "Setup ImageMagick $FINAL_VERSION"
@@ -5511,7 +5511,7 @@ function setup_java() {
   INSTALLED_VERSION=$(dpkg-query -W -f '${Package}\n' 2>/dev/null | grep -oP '^temurin-\K[0-9]+(?=-jdk$)' | head -n1 || echo "")
 
   # Scenario 1: Already at correct version
-  if [[ "$INSTALLED_VERSION" == "$JAVA_VERSION" ]]; then
+  if [[ $INSTALLED_VERSION == "$JAVA_VERSION" ]]; then
     msg_info "Update Temurin JDK $JAVA_VERSION"
     ensure_apt_working || return 100
     upgrade_packages_with_retry "$DESIRED_PACKAGE" || {
@@ -5524,7 +5524,7 @@ function setup_java() {
   fi
 
   # Scenario 2: Different version - remove old and install new
-  if [[ -n "$INSTALLED_VERSION" ]]; then
+  if [[ -n $INSTALLED_VERSION ]]; then
     msg_info "Upgrade Temurin JDK from $INSTALLED_VERSION to $JAVA_VERSION"
     $STD apt purge -y "temurin-${INSTALLED_VERSION}-jdk" || true
   else
@@ -5558,7 +5558,7 @@ function setup_local_ip_helper() {
   local DISPATCHER_SCRIPT="/etc/networkd-dispatcher/routable.d/10-update-local-ip.sh"
 
   # Check if already set up
-  if [[ -f "$SCRIPT_PATH" && -f "$DISPATCHER_SCRIPT" ]]; then
+  if [[ -f $SCRIPT_PATH && -f $DISPATCHER_SCRIPT ]]; then
     msg_info "Update Local IP Helper"
     cache_installed_version "local-ip-helper" "1.0"
     msg_ok "Update Local IP Helper"
@@ -5682,7 +5682,7 @@ setup_mariadb() {
   # Determine installation method:
   # - "latest" or empty: Use distribution packages (avoids mirror issues)
   # - Specific version: Use MariaDB official repository
-  if [[ "$MARIADB_VERSION" == "latest" || -z "$MARIADB_VERSION" ]]; then
+  if [[ $MARIADB_VERSION == "latest" || -z $MARIADB_VERSION ]]; then
     USE_DISTRO_PACKAGES=true
     msg_info "Setup MariaDB (distribution packages)"
   else
@@ -5701,10 +5701,10 @@ mariadb-server mariadb-server/root_password_again password
 EOF
 
   # If specific version requested, also configure version-specific debconf
-  if [[ "$USE_DISTRO_PACKAGES" == "false" ]]; then
+  if [[ $USE_DISTRO_PACKAGES == "false" ]]; then
     local MARIADB_MAJOR_MINOR
     MARIADB_MAJOR_MINOR=$(echo "$MARIADB_VERSION" | awk -F. '{print $1"."$2}')
-    if [[ -n "$MARIADB_MAJOR_MINOR" ]]; then
+    if [[ -n $MARIADB_MAJOR_MINOR ]]; then
       debconf-set-selections <<EOF
 mariadb-server-$MARIADB_MAJOR_MINOR mariadb-server/feedback boolean false
 mariadb-server-$MARIADB_MAJOR_MINOR mariadb-server/root_password password
@@ -5716,7 +5716,7 @@ EOF
   # ============================================================================
   # DISTRIBUTION PACKAGES PATH (default, most reliable)
   # ============================================================================
-  if [[ "$USE_DISTRO_PACKAGES" == "true" ]]; then
+  if [[ $USE_DISTRO_PACKAGES == "true" ]]; then
     # Check if MariaDB was previously installed from official repo
     local HAD_MARIADB_REPO=false
     if [[ -f /etc/apt/sources.list.d/mariadb.sources ]] || [[ -f /etc/apt/sources.list.d/mariadb.list ]]; then
@@ -5728,7 +5728,7 @@ EOF
     cleanup_old_repo_files "mariadb"
 
     # If we had a repo, we need to refresh APT cache
-    if [[ "$HAD_MARIADB_REPO" == "true" ]]; then
+    if [[ $HAD_MARIADB_REPO == "true" ]]; then
       $STD apt update || msg_warn "APT update had issues, continuing..."
     fi
 
@@ -5737,18 +5737,18 @@ EOF
 
     # Check if installed version is from official repo and higher than distro version
     # In this case, we keep the existing installation to avoid data issues
-    if [[ -n "$CURRENT_VERSION" ]]; then
+    if [[ -n $CURRENT_VERSION ]]; then
       # Get available distro version
       local DISTRO_VERSION=""
       DISTRO_VERSION=$(apt-cache policy mariadb-server 2>/dev/null | grep -E "Candidate:" | awk '{print $2}' | grep -oP '^\d+:\K\d+\.\d+\.\d+' || echo "")
 
-      if [[ -n "$DISTRO_VERSION" ]]; then
+      if [[ -n $DISTRO_VERSION ]]; then
         # Compare versions - if current is higher, keep it
         local CURRENT_MAJOR DISTRO_MAJOR
         CURRENT_MAJOR=$(echo "$CURRENT_VERSION" | awk -F. '{print $1}')
         DISTRO_MAJOR=$(echo "$DISTRO_VERSION" | awk -F. '{print $1}')
 
-        if [[ "$CURRENT_MAJOR" -gt "$DISTRO_MAJOR" ]]; then
+        if [[ $CURRENT_MAJOR -gt $DISTRO_MAJOR ]]; then
           msg_warn "MariaDB $CURRENT_VERSION is already installed (higher than distro $DISTRO_VERSION)"
           msg_warn "Keeping existing installation to preserve data integrity"
           msg_warn "To use distribution packages, manually remove MariaDB first"
@@ -5788,7 +5788,7 @@ EOF
       grep -oP 'repo/\K[0-9]+\.[0-9]+(\.[0-9]+)?' /etc/apt/sources.list.d/mariadb.list 2>/dev/null || echo "")
 
     # Check if old repo points to a different version
-    if [[ -n "$OLD_REPO_VERSION" ]] && [[ "${OLD_REPO_VERSION%.*}" != "${MARIADB_VERSION%.*}" ]]; then
+    if [[ -n $OLD_REPO_VERSION ]] && [[ ${OLD_REPO_VERSION%.*} != "${MARIADB_VERSION%.*}" ]]; then
       msg_info "Cleaning up old MariaDB repository (was: $OLD_REPO_VERSION, requested: $MARIADB_VERSION)"
       cleanup_old_repo_files "mariadb"
       $STD apt update || msg_warn "APT update had issues, continuing..."
@@ -5796,7 +5796,7 @@ EOF
   fi
 
   # Scenario 1: Already installed at target version - just update packages
-  if [[ -n "$CURRENT_VERSION" && "$CURRENT_VERSION" == "$MARIADB_VERSION" ]]; then
+  if [[ -n $CURRENT_VERSION && $CURRENT_VERSION == "$MARIADB_VERSION" ]]; then
     msg_info "Update MariaDB $MARIADB_VERSION"
 
     # Ensure APT is working
@@ -5806,7 +5806,7 @@ EOF
     if [[ -f /etc/apt/sources.list.d/mariadb.sources ]]; then
       local REPO_VERSION=""
       REPO_VERSION=$(grep -oP 'repo/\K[0-9]+\.[0-9]+' /etc/apt/sources.list.d/mariadb.sources 2>/dev/null || echo "")
-      if [[ -n "$REPO_VERSION" && "$REPO_VERSION" != "${MARIADB_VERSION%.*}" ]]; then
+      if [[ -n $REPO_VERSION && $REPO_VERSION != "${MARIADB_VERSION%.*}" ]]; then
         msg_warn "Repository version mismatch, updating..."
         manage_tool_repository "mariadb" "$MARIADB_VERSION" "http://mirror.mariadb.org/repo/$MARIADB_VERSION" \
           "https://mariadb.org/mariadb_release_signing_key.asc" || {
@@ -5828,7 +5828,7 @@ EOF
   fi
 
   # Scenario 2b: Different version installed - clean upgrade
-  if [[ -n "$CURRENT_VERSION" && "$CURRENT_VERSION" != "$MARIADB_VERSION" ]]; then
+  if [[ -n $CURRENT_VERSION && $CURRENT_VERSION != "$MARIADB_VERSION" ]]; then
     msg_info "Upgrade MariaDB from $CURRENT_VERSION to $MARIADB_VERSION"
     remove_old_tool_version "mariadb"
   fi
@@ -5946,12 +5946,12 @@ _setup_mariadb_runtime_dir() {
 # ------------------------------------------------------------------------------
 
 function setup_mariadb_db() {
-  if [[ -z "${MARIADB_DB_NAME:-}" || -z "${MARIADB_DB_USER:-}" ]]; then
+  if [[ -z ${MARIADB_DB_NAME:-} || -z ${MARIADB_DB_USER:-} ]]; then
     msg_error "MARIADB_DB_NAME and MARIADB_DB_USER must be set before calling setup_mariadb_db"
     return 65
   fi
 
-  if [[ -z "${MARIADB_DB_PASS:-}" ]]; then
+  if [[ -z ${MARIADB_DB_PASS:-} ]]; then
     MARIADB_DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
   fi
 
@@ -5962,7 +5962,7 @@ function setup_mariadb_db() {
   $STD mariadb -u root -e "GRANT ALL ON \`$MARIADB_DB_NAME\`.* TO '$MARIADB_DB_USER'@'localhost';"
 
   # Optional extra grants
-  if [[ -n "${MARIADB_DB_EXTRA_GRANTS:-}" ]]; then
+  if [[ -n ${MARIADB_DB_EXTRA_GRANTS:-} ]]; then
     IFS=',' read -ra G_LIST <<<"${MARIADB_DB_EXTRA_GRANTS:-}"
     for g in "${G_LIST[@]}"; do
       g=$(echo "$g" | xargs)
@@ -5971,7 +5971,7 @@ function setup_mariadb_db() {
   fi
 
   # Optional sql_mode override
-  if [[ -n "${MARIADB_DB_SQL_MODE:-}" ]]; then
+  if [[ -n ${MARIADB_DB_SQL_MODE:-} ]]; then
     $STD mariadb -u root -e "SET GLOBAL sql_mode='${MARIADB_DB_SQL_MODE:-}';"
   fi
 
@@ -6042,7 +6042,7 @@ function setup_mongodb() {
   INSTALLED_VERSION=$(is_tool_installed "mongodb" 2>/dev/null) || true
 
   # Scenario 1: Already at target version - just update packages
-  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$MONGO_VERSION" ]]; then
+  if [[ -n $INSTALLED_VERSION && $INSTALLED_VERSION == "$MONGO_VERSION" ]]; then
     msg_info "Update MongoDB $MONGO_VERSION"
 
     ensure_apt_working || return 100
@@ -6058,7 +6058,7 @@ function setup_mongodb() {
   fi
 
   # Scenario 2: Different version installed - clean upgrade
-  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" != "$MONGO_VERSION" ]]; then
+  if [[ -n $INSTALLED_VERSION && $INSTALLED_VERSION != "$MONGO_VERSION" ]]; then
     msg_info "Upgrade MongoDB from $INSTALLED_VERSION to $MONGO_VERSION"
     remove_old_tool_version "mongodb"
   else
@@ -6076,7 +6076,7 @@ function setup_mongodb() {
   # Setup repository
   # MongoDB 8.x versions beyond 8.0 reuse the server-8.0.asc PGP key
   local MONGO_KEY_VERSION="${MONGO_VERSION}"
-  [[ "${MONGO_VERSION}" == 8.[1-9]* ]] && MONGO_KEY_VERSION="8.0"
+  [[ ${MONGO_VERSION} == 8.[1-9]* ]] && MONGO_KEY_VERSION="8.0"
   manage_tool_repository "mongodb" "$MONGO_VERSION" "$MONGO_BASE_URL" \
     "https://www.mongodb.org/static/pgp/server-${MONGO_KEY_VERSION}.asc" || {
     msg_error "Failed to setup MongoDB repository"
@@ -6157,11 +6157,11 @@ function setup_mysql() {
   CURRENT_VERSION=$(is_tool_installed "mysql" 2>/dev/null) || true
 
   # Scenario 1: Use distro repository (default, most stable)
-  if [[ "$USE_MYSQL_REPO" != "true" && "$USE_MYSQL_REPO" != "TRUE" && "$USE_MYSQL_REPO" != "1" ]]; then
+  if [[ $USE_MYSQL_REPO != "true" && $USE_MYSQL_REPO != "TRUE" && $USE_MYSQL_REPO != "1" ]]; then
     msg_info "Setup MySQL (distro package)"
 
     # If already installed, just update
-    if [[ -n "$CURRENT_VERSION" ]]; then
+    if [[ -n $CURRENT_VERSION ]]; then
       msg_info "Update MySQL $CURRENT_VERSION"
       ensure_apt_working || return 100
       upgrade_packages_with_retry "default-mysql-server" "default-mysql-client" ||
@@ -6210,7 +6210,7 @@ function setup_mysql() {
     # Get installed version
     local INSTALLED_VERSION=""
     INSTALLED_VERSION=$(is_tool_installed "mysql" 2>/dev/null) || true
-    if [[ -z "$INSTALLED_VERSION" ]]; then
+    if [[ -z $INSTALLED_VERSION ]]; then
       INSTALLED_VERSION=$(is_tool_installed "mariadb" 2>/dev/null) || true
     fi
     cache_installed_version "mysql" "${INSTALLED_VERSION:-distro}"
@@ -6220,7 +6220,7 @@ function setup_mysql() {
 
   # Scenario 2: Use official MySQL repository (USE_MYSQL_REPO=true)
   # Scenario 2a: Already at target version - just update packages
-  if [[ -n "$CURRENT_VERSION" && "$CURRENT_VERSION" == "$MYSQL_VERSION" ]]; then
+  if [[ -n $CURRENT_VERSION && $CURRENT_VERSION == "$MYSQL_VERSION" ]]; then
     msg_info "Update MySQL $MYSQL_VERSION"
 
     ensure_apt_working || return 100
@@ -6236,7 +6236,7 @@ function setup_mysql() {
   fi
 
   # Scenario 2: Different version installed - clean upgrade
-  if [[ -n "$CURRENT_VERSION" && "$CURRENT_VERSION" != "$MYSQL_VERSION" ]]; then
+  if [[ -n $CURRENT_VERSION && $CURRENT_VERSION != "$MYSQL_VERSION" ]]; then
     msg_info "Upgrade MySQL from $CURRENT_VERSION to $MYSQL_VERSION"
     remove_old_tool_version "mysql"
   else
@@ -6250,7 +6250,7 @@ function setup_mysql() {
   }
 
   # Debian 13+ Fix: MySQL 8.0 incompatible with libaio1t64, use 8.4 LTS
-  if [[ "$DISTRO_ID" == "debian" && "$DISTRO_CODENAME" =~ ^(trixie|forky|sid)$ ]]; then
+  if [[ $DISTRO_ID == "debian" && $DISTRO_CODENAME =~ ^(trixie|forky|sid)$ ]]; then
     msg_info "Debian ${DISTRO_CODENAME} detected → using MySQL 8.4 LTS (libaio1t64 compatible)"
 
     if ! download_gpg_key "https://repo.mysql.com/RPM-GPG-KEY-mysql-2023" "/etc/apt/keyrings/mysql.gpg" "dearmor"; then
@@ -6292,7 +6292,7 @@ EOF
 
   # Standard setup for other distributions
   local SUITE
-  if [[ "$DISTRO_ID" == "debian" ]]; then
+  if [[ $DISTRO_ID == "debian" ]]; then
     case "$DISTRO_CODENAME" in
     bookworm | bullseye) SUITE="$DISTRO_CODENAME" ;;
     *) SUITE="bookworm" ;;
@@ -6324,7 +6324,7 @@ EOF
     mysql_install_success=true
   fi
 
-  if [[ "$mysql_install_success" == false ]]; then
+  if [[ $mysql_install_success == false ]]; then
     msg_error "MySQL ${MYSQL_VERSION} package not available for suite ${SUITE}"
     return 100
   fi
@@ -6375,7 +6375,7 @@ function setup_nodejs() {
   fi
 
   # Scenario 1: Already installed at target version - upgrade to latest minor/patch + update packages/modules
-  if [[ -n "$CURRENT_NODE_VERSION" && "$CURRENT_NODE_VERSION" == "$NODE_VERSION" ]]; then
+  if [[ -n $CURRENT_NODE_VERSION && $CURRENT_NODE_VERSION == "$NODE_VERSION" ]]; then
     msg_info "Update Node.js $NODE_VERSION"
 
     ensure_apt_working || return 100
@@ -6390,7 +6390,7 @@ function setup_nodejs() {
     msg_ok "Update Node.js $NODE_VERSION"
   else
     # Scenario 2: Different version installed - clean upgrade
-    if [[ -n "$CURRENT_NODE_VERSION" && "$CURRENT_NODE_VERSION" != "$NODE_VERSION" ]]; then
+    if [[ -n $CURRENT_NODE_VERSION && $CURRENT_NODE_VERSION != "$NODE_VERSION" ]]; then
       msg_info "Upgrade Node.js from $CURRENT_NODE_VERSION to $NODE_VERSION"
       remove_old_tool_version "nodejs"
     else
@@ -6451,7 +6451,7 @@ function setup_nodejs() {
     # Pin npm to 11.11.0 to work around Node.js 22.22.2 regression (nodejs/node#62425)
     local NPM_VERSION
     NPM_VERSION=$(npm -v 2>/dev/null || echo "0")
-    if [[ "$NPM_VERSION" != "0" ]]; then
+    if [[ $NPM_VERSION != "0" ]]; then
       $STD npm install -g npm@11.11.0 2>/dev/null || {
         msg_warn "Failed to update npm to 11.11.0 (continuing with bundled npm $NPM_VERSION)"
       }
@@ -6468,23 +6468,23 @@ function setup_nodejs() {
   #   3) var_ram (LXC memory setting, MB)
   #   4) /proc/meminfo (runtime memory detection)
   # Auto value is clamped to 1024..12288 MB.
-  if [[ -z "${NODE_OPTIONS:-}" ]]; then
+  if [[ -z ${NODE_OPTIONS:-} ]]; then
     local node_heap_mb=""
 
-    if [[ -n "${NODE_MAX_OLD_SPACE_SIZE:-}" ]] && [[ "${NODE_MAX_OLD_SPACE_SIZE}" =~ ^[0-9]+$ ]]; then
+    if [[ -n ${NODE_MAX_OLD_SPACE_SIZE:-} ]] && [[ ${NODE_MAX_OLD_SPACE_SIZE} =~ ^[0-9]+$ ]]; then
       node_heap_mb="${NODE_MAX_OLD_SPACE_SIZE}"
-    elif [[ -n "${var_ram:-}" ]] && [[ "${var_ram}" =~ ^[0-9]+$ ]]; then
+    elif [[ -n ${var_ram:-} ]] && [[ ${var_ram} =~ ^[0-9]+$ ]]; then
       node_heap_mb=$((var_ram * 75 / 100))
     else
       local total_mem_kb=""
       total_mem_kb=$(awk '/^MemTotal:/ {print $2; exit}' /proc/meminfo 2>/dev/null || echo "")
-      if [[ "$total_mem_kb" =~ ^[0-9]+$ ]]; then
+      if [[ $total_mem_kb =~ ^[0-9]+$ ]]; then
         local total_mem_mb=$((total_mem_kb / 1024))
         node_heap_mb=$((total_mem_mb * 75 / 100))
       fi
     fi
 
-    if [[ -z "$node_heap_mb" ]] || ((node_heap_mb < 1024)); then
+    if [[ -z $node_heap_mb ]] || ((node_heap_mb < 1024)); then
       node_heap_mb=1024
     elif ((node_heap_mb > 12288)); then
       node_heap_mb=12288
@@ -6503,12 +6503,12 @@ function setup_nodejs() {
   }
 
   # Install global Node modules
-  if [[ -n "$NODE_MODULE" ]]; then
+  if [[ -n $NODE_MODULE ]]; then
     IFS=',' read -ra MODULES <<<"$NODE_MODULE"
 
     # Pin pnpm to v10 to avoid breaking changes from newer major versions
     for i in "${!MODULES[@]}"; do
-      if [[ "${MODULES[$i]}" =~ ^pnpm(@.*)?$ ]]; then
+      if [[ ${MODULES[$i]} =~ ^pnpm(@.*)?$ ]]; then
         MODULES[$i]="pnpm@^10"
       fi
     done
@@ -6516,11 +6516,11 @@ function setup_nodejs() {
     local failed_modules=0
     for mod in "${MODULES[@]}"; do
       local MODULE_NAME MODULE_REQ_VERSION MODULE_INSTALLED_VERSION
-      if [[ "$mod" == @*/*@* ]]; then
+      if [[ $mod == @*/*@* ]]; then
         # Scoped package with version, e.g. @vue/cli-service@latest
         MODULE_NAME="${mod%@*}"
         MODULE_REQ_VERSION="${mod##*@}"
-      elif [[ "$mod" == *"@"* ]]; then
+      elif [[ $mod == *"@"* ]]; then
         # Unscoped package with version, e.g. yarn@latest
         MODULE_NAME="${mod%@*}"
         MODULE_REQ_VERSION="${mod##*@}"
@@ -6533,14 +6533,14 @@ function setup_nodejs() {
       # Check if the module is already installed
       if $STD npm list -g --depth=0 "$MODULE_NAME" 2>&1 | grep -q "$MODULE_NAME@"; then
         MODULE_INSTALLED_VERSION="$(npm list -g --depth=0 "$MODULE_NAME" 2>&1 | grep "$MODULE_NAME@" | awk -F@ '{print $2}' 2>/dev/null | tr -d '[:space:]' || echo '')"
-        if [[ "$MODULE_REQ_VERSION" != "latest" && "$MODULE_REQ_VERSION" != "$MODULE_INSTALLED_VERSION" ]]; then
+        if [[ $MODULE_REQ_VERSION != "latest" && $MODULE_REQ_VERSION != "$MODULE_INSTALLED_VERSION" ]]; then
           msg_info "Updating $MODULE_NAME from v$MODULE_INSTALLED_VERSION to v$MODULE_REQ_VERSION"
           if ! $STD npm install -g "${MODULE_NAME}@${MODULE_REQ_VERSION}" 2>/dev/null; then
             msg_warn "Failed to update $MODULE_NAME to version $MODULE_REQ_VERSION"
             ((failed_modules++)) || true
             continue
           fi
-        elif [[ "$MODULE_REQ_VERSION" == "latest" ]]; then
+        elif [[ $MODULE_REQ_VERSION == "latest" ]]; then
           msg_info "Updating $MODULE_NAME to latest version"
           if ! $STD npm install -g "${MODULE_NAME}@latest" 2>/dev/null; then
             msg_warn "Failed to update $MODULE_NAME to latest version"
@@ -6618,7 +6618,7 @@ function setup_php() {
   # Modules that became built-in in specific PHP versions
   # PHP 8.5+: opcache is now part of the core
   local BUILTIN_85=""
-  if [[ "$PHP_MAJOR" -gt 8 ]] || [[ "$PHP_MAJOR" -eq 8 && "$PHP_MINOR" -ge 5 ]]; then
+  if [[ $PHP_MAJOR -gt 8 ]] || [[ $PHP_MAJOR -eq 8 && $PHP_MINOR -ge 5 ]]; then
     BUILTIN_85="opcache"
   fi
 
@@ -6627,7 +6627,7 @@ function setup_php() {
   local BASE_MODULES="cli,common,bcmath,curl,dom,gd,gmp,intl,mbstring,readline,xml,zip"
 
   # Add opcache only for PHP < 8.5 (it's built-in starting from 8.5)
-  if [[ "$PHP_MAJOR" -lt 8 ]] || [[ "$PHP_MAJOR" -eq 8 && "$PHP_MINOR" -lt 5 ]]; then
+  if [[ $PHP_MAJOR -lt 8 ]] || [[ $PHP_MAJOR -eq 8 && $PHP_MINOR -lt 5 ]]; then
     BASE_MODULES="${BASE_MODULES},opcache"
   fi
 
@@ -6643,7 +6643,7 @@ function setup_php() {
   local PHP_MAX_EXECUTION_TIME="${PHP_MAX_EXECUTION_TIME:-300}"
 
   # Merge with user-defined modules
-  if [[ -n "$PHP_MODULE" ]]; then
+  if [[ -n $PHP_MODULE ]]; then
     COMBINED_MODULES="${COMBINED_MODULES},${PHP_MODULE}"
   fi
 
@@ -6652,7 +6652,7 @@ function setup_php() {
   IFS=',' read -ra ALL_MODULES <<<"$COMBINED_MODULES"
   for mod in "${ALL_MODULES[@]}"; do
     mod=$(echo "$mod" | tr -d '[:space:]')
-    [[ -z "$mod" ]] && continue
+    [[ -z $mod ]] && continue
 
     # Skip if it's a known built-in module
     if echo ",$BUILTIN_MODULES,$BUILTIN_85," | grep -qi ",$mod,"; then
@@ -6660,7 +6660,7 @@ function setup_php() {
     fi
 
     # Add to filtered list
-    if [[ -z "$FILTERED_MODULES" ]]; then
+    if [[ -z $FILTERED_MODULES ]]; then
       FILTERED_MODULES="$mod"
     else
       FILTERED_MODULES="${FILTERED_MODULES},$mod"
@@ -6675,7 +6675,7 @@ function setup_php() {
   CURRENT_PHP=$(is_tool_installed "php" 2>/dev/null) || true
 
   # Remove conflicting PHP version before pinning
-  if [[ -n "$CURRENT_PHP" && "$CURRENT_PHP" != "$PHP_VERSION" ]]; then
+  if [[ -n $CURRENT_PHP && $CURRENT_PHP != "$PHP_VERSION" ]]; then
     msg_info "Removing conflicting PHP ${CURRENT_PHP} (need ${PHP_VERSION})"
     stop_all_services "php.*-fpm"
     $STD apt purge -y "php*" 2>/dev/null || true
@@ -6701,7 +6701,7 @@ EOF
   }
 
   # Use different repository based on OS
-  if [[ "$DISTRO_ID" == "ubuntu" ]]; then
+  if [[ $DISTRO_ID == "ubuntu" ]]; then
     # Ubuntu: Use ondrej/php PPA
     msg_info "Adding ondrej/php PPA for Ubuntu"
     $STD apt install -y software-properties-common || {
@@ -6726,7 +6726,7 @@ EOF
   local AVAILABLE_PHP_VERSION=""
   AVAILABLE_PHP_VERSION=$(apt-cache show "php${PHP_VERSION}" 2>/dev/null | grep -m1 "^Version:" | awk '{print $2}' 2>/dev/null | cut -d- -f1 || true)
 
-  if [[ -z "$AVAILABLE_PHP_VERSION" ]]; then
+  if [[ -z $AVAILABLE_PHP_VERSION ]]; then
     msg_error "PHP ${PHP_VERSION} not found in configured repositories"
     return 100
   fi
@@ -6738,7 +6738,7 @@ EOF
   IFS=',' read -ra MODULES <<<"$COMBINED_MODULES"
   for mod in "${MODULES[@]}"; do
     mod=$(echo "$mod" | tr -d '[:space:]')
-    [[ -z "$mod" ]] && continue
+    [[ -z $mod ]] && continue
 
     local pkg_name="php${PHP_VERSION}-${mod}"
 
@@ -6747,7 +6747,7 @@ EOF
       MODULE_LIST+=" $pkg_name"
     else
       # Package doesn't exist - could be built-in or renamed
-      if [[ -z "$SKIPPED_MODULES" ]]; then
+      if [[ -z $SKIPPED_MODULES ]]; then
         SKIPPED_MODULES="$mod"
       else
         SKIPPED_MODULES="${SKIPPED_MODULES}, $mod"
@@ -6756,11 +6756,11 @@ EOF
   done
 
   # Log skipped modules (informational, not an error)
-  if [[ -n "$SKIPPED_MODULES" ]]; then
+  if [[ -n $SKIPPED_MODULES ]]; then
     msg_info "Skipping unavailable/built-in modules: $SKIPPED_MODULES"
   fi
 
-  if [[ "$PHP_FPM" == "YES" ]]; then
+  if [[ $PHP_FPM == "YES" ]]; then
     if apt-cache show "php${PHP_VERSION}-fpm" &>/dev/null; then
       MODULE_LIST+=" php${PHP_VERSION}-fpm"
     else
@@ -6777,7 +6777,7 @@ EOF
   fi
 
   # install apache2 with PHP support if requested
-  if [[ "$PHP_APACHE" == "YES" ]]; then
+  if [[ $PHP_APACHE == "YES" ]]; then
     if ! dpkg -l 2>/dev/null | grep -q "libapache2-mod-php${PHP_VERSION}"; then
       msg_info "Installing Apache with PHP ${PHP_VERSION} module"
       install_packages_with_retry "apache2" || {
@@ -6804,7 +6804,7 @@ EOF
     fi
 
     # Try to install Apache module individually if requested
-    if [[ "$PHP_APACHE" == "YES" ]]; then
+    if [[ $PHP_APACHE == "YES" ]]; then
       $STD apt install -y "libapache2-mod-php${PHP_VERSION}" 2>/dev/null || {
         msg_warn "Could not install libapache2-mod-php${PHP_VERSION}"
       }
@@ -6812,7 +6812,7 @@ EOF
 
     # Try to install each package individually
     for pkg in $MODULE_LIST; do
-      [[ "$pkg" == "php${PHP_VERSION}" ]] && continue # Already installed
+      [[ $pkg == "php${PHP_VERSION}" ]] && continue # Already installed
       $STD apt install -y "$pkg" 2>/dev/null || {
         msg_warn "Could not install $pkg - continuing without it"
       }
@@ -6822,10 +6822,10 @@ EOF
 
   # Patch all relevant php.ini files
   local PHP_INI_PATHS=("/etc/php/${PHP_VERSION}/cli/php.ini")
-  [[ "$PHP_FPM" == "YES" ]] && PHP_INI_PATHS+=("/etc/php/${PHP_VERSION}/fpm/php.ini")
-  [[ "$PHP_APACHE" == "YES" ]] && PHP_INI_PATHS+=("/etc/php/${PHP_VERSION}/apache2/php.ini")
+  [[ $PHP_FPM == "YES" ]] && PHP_INI_PATHS+=("/etc/php/${PHP_VERSION}/fpm/php.ini")
+  [[ $PHP_APACHE == "YES" ]] && PHP_INI_PATHS+=("/etc/php/${PHP_VERSION}/apache2/php.ini")
   for ini in "${PHP_INI_PATHS[@]}"; do
-    if [[ -f "$ini" ]]; then
+    if [[ -f $ini ]]; then
       $STD sed -i "s|^memory_limit = .*|memory_limit = ${PHP_MEMORY_LIMIT}|" "$ini"
       $STD sed -i "s|^upload_max_filesize = .*|upload_max_filesize = ${PHP_UPLOAD_MAX_FILESIZE}|" "$ini"
       $STD sed -i "s|^post_max_size = .*|post_max_size = ${PHP_POST_MAX_SIZE}|" "$ini"
@@ -6834,9 +6834,9 @@ EOF
   done
 
   # Patch Apache configuration if needed
-  if [[ "$PHP_APACHE" == "YES" ]]; then
+  if [[ $PHP_APACHE == "YES" ]]; then
     for mod in $(ls /etc/apache2/mods-enabled/ 2>/dev/null | grep -E '^php[0-9]\.[0-9]\.conf$' | sed 's/\.conf//'); do
-      if [[ "$mod" != "php${PHP_VERSION}" ]]; then
+      if [[ $mod != "php${PHP_VERSION}" ]]; then
         $STD a2dismod "$mod" || true
       fi
     done
@@ -6846,7 +6846,7 @@ EOF
   fi
 
   # Enable and restart PHP-FPM if requested
-  if [[ "$PHP_FPM" == "YES" ]]; then
+  if [[ $PHP_FPM == "YES" ]]; then
     if systemctl list-unit-files | grep -q "php${PHP_VERSION}-fpm.service"; then
       $STD systemctl enable php${PHP_VERSION}-fpm
       safe_service_restart php${PHP_VERSION}-fpm
@@ -6861,7 +6861,7 @@ EOF
 
   local INSTALLED_VERSION=$(php -v 2>/dev/null | awk '/^PHP/{print $2}' | cut -d. -f1,2)
 
-  if [[ "$INSTALLED_VERSION" != "$PHP_VERSION" ]]; then
+  if [[ $INSTALLED_VERSION != "$PHP_VERSION" ]]; then
     msg_error "PHP version mismatch: requested ${PHP_VERSION} but got ${INSTALLED_VERSION}"
     msg_error "This indicates a critical package installation issue"
     # Don't cache wrong version
@@ -6899,11 +6899,11 @@ EOF
 # Internal helper: Configure shared_preload_libraries for pg_cron
 _configure_pg_cron_preload() {
   local modules="${1:-}"
-  [[ -z "$modules" ]] && return 0
+  [[ -z $modules ]] && return 0
   if [[ ",$modules," == *",cron,"* ]]; then
     local current_libs
     current_libs=$(sudo -u postgres psql -tAc "SHOW shared_preload_libraries;" 2>/dev/null || echo "")
-    if [[ "$current_libs" != *"pg_cron"* ]]; then
+    if [[ $current_libs != *"pg_cron"* ]]; then
       local new_libs="${current_libs:+${current_libs},}pg_cron"
       $STD sudo -u postgres psql -c "ALTER SYSTEM SET shared_preload_libraries = '${new_libs}';"
       $STD systemctl restart postgresql
@@ -6931,11 +6931,11 @@ setup_postgresql() {
   fi
 
   # Scenario 1: Use distro repository (default, most stable)
-  if [[ "$USE_PGDG_REPO" != "true" && "$USE_PGDG_REPO" != "TRUE" && "$USE_PGDG_REPO" != "1" ]]; then
+  if [[ $USE_PGDG_REPO != "true" && $USE_PGDG_REPO != "TRUE" && $USE_PGDG_REPO != "1" ]]; then
     msg_info "Setup PostgreSQL (distro package)"
 
     # If already installed, just update
-    if [[ -n "$CURRENT_PG_VERSION" ]]; then
+    if [[ -n $CURRENT_PG_VERSION ]]; then
       msg_info "Update PostgreSQL $CURRENT_PG_VERSION"
       ensure_apt_working || return 100
       upgrade_packages_with_retry "postgresql" "postgresql-client" || true
@@ -6943,7 +6943,7 @@ setup_postgresql() {
       msg_ok "Update PostgreSQL $CURRENT_PG_VERSION"
 
       # Still install modules if specified
-      if [[ -n "$PG_MODULES" ]]; then
+      if [[ -n $PG_MODULES ]]; then
         IFS=',' read -ra MODULES <<<"$PG_MODULES"
         for module in "${MODULES[@]}"; do
           $STD apt install -y "postgresql-${CURRENT_PG_VERSION}-${module}" 2>/dev/null || true
@@ -6971,7 +6971,7 @@ setup_postgresql() {
     $STD systemctl enable --now postgresql 2>/dev/null || true
 
     # Add PostgreSQL binaries to PATH
-    if [[ -n "$INSTALLED_VERSION" ]] && ! grep -q '/usr/lib/postgresql' /etc/environment 2>/dev/null; then
+    if [[ -n $INSTALLED_VERSION ]] && ! grep -q '/usr/lib/postgresql' /etc/environment 2>/dev/null; then
       echo 'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/postgresql/'"${INSTALLED_VERSION}"'/bin"' >/etc/environment
     fi
 
@@ -6979,7 +6979,7 @@ setup_postgresql() {
     msg_ok "Setup PostgreSQL ${INSTALLED_VERSION:-from distro}"
 
     # Install optional modules
-    if [[ -n "$PG_MODULES" && -n "$INSTALLED_VERSION" ]]; then
+    if [[ -n $PG_MODULES && -n $INSTALLED_VERSION ]]; then
       IFS=',' read -ra MODULES <<<"$PG_MODULES"
       for module in "${MODULES[@]}"; do
         $STD apt install -y "postgresql-${INSTALLED_VERSION}-${module}" 2>/dev/null || true
@@ -6991,7 +6991,7 @@ setup_postgresql() {
 
   # Scenario 2: Use official PGDG repository (USE_PGDG_REPO=true)
   # Scenario 2a: Already at correct version
-  if [[ "$CURRENT_PG_VERSION" == "$PG_VERSION" ]]; then
+  if [[ $CURRENT_PG_VERSION == "$PG_VERSION" ]]; then
     msg_info "Update PostgreSQL $PG_VERSION"
     ensure_apt_working || return 100
 
@@ -7001,7 +7001,7 @@ setup_postgresql() {
     msg_ok "Update PostgreSQL $PG_VERSION"
 
     # Still install modules if specified
-    if [[ -n "$PG_MODULES" ]]; then
+    if [[ -n $PG_MODULES ]]; then
       IFS=',' read -ra MODULES <<<"$PG_MODULES"
       for module in "${MODULES[@]}"; do
         $STD apt install -y "postgresql-${PG_VERSION}-${module}" 2>/dev/null || true
@@ -7012,7 +7012,7 @@ setup_postgresql() {
   fi
 
   # Scenario 2: Different version - backup, remove old, install new
-  if [[ -n "$CURRENT_PG_VERSION" ]]; then
+  if [[ -n $CURRENT_PG_VERSION ]]; then
     msg_info "Upgrade PostgreSQL from $CURRENT_PG_VERSION to $PG_VERSION"
     msg_info "Creating backup of PostgreSQL $CURRENT_PG_VERSION databases..."
     local PG_BACKUP_FILE="/var/lib/postgresql/backup_$(date +%F)_v${CURRENT_PG_VERSION}.sql"
@@ -7077,19 +7077,19 @@ setup_postgresql() {
     pg_install_success=true
   fi
 
-  if [[ "$pg_install_success" == false ]] &&
+  if [[ $pg_install_success == false ]] &&
     apt-cache search "^postgresql-server-${PG_VERSION}$" 2>/dev/null | grep -q . &&
     $STD apt install -y "postgresql-server-${PG_VERSION}" "postgresql-client-${PG_VERSION}" 2>/dev/null; then
     pg_install_success=true
   fi
 
-  if [[ "$pg_install_success" == false ]] &&
+  if [[ $pg_install_success == false ]] &&
     apt-cache search "^postgresql$" 2>/dev/null | grep -q . &&
     $STD apt install -y postgresql postgresql-client 2>/dev/null; then
     pg_install_success=true
   fi
 
-  if [[ "$pg_install_success" == false ]]; then
+  if [[ $pg_install_success == false ]]; then
     msg_error "PostgreSQL package not available for suite ${SUITE}"
     return 100
   fi
@@ -7100,7 +7100,7 @@ setup_postgresql() {
   fi
 
   # Restore database backup if we upgraded from previous version
-  if [[ -n "$CURRENT_PG_VERSION" && -n "${PG_BACKUP_FILE:-}" && -f "${PG_BACKUP_FILE}" ]]; then
+  if [[ -n $CURRENT_PG_VERSION && -n ${PG_BACKUP_FILE:-} && -f ${PG_BACKUP_FILE} ]]; then
     msg_info "Restoring PostgreSQL databases from backup..."
     $STD runuser -u postgres -- psql <"$PG_BACKUP_FILE" 2>/dev/null || {
       msg_warn "Failed to restore database backup - this may be expected for major version upgrades"
@@ -7120,7 +7120,7 @@ setup_postgresql() {
   msg_ok "Setup PostgreSQL $PG_VERSION"
 
   # Install optional modules
-  if [[ -n "$PG_MODULES" ]]; then
+  if [[ -n $PG_MODULES ]]; then
     IFS=',' read -ra MODULES <<<"$PG_MODULES"
     for module in "${MODULES[@]}"; do
       $STD apt install -y "postgresql-${PG_VERSION}-${module}" 2>/dev/null || {
@@ -7165,13 +7165,13 @@ setup_postgresql() {
 
 function setup_postgresql_db() {
   # Validation
-  if [[ -z "${PG_DB_NAME:-}" || -z "${PG_DB_USER:-}" ]]; then
+  if [[ -z ${PG_DB_NAME:-} || -z ${PG_DB_USER:-} ]]; then
     msg_error "PG_DB_NAME and PG_DB_USER must be set before calling setup_postgresql_db"
     return 65
   fi
 
   # Generate password if not provided
-  if [[ -z "${PG_DB_PASS:-}" ]]; then
+  if [[ -z ${PG_DB_PASS:-} ]]; then
     PG_DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
   fi
 
@@ -7180,14 +7180,14 @@ function setup_postgresql_db() {
   $STD sudo -u postgres psql -c "CREATE DATABASE $PG_DB_NAME WITH OWNER $PG_DB_USER ENCODING 'UTF8' TEMPLATE template0;"
 
   # Configure pg_cron database BEFORE creating the extension (must be set before pg_cron loads)
-  if [[ -n "${PG_DB_EXTENSIONS:-}" ]] && [[ ",${PG_DB_EXTENSIONS//[[:space:]]/}," == *",pg_cron,"* ]]; then
+  if [[ -n ${PG_DB_EXTENSIONS:-} ]] && [[ ",${PG_DB_EXTENSIONS//[[:space:]]/}," == *",pg_cron,"* ]]; then
     $STD sudo -u postgres psql -c "ALTER SYSTEM SET cron.database_name = '${PG_DB_NAME}';"
     $STD sudo -u postgres psql -c "ALTER SYSTEM SET cron.timezone = 'UTC';"
     $STD systemctl restart postgresql
   fi
 
   # Install extensions (comma-separated)
-  if [[ -n "${PG_DB_EXTENSIONS:-}" ]]; then
+  if [[ -n ${PG_DB_EXTENSIONS:-} ]]; then
     IFS=',' read -ra EXT_LIST <<<"${PG_DB_EXTENSIONS:-}"
     for ext in "${EXT_LIST[@]}"; do
       ext=$(echo "$ext" | xargs) # Trim whitespace
@@ -7196,20 +7196,20 @@ function setup_postgresql_db() {
   fi
 
   # Grant pg_cron schema permissions to DB user
-  if [[ -n "${PG_DB_EXTENSIONS:-}" ]] && [[ ",${PG_DB_EXTENSIONS//[[:space:]]/}," == *",pg_cron,"* ]]; then
+  if [[ -n ${PG_DB_EXTENSIONS:-} ]] && [[ ",${PG_DB_EXTENSIONS//[[:space:]]/}," == *",pg_cron,"* ]]; then
     $STD sudo -u postgres psql -d "$PG_DB_NAME" -c "GRANT USAGE ON SCHEMA cron TO ${PG_DB_USER};"
     $STD sudo -u postgres psql -d "$PG_DB_NAME" -c "GRANT ALL ON ALL TABLES IN SCHEMA cron TO ${PG_DB_USER};"
   fi
 
   # ALTER ROLE settings for Django/Rails compatibility (unless skipped)
-  if [[ "${PG_DB_SKIP_ALTER_ROLE:-}" != "true" ]]; then
+  if [[ ${PG_DB_SKIP_ALTER_ROLE:-} != "true" ]]; then
     $STD sudo -u postgres psql -c "ALTER ROLE $PG_DB_USER SET client_encoding TO 'utf8';"
     $STD sudo -u postgres psql -c "ALTER ROLE $PG_DB_USER SET default_transaction_isolation TO 'read committed';"
     $STD sudo -u postgres psql -c "ALTER ROLE $PG_DB_USER SET timezone TO 'UTC';"
   fi
 
   # Schema permissions (if requested)
-  if [[ "${PG_DB_SCHEMA_PERMS:-}" == "true" ]]; then
+  if [[ ${PG_DB_SCHEMA_PERMS:-} == "true" ]]; then
     $STD sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $PG_DB_NAME TO $PG_DB_USER;"
     $STD sudo -u postgres psql -c "ALTER USER $PG_DB_USER CREATEDB;"
     $STD sudo -u postgres psql -d "$PG_DB_NAME" -c "GRANT ALL ON SCHEMA public TO $PG_DB_USER;"
@@ -7219,7 +7219,7 @@ function setup_postgresql_db() {
   fi
 
   # Superuser grant (if requested - WARNING!)
-  if [[ "${PG_DB_GRANT_SUPERUSER:-}" == "true" ]]; then
+  if [[ ${PG_DB_GRANT_SUPERUSER:-} == "true" ]]; then
     msg_warn "Granting SUPERUSER privilege (security risk!)"
     $STD sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $PG_DB_NAME to $PG_DB_USER;"
     $STD sudo -u postgres psql -c "ALTER USER $PG_DB_USER WITH SUPERUSER;"
@@ -7265,12 +7265,12 @@ function setup_ruby() {
 
   # Get currently installed Ruby version
   local CURRENT_RUBY_VERSION=""
-  if [[ -x "$RBENV_BIN" ]]; then
+  if [[ -x $RBENV_BIN ]]; then
     CURRENT_RUBY_VERSION=$("$RBENV_BIN" global 2>/dev/null || echo "")
   fi
 
   # Scenario 1: Already at correct Ruby version
-  if [[ "$CURRENT_RUBY_VERSION" == "$RUBY_VERSION" ]]; then
+  if [[ $CURRENT_RUBY_VERSION == "$RUBY_VERSION" ]]; then
     msg_info "Update Ruby $RUBY_VERSION"
     cache_installed_version "ruby" "$RUBY_VERSION"
     msg_ok "Update Ruby $RUBY_VERSION"
@@ -7278,7 +7278,7 @@ function setup_ruby() {
   fi
 
   # Scenario 2: Different version - reinstall
-  if [[ -n "$CURRENT_RUBY_VERSION" ]]; then
+  if [[ -n $CURRENT_RUBY_VERSION ]]; then
     msg_info "Upgrade Ruby from $CURRENT_RUBY_VERSION to $RUBY_VERSION"
   else
     msg_info "Setup Ruby $RUBY_VERSION"
@@ -7306,7 +7306,7 @@ function setup_ruby() {
   )
 
   for dep_pattern in "${dep_variations[@]}"; do
-    if [[ "$dep_pattern" == *"|"* ]]; then
+    if [[ $dep_pattern == *"|"* ]]; then
       IFS='|' read -ra variations <<<"$dep_pattern"
       for var in "${variations[@]}"; do
         if apt-cache search "^${var}$" 2>/dev/null | grep -q .; then
@@ -7330,7 +7330,7 @@ function setup_ruby() {
   fi
 
   # Download and build rbenv if needed
-  if [[ ! -x "$RBENV_BIN" ]]; then
+  if [[ ! -x $RBENV_BIN ]]; then
     local RBENV_RELEASE
     RBENV_RELEASE=$(get_latest_github_release "rbenv/rbenv") || {
       msg_error "Failed to fetch latest rbenv version from GitHub"
@@ -7411,7 +7411,7 @@ function setup_ruby() {
   hash -r
 
   # Install Rails if requested
-  if [[ "$RUBY_INSTALL_RAILS" == "true" ]]; then
+  if [[ $RUBY_INSTALL_RAILS == "true" ]]; then
     $STD gem install rails || {
       msg_warn "Failed to install Rails - Ruby installation successful"
     }
@@ -7458,7 +7458,7 @@ function setup_meilisearch() {
   # Get bind address for health checks
   local MEILISEARCH_HOST="${MEILISEARCH_BIND%%:*}"
   local MEILISEARCH_PORT="${MEILISEARCH_BIND##*:}"
-  [[ "$MEILISEARCH_HOST" == "0.0.0.0" ]] && MEILISEARCH_HOST="127.0.0.1"
+  [[ $MEILISEARCH_HOST == "0.0.0.0" ]] && MEILISEARCH_HOST="127.0.0.1"
 
   # Update mode: MeiliSearch already installed
   if [[ -f /usr/bin/meilisearch ]]; then
@@ -7477,7 +7477,7 @@ function setup_meilisearch() {
 
       # Determine if migration is needed (different major.minor = incompatible DB format)
       local NEEDS_MIGRATION=false
-      if [[ "$CURRENT_MAJOR_MINOR" != "$NEW_MAJOR_MINOR" ]]; then
+      if [[ $CURRENT_MAJOR_MINOR != "$NEW_MAJOR_MINOR" ]]; then
         NEEDS_MIGRATION=true
         msg_info "MeiliSearch version change detected (${CURRENT_VERSION} → ${NEW_VERSION}), preparing data migration"
       fi
@@ -7491,7 +7491,7 @@ function setup_meilisearch() {
 
       # Create dump before update if migration is needed
       local DUMP_UID=""
-      if [[ "$NEEDS_MIGRATION" == "true" ]] && [[ -n "$MEILI_MASTER_KEY" ]]; then
+      if [[ $NEEDS_MIGRATION == "true" ]] && [[ -n $MEILI_MASTER_KEY ]]; then
         msg_info "Creating MeiliSearch data dump before upgrade"
 
         # Trigger dump creation
@@ -7505,7 +7505,7 @@ function setup_meilisearch() {
         local TASK_UID
         TASK_UID=$(echo "$DUMP_RESPONSE" | grep -oP '"taskUid":\s*\K[0-9]+' || true)
 
-        if [[ -n "$TASK_UID" ]]; then
+        if [[ -n $TASK_UID ]]; then
           msg_info "Waiting for dump task ${TASK_UID} to complete..."
           local MAX_WAIT=120
           local WAITED=0
@@ -7518,16 +7518,16 @@ function setup_meilisearch() {
             local TASK_STATUS
             TASK_STATUS=$(echo "$TASK_RESULT" | grep -oP '"status":\s*"\K[^"]+' || true)
 
-            if [[ "$TASK_STATUS" == "succeeded" ]]; then
+            if [[ $TASK_STATUS == "succeeded" ]]; then
               # Extract dumpUid from the completed task details
               DUMP_UID=$(echo "$TASK_RESULT" | grep -oP '"dumpUid":\s*"\K[^"]+' || true)
-              if [[ -n "$DUMP_UID" ]]; then
+              if [[ -n $DUMP_UID ]]; then
                 msg_ok "MeiliSearch dump created successfully: ${DUMP_UID}"
               else
                 msg_warn "Dump task succeeded but could not extract dumpUid"
               fi
               break
-            elif [[ "$TASK_STATUS" == "failed" ]]; then
+            elif [[ $TASK_STATUS == "failed" ]]; then
               local ERROR_MSG
               ERROR_MSG=$(echo "$TASK_RESULT" | grep -oP '"message":\s*"\K[^"]+' || echo "Unknown error")
               msg_warn "MeiliSearch dump failed: ${ERROR_MSG}"
@@ -7551,12 +7551,12 @@ function setup_meilisearch() {
       # 2. Backup data directory and proceed (allows manual recovery)
       # 3. Just proceed and hope for the best (dangerous)
       # We choose option 2: backup and proceed with warning
-      if [[ "$NEEDS_MIGRATION" == "true" ]] && [[ -z "$DUMP_UID" ]]; then
+      if [[ $NEEDS_MIGRATION == "true" ]] && [[ -z $DUMP_UID ]]; then
         local MEILI_DB_PATH
         MEILI_DB_PATH=$(grep -E "^db_path\s*=" /etc/meilisearch.toml 2>/dev/null | sed 's/.*=\s*"\(.*\)"/\1/' | tr -d ' ' || true)
         MEILI_DB_PATH="${MEILI_DB_PATH:-/var/lib/meilisearch/data}"
 
-        if [[ -d "$MEILI_DB_PATH" ]] && [[ -n "$(ls -A "$MEILI_DB_PATH" 2>/dev/null)" ]]; then
+        if [[ -d $MEILI_DB_PATH ]] && [[ -n "$(ls -A "$MEILI_DB_PATH" 2>/dev/null)" ]]; then
           local BACKUP_PATH="${MEILI_DB_PATH}.backup.$(date +%Y%m%d%H%M%S)"
           msg_warn "Backing up MeiliSearch data to ${BACKUP_PATH}"
           mv "$MEILI_DB_PATH" "$BACKUP_PATH"
@@ -7571,7 +7571,7 @@ function setup_meilisearch() {
       fetch_and_deploy_gh_release "meilisearch" "meilisearch/meilisearch" "binary"
 
       # If migration needed and dump was created, remove old data and import dump
-      if [[ "$NEEDS_MIGRATION" == "true" ]] && [[ -n "$DUMP_UID" ]]; then
+      if [[ $NEEDS_MIGRATION == "true" ]] && [[ -n $DUMP_UID ]]; then
         local MEILI_DB_PATH
         MEILI_DB_PATH=$(grep -E "^db_path\s*=" /etc/meilisearch.toml 2>/dev/null | sed 's/.*=\s*"\(.*\)"/\1/' | tr -d ' ' || true)
         MEILI_DB_PATH="${MEILI_DB_PATH:-/var/lib/meilisearch/data}"
@@ -7581,7 +7581,7 @@ function setup_meilisearch() {
 
         # Import dump using CLI flag (this is the supported method)
         local DUMP_FILE="${MEILI_DUMP_DIR}/${DUMP_UID}.dump"
-        if [[ -f "$DUMP_FILE" ]]; then
+        if [[ -f $DUMP_FILE ]]; then
           msg_info "Importing dump: ${DUMP_FILE}"
 
           # Start meilisearch with --import-dump flag
@@ -7704,7 +7704,7 @@ EOF
     MEILISEARCH_API_KEY=$(curl -s -X GET "http://${MEILISEARCH_HOST}:${MEILISEARCH_PORT}/keys" \
       -H "Authorization: Bearer ${MEILISEARCH_MASTER_KEY}" 2>/dev/null |
       grep -o '"key":"[^"]*"' | head -n 1 | sed 's/"key":"//;s/"//') || true
-    [[ -n "$MEILISEARCH_API_KEY" ]] && break
+    [[ -n $MEILISEARCH_API_KEY ]] && break
     sleep 2
   done
 
@@ -7748,17 +7748,17 @@ function setup_clickhouse() {
   export NEEDRESTART_SUSPEND=1
 
   # Resolve "latest" version
-  if [[ "$CLICKHOUSE_VERSION" == "latest" ]]; then
+  if [[ $CLICKHOUSE_VERSION == "latest" ]]; then
     CLICKHOUSE_VERSION=$(curl -fsSL --max-time 15 https://packages.clickhouse.com/tgz/stable/ 2>/dev/null |
       grep -oP 'clickhouse-common-static-\K[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' |
       sort -V | tail -n1 || echo "")
 
     # Fallback to GitHub API if package server failed
-    if [[ -z "$CLICKHOUSE_VERSION" ]]; then
+    if [[ -z $CLICKHOUSE_VERSION ]]; then
       CLICKHOUSE_VERSION=$(get_latest_github_release "ClickHouse/ClickHouse") || true
     fi
 
-    [[ -z "$CLICKHOUSE_VERSION" ]] && {
+    [[ -z $CLICKHOUSE_VERSION ]] && {
       msg_error "Could not determine latest ClickHouse version from any source"
       return 250
     }
@@ -7771,7 +7771,7 @@ function setup_clickhouse() {
   fi
 
   # Scenario 1: Already at target version - just update packages
-  if [[ -n "$CURRENT_VERSION" && "$CURRENT_VERSION" == "$CLICKHOUSE_VERSION" ]]; then
+  if [[ -n $CURRENT_VERSION && $CURRENT_VERSION == "$CLICKHOUSE_VERSION" ]]; then
     msg_info "Update ClickHouse $CLICKHOUSE_VERSION"
     ensure_apt_working || return 100
 
@@ -7785,7 +7785,7 @@ function setup_clickhouse() {
   fi
 
   # Scenario 2: Different version - clean upgrade
-  if [[ -n "$CURRENT_VERSION" && "$CURRENT_VERSION" != "$CLICKHOUSE_VERSION" ]]; then
+  if [[ -n $CURRENT_VERSION && $CURRENT_VERSION != "$CLICKHOUSE_VERSION" ]]; then
     msg_info "Upgrade ClickHouse from $CURRENT_VERSION to $CLICKHOUSE_VERSION"
     stop_all_services "clickhouse-server"
     remove_old_tool_version "clickhouse"
@@ -7888,7 +7888,7 @@ function setup_rust() {
 
     local RUST_VERSION
     RUST_VERSION=$(rustc --version 2>/dev/null | awk '{print $2}' 2>/dev/null) || true
-    if [[ -z "$RUST_VERSION" ]]; then
+    if [[ -z $RUST_VERSION ]]; then
       msg_error "Failed to determine Rust version"
       return 250
     fi
@@ -7922,7 +7922,7 @@ function setup_rust() {
 
     local RUST_VERSION
     RUST_VERSION=$(rustc --version 2>/dev/null | awk '{print $2}' 2>/dev/null) || true
-    if [[ -z "$RUST_VERSION" ]]; then
+    if [[ -z $RUST_VERSION ]]; then
       msg_error "Failed to determine Rust version after update"
       return 250
     fi
@@ -7932,15 +7932,15 @@ function setup_rust() {
   fi
 
   # Install global crates
-  if [[ -n "$RUST_CRATES" ]]; then
+  if [[ -n $RUST_CRATES ]]; then
     msg_info "Processing Rust crates: $RUST_CRATES"
     IFS=',' read -ra CRATES <<<"$RUST_CRATES"
     for crate in "${CRATES[@]}"; do
       crate=$(echo "$crate" | xargs) # trim whitespace
-      [[ -z "$crate" ]] && continue  # skip empty entries
+      [[ -z $crate ]] && continue    # skip empty entries
 
       local NAME VER INSTALLED_VER CRATE_LIST
-      if [[ "$crate" == *"@"* ]]; then
+      if [[ $crate == *"@"* ]]; then
         NAME="${crate%@*}"
         VER="${crate##*@}"
       else
@@ -7955,14 +7955,14 @@ function setup_rust() {
       if echo "$CRATE_LIST" | grep -q "^${NAME} "; then
         INSTALLED_VER=$(echo "$CRATE_LIST" | grep "^${NAME} " | head -1 | awk '{print $2}' 2>/dev/null | tr -d 'v:' || echo '')
 
-        if [[ -n "$VER" && "$VER" != "$INSTALLED_VER" ]]; then
+        if [[ -n $VER && $VER != "$INSTALLED_VER" ]]; then
           msg_info "Upgrading $NAME from v$INSTALLED_VER to v$VER"
           $STD cargo install "$NAME" --version "$VER" --force || {
             msg_error "Failed to install $NAME@$VER"
             return 150
           }
           msg_ok "Upgraded $NAME to v$VER"
-        elif [[ -z "$VER" ]]; then
+        elif [[ -z $VER ]]; then
           msg_info "Upgrading $NAME to latest"
           $STD cargo install "$NAME" --force || {
             msg_error "Failed to upgrade $NAME"
@@ -7975,7 +7975,7 @@ function setup_rust() {
         fi
       else
         msg_info "Installing $NAME${VER:+@$VER}"
-        if [[ -n "$VER" ]]; then
+        if [[ -n $VER ]]; then
           $STD cargo install "$NAME" --version "$VER" || {
             msg_error "Failed to install $NAME@$VER"
             return 150
@@ -8052,16 +8052,16 @@ function setup_uv() {
 
   # Get currently installed version
   local INSTALLED_VERSION=""
-  if [[ -x "$UV_BIN" ]]; then
+  if [[ -x $UV_BIN ]]; then
     INSTALLED_VERSION=$("$UV_BIN" --version 2>/dev/null | awk '{print $2}')
   fi
 
   # Scenario 1: Already at latest version
-  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$LATEST_VERSION" ]]; then
+  if [[ -n $INSTALLED_VERSION && $INSTALLED_VERSION == "$LATEST_VERSION" ]]; then
     cache_installed_version "uv" "$LATEST_VERSION"
 
     # Check if uvx is needed and missing
-    if [[ "${USE_UVX:-NO}" == "YES" ]] && [[ ! -x "$UVX_BIN" ]]; then
+    if [[ ${USE_UVX:-NO} == "YES" ]] && [[ ! -x $UVX_BIN ]]; then
       msg_info "Installing uvx wrapper"
       _install_uvx_wrapper || return 252
       msg_ok "uvx wrapper installed"
@@ -8071,7 +8071,7 @@ function setup_uv() {
   fi
 
   # Scenario 2: New install or upgrade
-  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" != "$LATEST_VERSION" ]]; then
+  if [[ -n $INSTALLED_VERSION && $INSTALLED_VERSION != "$LATEST_VERSION" ]]; then
     msg_info "Upgrade uv from $INSTALLED_VERSION to $LATEST_VERSION"
   else
     msg_info "Setup uv $LATEST_VERSION"
@@ -8092,7 +8092,7 @@ function setup_uv() {
 
   # Find and install uv binary (tarball extracts to uv-VERSION-ARCH/ directory)
   local UV_BINARY=$(find "$TMP_DIR" -name "uv" -type f -executable | head -n1)
-  if [[ ! -f "$UV_BINARY" ]]; then
+  if [[ ! -f $UV_BINARY ]]; then
     msg_error "Could not find uv binary in extracted tarball"
     return 127
   fi
@@ -8106,7 +8106,7 @@ function setup_uv() {
   export PATH="/usr/local/bin:$PATH"
 
   # Optional: Install uvx wrapper
-  if [[ "${USE_UVX:-NO}" == "YES" ]]; then
+  if [[ ${USE_UVX:-NO} == "YES" ]]; then
     msg_info "Installing uvx wrapper"
     _install_uvx_wrapper || {
       msg_error "Failed to install uvx wrapper"
@@ -8122,7 +8122,7 @@ function setup_uv() {
   fi
 
   # Optional: Install specific Python version if requested
-  if [[ -n "${PYTHON_VERSION:-}" ]]; then
+  if [[ -n ${PYTHON_VERSION:-} ]]; then
     msg_info "Installing Python $PYTHON_VERSION via uv"
     $STD uv python install "$PYTHON_VERSION" || {
       msg_error "Failed to install Python $PYTHON_VERSION"
@@ -8188,14 +8188,14 @@ function setup_yq() {
   fi
 
   # Scenario 1: Already at latest version
-  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$LATEST_VERSION" ]]; then
+  if [[ -n $INSTALLED_VERSION && $INSTALLED_VERSION == "$LATEST_VERSION" ]]; then
     cache_installed_version "yq" "$LATEST_VERSION"
     rm -rf "$TMP_DIR"
     return 0
   fi
 
   # Scenario 2: New install or upgrade
-  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" != "$LATEST_VERSION" ]]; then
+  if [[ -n $INSTALLED_VERSION && $INSTALLED_VERSION != "$LATEST_VERSION" ]]; then
     msg_info "Upgrade yq from $INSTALLED_VERSION to $LATEST_VERSION"
   else
     msg_info "Setup yq $LATEST_VERSION"
@@ -8273,7 +8273,7 @@ function setup_docker() {
   fi
 
   # Scenario 1: Use distro repository (default, most stable)
-  if [[ "$USE_DOCKER_REPO" != "true" && "$USE_DOCKER_REPO" != "TRUE" && "$USE_DOCKER_REPO" != "1" ]]; then
+  if [[ $USE_DOCKER_REPO != "true" && $USE_DOCKER_REPO != "TRUE" && $USE_DOCKER_REPO != "1" ]]; then
 
     # Install or upgrade Docker from distro repo
     if [ "$docker_installed" = true ]; then
@@ -8385,7 +8385,7 @@ EOF
   fi
 
   # Portainer Management (common for both modes)
-  if [[ "${DOCKER_PORTAINER:-}" == "true" ]]; then
+  if [[ ${DOCKER_PORTAINER:-} == "true" ]]; then
     if [ "$portainer_installed" = true ]; then
       msg_info "Checking for Portainer updates"
       PORTAINER_CURRENT=$(docker inspect portainer --format='{{.Config.Image}}' 2>/dev/null | cut -d':' -f2)
@@ -8429,7 +8429,7 @@ EOF
   fi
 
   # Interactive Container Update Check
-  if [[ "${DOCKER_SKIP_UPDATES:-}" != "true" ]] && [ "$docker_installed" = true ]; then
+  if [[ ${DOCKER_SKIP_UPDATES:-} != "true" ]] && [ "$docker_installed" = true ]; then
     msg_info "Checking for container updates"
 
     # Get list of running containers with update status
@@ -8474,7 +8474,7 @@ EOF
         IFS=',' read -ra SELECTED <<<"$selection"
         for num in "${SELECTED[@]}"; do
           num=$(echo "$num" | xargs) # trim whitespace
-          if [[ "$num" =~ ^[0-9]+$ ]] && [ "$num" -ge 1 ] && [ "$num" -le "${#containers_with_updates[@]}" ]; then
+          if [[ $num =~ ^[0-9]+$ ]] && [ "$num" -ge 1 ] && [ "$num" -le "${#containers_with_updates[@]}" ]; then
             container="${containers_with_updates[$((num - 1))]}"
             msg_info "Updating container: $container"
             docker stop "$container"
@@ -8509,7 +8509,7 @@ function fetch_and_deploy_from_url() {
   local url="$1"
   local directory="${2:-}"
 
-  if [[ -z "$url" ]]; then
+  if [[ -z $url ]]; then
     msg_error "URL parameter is required"
     return 65
   fi
@@ -8536,13 +8536,13 @@ function fetch_and_deploy_from_url() {
 
   local archive_type="unknown"
 
-  if [[ "$file_desc" =~ gzip.*compressed|gzip\ compressed\ data ]]; then
+  if [[ $file_desc =~ gzip.*compressed|gzip\ compressed\ data ]]; then
     archive_type="tar"
-  elif [[ "$file_desc" =~ Zip.*archive|ZIP\ archive ]]; then
+  elif [[ $file_desc =~ Zip.*archive|ZIP\ archive ]]; then
     archive_type="zip"
-  elif [[ "$file_desc" =~ Debian.*package|Debian\ binary\ package ]]; then
+  elif [[ $file_desc =~ Debian.*package|Debian\ binary\ package ]]; then
     archive_type="deb"
-  elif [[ "$file_desc" =~ POSIX.*tar.*archive|tar\ archive ]]; then
+  elif [[ $file_desc =~ POSIX.*tar.*archive|tar\ archive ]]; then
     archive_type="tar"
   else
     msg_error "Unsupported or unknown archive type: $file_desc"
@@ -8552,7 +8552,7 @@ function fetch_and_deploy_from_url() {
 
   msg_info "Detected archive type: $archive_type (file type: $file_desc)"
 
-  if [[ "$archive_type" == "deb" ]]; then
+  if [[ $archive_type == "deb" ]]; then
     msg_info "Installing .deb package"
 
     chmod 644 "$tmpdir/$filename"
@@ -8569,7 +8569,7 @@ function fetch_and_deploy_from_url() {
     return 0
   fi
 
-  if [[ -z "$directory" ]]; then
+  if [[ -z $directory ]]; then
     msg_error "Directory parameter is required for archive extraction"
     rm -rf "$tmpdir"
     return 65
@@ -8579,21 +8579,21 @@ function fetch_and_deploy_from_url() {
 
   mkdir -p "$directory"
 
-  if [[ "${CLEAN_INSTALL:-0}" == "1" ]]; then
+  if [[ ${CLEAN_INSTALL:-0} == "1" ]]; then
     rm -rf "${directory:?}/"*
   fi
 
   local unpack_tmp
   unpack_tmp=$(mktemp -d)
 
-  if [[ "$archive_type" == "zip" ]]; then
+  if [[ $archive_type == "zip" ]]; then
     ensure_dependencies unzip
     unzip -q "$tmpdir/$filename" -d "$unpack_tmp" || {
       msg_error "Failed to extract ZIP archive"
       rm -rf "$tmpdir" "$unpack_tmp"
       return 251
     }
-  elif [[ "$archive_type" == "tar" ]]; then
+  elif [[ $archive_type == "tar" ]]; then
     tar --no-same-owner -xf "$tmpdir/$filename" -C "$unpack_tmp" || {
       msg_error "Failed to extract TAR archive"
       rm -rf "$tmpdir" "$unpack_tmp"
@@ -8604,7 +8604,7 @@ function fetch_and_deploy_from_url() {
   local top_entries
   top_entries=$(find "$unpack_tmp" -mindepth 1 -maxdepth 1)
 
-  if [[ "$(echo "$top_entries" | wc -l)" -eq 1 && -d "$top_entries" ]]; then
+  if [[ "$(echo "$top_entries" | wc -l)" -eq 1 && -d $top_entries ]]; then
     local inner_dir="$top_entries"
     shopt -s dotglob nullglob
     if compgen -G "$inner_dir/*" >/dev/null; then
@@ -8672,7 +8672,7 @@ get_latest_gitlab_release() {
   repo_encoded=$(printf '%s' "$repo" | sed 's|/|%2F|g')
 
   local header=()
-  [[ -n "${GITLAB_TOKEN:-}" ]] && header=(-H "PRIVATE-TOKEN: $GITLAB_TOKEN")
+  [[ -n ${GITLAB_TOKEN:-} ]] && header=(-H "PRIVATE-TOKEN: $GITLAB_TOKEN")
 
   local temp_file
   temp_file=$(mktemp)
@@ -8683,7 +8683,7 @@ get_latest_gitlab_release() {
     "${header[@]}" \
     "https://gitlab.com/api/v4/projects/$repo_encoded/releases?per_page=1&order_by=released_at&sort=desc" 2>/dev/null) || true
 
-  if [[ "$http_code" != "200" ]]; then
+  if [[ $http_code != "200" ]]; then
     rm -f "$temp_file"
     msg_warn "GitLab API call failed for ${repo} (HTTP ${http_code})"
     return 22
@@ -8693,13 +8693,13 @@ get_latest_gitlab_release() {
   version=$(jq -r '.[0].tag_name // empty' "$temp_file")
   rm -f "$temp_file"
 
-  if [[ -z "$version" ]]; then
+  if [[ -z $version ]]; then
     msg_error "Could not determine latest version for ${repo}"
     return 250
   fi
 
-  if [[ "$strip_v" == "true" ]]; then
-    [[ "$version" =~ ^v[0-9] ]] && version="${version:1}"
+  if [[ $strip_v == "true" ]]; then
+    [[ $version =~ ^v[0-9] ]] && version="${version:1}"
   fi
 
   echo "$version"
@@ -8747,49 +8747,49 @@ check_for_gl_release() {
   repo_encoded=$(printf '%s' "$source" | sed 's|/|%2F|g')
 
   local header=()
-  [[ -n "${GITLAB_TOKEN:-}" ]] && header=(-H "PRIVATE-TOKEN: $GITLAB_TOKEN")
+  [[ -n ${GITLAB_TOKEN:-} ]] && header=(-H "PRIVATE-TOKEN: $GITLAB_TOKEN")
 
   local releases_json="" http_code=""
 
   # For pinned versions, try to fetch the specific release tag first
-  if [[ -n "$pinned_version_in" ]]; then
+  if [[ -n $pinned_version_in ]]; then
     local pinned_encoded="${pinned_version_in//\//%2F}"
     http_code=$(curl -sSL --max-time 20 -w "%{http_code}" -o /tmp/gl_check.json \
       "${header[@]}" \
       "https://gitlab.com/api/v4/projects/$repo_encoded/releases/$pinned_encoded" 2>/dev/null) || true
-    if [[ "$http_code" == "200" ]] && [[ -s /tmp/gl_check.json ]]; then
+    if [[ $http_code == "200" ]] && [[ -s /tmp/gl_check.json ]]; then
       releases_json="[$(</tmp/gl_check.json)]"
     fi
     rm -f /tmp/gl_check.json
   fi
 
   # Fetch full releases list if needed
-  if [[ -z "$releases_json" ]]; then
+  if [[ -z $releases_json ]]; then
     http_code=$(curl -sSL --max-time 20 -w "%{http_code}" -o /tmp/gl_check.json \
       "${header[@]}" \
       "https://gitlab.com/api/v4/projects/$repo_encoded/releases?per_page=100&order_by=released_at&sort=desc" 2>/dev/null) || true
 
-    if [[ "$http_code" == "200" ]] && [[ -s /tmp/gl_check.json ]]; then
+    if [[ $http_code == "200" ]] && [[ -s /tmp/gl_check.json ]]; then
       releases_json=$(</tmp/gl_check.json)
-    elif [[ "$http_code" == "401" ]]; then
+    elif [[ $http_code == "401" ]]; then
       msg_error "GitLab API authentication failed (HTTP 401)."
-      if [[ -n "${GITLAB_TOKEN:-}" ]]; then
+      if [[ -n ${GITLAB_TOKEN:-} ]]; then
         msg_error "Your GITLAB_TOKEN appears to be invalid or expired."
       else
-        msg_error "The repository may require authentication. Try: export GITLAB_TOKEN=\"glpat-your_token\""
+        msg_error 'The repository may require authentication. Try: export GITLAB_TOKEN="glpat-your_token"'
       fi
       rm -f /tmp/gl_check.json
       return 22
-    elif [[ "$http_code" == "404" ]]; then
+    elif [[ $http_code == "404" ]]; then
       msg_error "GitLab project not found (HTTP 404). Ensure '${source}' is correct and publicly accessible."
       rm -f /tmp/gl_check.json
       return 22
-    elif [[ "$http_code" == "429" ]]; then
+    elif [[ $http_code == "429" ]]; then
       msg_error "GitLab API rate limit exceeded (HTTP 429)."
-      msg_error "To increase the limit, export a GitLab token: export GITLAB_TOKEN=\"glpat-your_token_here\""
+      msg_error 'To increase the limit, export a GitLab token: export GITLAB_TOKEN="glpat-your_token_here"'
       rm -f /tmp/gl_check.json
       return 22
-    elif [[ "$http_code" == "000" || -z "$http_code" ]]; then
+    elif [[ $http_code == "000" || -z $http_code ]]; then
       msg_error "GitLab API connection failed (no response)."
       msg_error "Check your network/DNS: curl -sSL https://gitlab.com/api/v4/version"
       rm -f /tmp/gl_check.json
@@ -8811,7 +8811,7 @@ check_for_gl_release() {
   local clean_tags=()
   for t in "${raw_tags[@]}"; do
     # Only strip leading 'v' when followed by a digit (e.g. v1.2.3)
-    if [[ "$t" =~ ^v[0-9] ]]; then
+    if [[ $t =~ ^v[0-9] ]]; then
       clean_tags+=("${t:1}")
     else
       clean_tags+=("$t")
@@ -8823,7 +8823,7 @@ check_for_gl_release() {
 
   # current installed (stored without v)
   local current=""
-  if [[ -f "$current_file" ]]; then
+  if [[ -f $current_file ]]; then
     current="$(<"$current_file")"
   else
     # Migration: search for any /opt/*_version.txt
@@ -8835,38 +8835,38 @@ check_for_gl_release() {
       rm -f "${legacy_files[0]}"
     fi
   fi
-  if [[ "$current" =~ ^v[0-9] ]]; then
+  if [[ $current =~ ^v[0-9] ]]; then
     current="${current:1}"
   fi
 
   # Pinned version handling
-  if [[ -n "$pinned_version_in" ]]; then
+  if [[ -n $pinned_version_in ]]; then
     local pin_clean
-    if [[ "$pinned_version_in" =~ ^v[0-9] ]]; then
+    if [[ $pinned_version_in =~ ^v[0-9] ]]; then
       pin_clean="${pinned_version_in:1}"
     else
       pin_clean="$pinned_version_in"
     fi
     local match_raw=""
     for i in "${!clean_tags[@]}"; do
-      if [[ "${clean_tags[$i]}" == "$pin_clean" ]]; then
+      if [[ ${clean_tags[$i]} == "$pin_clean" ]]; then
         match_raw="${raw_tags[$i]}"
         break
       fi
     done
 
-    if [[ -z "$match_raw" ]]; then
+    if [[ -z $match_raw ]]; then
       msg_error "Pinned version ${pinned_version_in} not found upstream"
       return 250
     fi
 
-    if [[ "$current" != "$pin_clean" ]]; then
+    if [[ $current != "$pin_clean" ]]; then
       CHECK_UPDATE_RELEASE="$match_raw"
       msg_ok "Update available: ${app} ${current:-not installed} → ${pin_clean}"
       return 0
     fi
 
-    if [[ -n "$pin_reason" ]]; then
+    if [[ -n $pin_reason ]]; then
       msg_ok "No update available: ${app} (${current}) - update held back: ${pin_reason}"
     else
       msg_ok "No update available: ${app} (${current}) - update temporarily held back due to issues with newer releases"
@@ -8875,7 +8875,7 @@ check_for_gl_release() {
   fi
 
   # No pinning → use latest
-  if [[ -z "$current" || "$current" != "$latest_clean" ]]; then
+  if [[ -z $current || $current != "$latest_clean" ]]; then
     CHECK_UPDATE_RELEASE="$latest_raw"
     msg_ok "Update available: ${app} ${current:-not installed} → ${latest_clean}"
     return 0
@@ -8911,7 +8911,7 @@ _gl_scan_older_releases() {
   local skip_tag="$6"
 
   local header=()
-  [[ -n "${GITLAB_TOKEN:-}" ]] && header=(-H "PRIVATE-TOKEN: $GITLAB_TOKEN")
+  [[ -n ${GITLAB_TOKEN:-} ]] && header=(-H "PRIVATE-TOKEN: $GITLAB_TOKEN")
 
   local releases_list
   releases_list=$(curl --connect-timeout 10 --max-time 30 -fsSL \
@@ -8923,30 +8923,30 @@ _gl_scan_older_releases() {
 
   local count
   count=$(echo "$releases_list" | jq 'length' 2>/dev/null || echo 0)
-  [[ "$count" -eq 0 ]] && return 250
+  [[ $count -eq 0 ]] && return 250
 
   for ((i = 0; i < count; i++)); do
     local rel_tag
     rel_tag=$(echo "$releases_list" | jq -r ".[$i].tag_name")
 
     # Skip the tag we already checked
-    [[ "$rel_tag" == "$skip_tag" ]] && continue
+    [[ $rel_tag == "$skip_tag" ]] && continue
 
     # Asset URLs for this release (direct_asset_url preferred, fallback to url)
     local asset_urls
     asset_urls=$(echo "$releases_list" | jq -r ".[$i].assets.links // [] | .[] | .direct_asset_url // .url")
-    [[ -z "$asset_urls" ]] && continue
+    [[ -z $asset_urls ]] && continue
 
     local has_match=false
 
-    if [[ "$mode" == "binary" ]]; then
+    if [[ $mode == "binary" ]]; then
       local arch
       arch=$(dpkg --print-architecture 2>/dev/null || uname -m)
-      [[ "$arch" == "x86_64" ]] && arch="amd64"
-      [[ "$arch" == "aarch64" ]] && arch="arm64"
+      [[ $arch == "x86_64" ]] && arch="amd64"
+      [[ $arch == "aarch64" ]] && arch="arm64"
 
       # Check with explicit pattern first, then arch heuristic, then any .deb
-      if [[ -n "$asset_pattern" ]]; then
+      if [[ -n $asset_pattern ]]; then
         while read -r u; do
           case "${u##*/}" in $asset_pattern)
             has_match=true
@@ -8955,14 +8955,14 @@ _gl_scan_older_releases() {
           esac
         done <<<"$asset_urls"
       fi
-      if [[ "$has_match" != "true" ]]; then
+      if [[ $has_match != "true" ]]; then
         echo "$asset_urls" | grep -qE "($arch|amd64|x86_64|aarch64|arm64).*\.deb$" && has_match=true
       fi
-      if [[ "$has_match" != "true" ]]; then
+      if [[ $has_match != "true" ]]; then
         echo "$asset_urls" | grep -qE '\.deb$' && has_match=true
       fi
 
-    elif [[ "$mode" == "prebuild" || "$mode" == "singlefile" ]]; then
+    elif [[ $mode == "prebuild" || $mode == "singlefile" ]]; then
       while read -r u; do
         case "${u##*/}" in $asset_pattern)
           has_match=true
@@ -8972,7 +8972,7 @@ _gl_scan_older_releases() {
       done <<<"$asset_urls"
     fi
 
-    if [[ "$has_match" == "true" ]]; then
+    if [[ $has_match == "true" ]]; then
       local use_fallback="y"
       if [[ -t 0 ]]; then
         msg_warn "Release ${skip_tag} has no matching asset. Previous release ${rel_tag} has a compatible asset."
@@ -8980,7 +8980,7 @@ _gl_scan_older_releases() {
         use_fallback="${use_fallback:-y}"
       fi
 
-      if [[ "${use_fallback,,}" == "y" || "${use_fallback,,}" == "yes" ]]; then
+      if [[ ${use_fallback,,} == "y" || ${use_fallback,,} == "yes" ]]; then
         echo "$releases_list" | jq ".[$i]"
         return 0
       else
@@ -9000,9 +9000,9 @@ function fetch_and_deploy_gl_release() {
   local target="${5:-/opt/$app}"
   local asset_pattern="${6:-}"
 
-  if [[ -z "$app" ]]; then
+  if [[ -z $app ]]; then
     app="${repo##*/}"
-    if [[ -z "$app" ]]; then
+    if [[ -z $app ]]; then
       msg_error "fetch_and_deploy_gl_release requires app name or valid repo"
       return 1
     fi
@@ -9015,7 +9015,7 @@ function fetch_and_deploy_gl_release() {
   local download_timeout="--connect-timeout 15 --max-time 900"
 
   local current_version=""
-  [[ -f "$version_file" ]] && current_version=$(<"$version_file")
+  [[ -f $version_file ]] && current_version=$(<"$version_file")
 
   ensure_dependencies jq
 
@@ -9024,23 +9024,23 @@ function fetch_and_deploy_gl_release() {
 
   local api_base="https://gitlab.com/api/v4/projects/$repo_encoded/releases"
   local api_url
-  if [[ "$version" != "latest" ]]; then
+  if [[ $version != "latest" ]]; then
     api_url="$api_base/$version"
   else
     api_url="$api_base?per_page=1&order_by=released_at&sort=desc"
   fi
 
   local header=()
-  [[ -n "${GITLAB_TOKEN:-}" ]] && header=(-H "PRIVATE-TOKEN: $GITLAB_TOKEN")
+  [[ -n ${GITLAB_TOKEN:-} ]] && header=(-H "PRIVATE-TOKEN: $GITLAB_TOKEN")
 
   local max_retries=3 retry_delay=2 attempt=1 success=false http_code
 
   while ((attempt <= max_retries)); do
     http_code=$(curl $api_timeout -sSL -w "%{http_code}" -o /tmp/gl_rel.json "${header[@]}" "$api_url" 2>/dev/null) || true
-    if [[ "$http_code" == "200" ]]; then
+    if [[ $http_code == "200" ]]; then
       success=true
       break
-    elif [[ "$http_code" == "429" ]]; then
+    elif [[ $http_code == "429" ]]; then
       if ((attempt < max_retries)); then
         msg_warn "GitLab API rate limit hit, retrying in ${retry_delay}s... (attempt $attempt/$max_retries)"
         sleep "$retry_delay"
@@ -9053,21 +9053,21 @@ function fetch_and_deploy_gl_release() {
   done
 
   if ! $success; then
-    if [[ "$http_code" == "401" ]]; then
+    if [[ $http_code == "401" ]]; then
       msg_error "GitLab API authentication failed (HTTP 401)."
-      if [[ -n "${GITLAB_TOKEN:-}" ]]; then
+      if [[ -n ${GITLAB_TOKEN:-} ]]; then
         msg_error "Your GITLAB_TOKEN appears to be invalid or expired."
       else
-        msg_error "The repository may require authentication. Try: export GITLAB_TOKEN=\"glpat-your_token\""
+        msg_error 'The repository may require authentication. Try: export GITLAB_TOKEN="glpat-your_token"'
       fi
-    elif [[ "$http_code" == "404" ]]; then
+    elif [[ $http_code == "404" ]]; then
       msg_error "GitLab project or release not found (HTTP 404)."
       msg_error "Ensure '$repo' is correct and the project is accessible."
-    elif [[ "$http_code" == "429" ]]; then
+    elif [[ $http_code == "429" ]]; then
       msg_error "GitLab API rate limit exceeded (HTTP 429)."
       msg_error "To increase the limit, export a GitLab token before running the script:"
-      msg_error "  export GITLAB_TOKEN=\"glpat-your_token_here\""
-    elif [[ "$http_code" == "000" || -z "$http_code" ]]; then
+      msg_error '  export GITLAB_TOKEN="glpat-your_token_here"'
+    elif [[ $http_code == "000" || -z $http_code ]]; then
       msg_error "GitLab API connection failed (no response)."
       msg_error "Check your network/DNS: curl -sSL https://gitlab.com/api/v4/version"
     else
@@ -9079,23 +9079,23 @@ function fetch_and_deploy_gl_release() {
   local json tag_name
   json=$(</tmp/gl_rel.json)
 
-  if [[ "$version" == "latest" ]]; then
+  if [[ $version == "latest" ]]; then
     json=$(echo "$json" | jq '.[0] // empty')
-    if [[ -z "$json" || "$json" == "null" ]]; then
+    if [[ -z $json || $json == "null" ]]; then
       msg_error "No releases found for $repo on GitLab"
       return 1
     fi
   fi
 
   tag_name=$(echo "$json" | jq -r '.tag_name // empty')
-  if [[ -z "$tag_name" ]]; then
+  if [[ -z $tag_name ]]; then
     msg_error "Could not determine tag name from release metadata"
     return 1
   fi
-  [[ "$tag_name" =~ ^v[0-9] ]] && version="${tag_name:1}" || version="$tag_name"
+  [[ $tag_name =~ ^v[0-9] ]] && version="${tag_name:1}" || version="$tag_name"
   local version_safe="${version//\//-}"
 
-  if [[ "$current_version" == "$version" ]]; then
+  if [[ $current_version == "$version" ]]; then
     $STD msg_ok "$app is already up-to-date (v$version)"
     return 0
   fi
@@ -9114,7 +9114,7 @@ function fetch_and_deploy_gl_release() {
   }
 
   ### Tarball Mode ###
-  if [[ "$mode" == "tarball" || "$mode" == "source" ]]; then
+  if [[ $mode == "tarball" || $mode == "source" ]]; then
     local direct_tarball_url="https://gitlab.com/$repo/-/archive/$tag_name/${app_lc}-${version_safe}.tar.gz"
     filename="${app_lc}-${version_safe}.tar.gz"
 
@@ -9125,7 +9125,7 @@ function fetch_and_deploy_gl_release() {
     }
 
     mkdir -p "$target"
-    if [[ "${CLEAN_INSTALL:-0}" == "1" ]]; then
+    if [[ ${CLEAN_INSTALL:-0} == "1" ]]; then
       rm -rf "${target:?}/"*
     fi
 
@@ -9142,16 +9142,16 @@ function fetch_and_deploy_gl_release() {
     shopt -u dotglob nullglob
 
   ### Binary Mode ###
-  elif [[ "$mode" == "binary" ]]; then
+  elif [[ $mode == "binary" ]]; then
     local arch
     arch=$(dpkg --print-architecture 2>/dev/null || uname -m)
-    [[ "$arch" == "x86_64" ]] && arch="amd64"
-    [[ "$arch" == "aarch64" ]] && arch="arm64"
+    [[ $arch == "x86_64" ]] && arch="amd64"
+    [[ $arch == "aarch64" ]] && arch="arm64"
 
     local assets url_match=""
     assets=$(_gl_asset_urls "$json")
 
-    if [[ -n "$asset_pattern" ]]; then
+    if [[ -n $asset_pattern ]]; then
       for u in $assets; do
         case "${u##*/}" in
         $asset_pattern)
@@ -9162,30 +9162,30 @@ function fetch_and_deploy_gl_release() {
       done
     fi
 
-    if [[ -z "$url_match" ]]; then
+    if [[ -z $url_match ]]; then
       for u in $assets; do
-        if [[ "$u" =~ ($arch|amd64|x86_64|aarch64|arm64).*\.deb$ ]]; then
+        if [[ $u =~ ($arch|amd64|x86_64|aarch64|arm64).*\.deb$ ]]; then
           url_match="$u"
           break
         fi
       done
     fi
 
-    if [[ -z "$url_match" ]]; then
+    if [[ -z $url_match ]]; then
       for u in $assets; do
-        [[ "$u" =~ \.deb$ ]] && url_match="$u" && break
+        [[ $u =~ \.deb$ ]] && url_match="$u" && break
       done
     fi
 
-    if [[ -z "$url_match" ]]; then
+    if [[ -z $url_match ]]; then
       local fallback_json
       if fallback_json=$(_gl_scan_older_releases "$repo" "$repo_encoded" "https://gitlab.com" "binary" "$asset_pattern" "$tag_name"); then
         json="$fallback_json"
         tag_name=$(echo "$json" | jq -r '.tag_name // empty')
-        [[ "$tag_name" =~ ^v[0-9] ]] && version="${tag_name:1}" || version="$tag_name"
+        [[ $tag_name =~ ^v[0-9] ]] && version="${tag_name:1}" || version="$tag_name"
         msg_info "Fetching GitLab release: $app ($version)"
         assets=$(_gl_asset_urls "$json")
-        if [[ -n "$asset_pattern" ]]; then
+        if [[ -n $asset_pattern ]]; then
           for u in $assets; do
             case "${u##*/}" in $asset_pattern)
               url_match="$u"
@@ -9194,20 +9194,20 @@ function fetch_and_deploy_gl_release() {
             esac
           done
         fi
-        if [[ -z "$url_match" ]]; then
+        if [[ -z $url_match ]]; then
           for u in $assets; do
-            [[ "$u" =~ ($arch|amd64|x86_64|aarch64|arm64).*\.deb$ ]] && url_match="$u" && break
+            [[ $u =~ ($arch|amd64|x86_64|aarch64|arm64).*\.deb$ ]] && url_match="$u" && break
           done
         fi
-        if [[ -z "$url_match" ]]; then
+        if [[ -z $url_match ]]; then
           for u in $assets; do
-            [[ "$u" =~ \.deb$ ]] && url_match="$u" && break
+            [[ $u =~ \.deb$ ]] && url_match="$u" && break
           done
         fi
       fi
     fi
 
-    if [[ -z "$url_match" ]]; then
+    if [[ -z $url_match ]]; then
       msg_error "No suitable .deb asset found for $app"
       rm -rf "$tmpdir"
       return 1
@@ -9222,8 +9222,8 @@ function fetch_and_deploy_gl_release() {
 
     chmod 644 "$tmpdir/$filename"
     local dpkg_opts=""
-    [[ "${DPKG_FORCE_CONFOLD:-}" == "1" ]] && dpkg_opts="-o Dpkg::Options::=--force-confold"
-    [[ "${DPKG_FORCE_CONFNEW:-}" == "1" ]] && dpkg_opts="-o Dpkg::Options::=--force-confnew"
+    [[ ${DPKG_FORCE_CONFOLD:-} == "1" ]] && dpkg_opts="-o Dpkg::Options::=--force-confold"
+    [[ ${DPKG_FORCE_CONFNEW:-} == "1" ]] && dpkg_opts="-o Dpkg::Options::=--force-confnew"
     DEBIAN_FRONTEND=noninteractive SYSTEMD_OFFLINE=1 $STD apt install -y $dpkg_opts "$tmpdir/$filename" || {
       SYSTEMD_OFFLINE=1 $STD dpkg -i "$tmpdir/$filename" || {
         msg_error "Both apt and dpkg installation failed"
@@ -9233,10 +9233,10 @@ function fetch_and_deploy_gl_release() {
     }
 
   ### Prebuild Mode ###
-  elif [[ "$mode" == "prebuild" ]]; then
+  elif [[ $mode == "prebuild" ]]; then
     local pattern="${6%\"}"
     pattern="${pattern#\"}"
-    [[ -z "$pattern" ]] && {
+    [[ -z $pattern ]] && {
       msg_error "Mode 'prebuild' requires 6th parameter (asset filename pattern)"
       rm -rf "$tmpdir"
       return 1
@@ -9253,12 +9253,12 @@ function fetch_and_deploy_gl_release() {
       esac
     done
 
-    if [[ -z "$asset_url" ]]; then
+    if [[ -z $asset_url ]]; then
       local fallback_json
       if fallback_json=$(_gl_scan_older_releases "$repo" "$repo_encoded" "https://gitlab.com" "prebuild" "$pattern" "$tag_name"); then
         json="$fallback_json"
         tag_name=$(echo "$json" | jq -r '.tag_name // empty')
-        [[ "$tag_name" =~ ^v[0-9] ]] && version="${tag_name:1}" || version="$tag_name"
+        [[ $tag_name =~ ^v[0-9] ]] && version="${tag_name:1}" || version="$tag_name"
         msg_info "Fetching GitLab release: $app ($version)"
         for u in $(_gl_asset_urls "$json"); do
           filename_candidate="${u##*/}"
@@ -9271,7 +9271,7 @@ function fetch_and_deploy_gl_release() {
       fi
     fi
 
-    [[ -z "$asset_url" ]] && {
+    [[ -z $asset_url ]] && {
       msg_error "No asset matching '$pattern' found"
       rm -rf "$tmpdir"
       return 1
@@ -9287,18 +9287,18 @@ function fetch_and_deploy_gl_release() {
     local unpack_tmp
     unpack_tmp=$(mktemp -d)
     mkdir -p "$target"
-    if [[ "${CLEAN_INSTALL:-0}" == "1" ]]; then
+    if [[ ${CLEAN_INSTALL:-0} == "1" ]]; then
       rm -rf "${target:?}/"*
     fi
 
-    if [[ "$filename" == *.zip ]]; then
+    if [[ $filename == *.zip ]]; then
       ensure_dependencies unzip
       unzip -q "$tmpdir/$filename" -d "$unpack_tmp" || {
         msg_error "Failed to extract ZIP archive"
         rm -rf "$tmpdir" "$unpack_tmp"
         return 1
       }
-    elif [[ "$filename" == *.tar.* || "$filename" == *.tgz || "$filename" == *.txz ]]; then
+    elif [[ $filename == *.tar.* || $filename == *.tgz || $filename == *.txz ]]; then
       tar --no-same-owner -xf "$tmpdir/$filename" -C "$unpack_tmp" || {
         msg_error "Failed to extract TAR archive"
         rm -rf "$tmpdir" "$unpack_tmp"
@@ -9312,7 +9312,7 @@ function fetch_and_deploy_gl_release() {
 
     local top_entries inner_dir
     top_entries=$(find "$unpack_tmp" -mindepth 1 -maxdepth 1)
-    if [[ "$(echo "$top_entries" | wc -l)" -eq 1 && -d "$top_entries" ]]; then
+    if [[ "$(echo "$top_entries" | wc -l)" -eq 1 && -d $top_entries ]]; then
       inner_dir="$top_entries"
       shopt -s dotglob nullglob
       if compgen -G "$inner_dir/*" >/dev/null; then
@@ -9344,10 +9344,10 @@ function fetch_and_deploy_gl_release() {
     fi
 
   ### Singlefile Mode ###
-  elif [[ "$mode" == "singlefile" ]]; then
+  elif [[ $mode == "singlefile" ]]; then
     local pattern="${6%\"}"
     pattern="${pattern#\"}"
-    [[ -z "$pattern" ]] && {
+    [[ -z $pattern ]] && {
       msg_error "Mode 'singlefile' requires 6th parameter (asset filename pattern)"
       rm -rf "$tmpdir"
       return 1
@@ -9364,12 +9364,12 @@ function fetch_and_deploy_gl_release() {
       esac
     done
 
-    if [[ -z "$asset_url" ]]; then
+    if [[ -z $asset_url ]]; then
       local fallback_json
       if fallback_json=$(_gl_scan_older_releases "$repo" "$repo_encoded" "https://gitlab.com" "singlefile" "$pattern" "$tag_name"); then
         json="$fallback_json"
         tag_name=$(echo "$json" | jq -r '.tag_name // empty')
-        [[ "$tag_name" =~ ^v[0-9] ]] && version="${tag_name:1}" || version="$tag_name"
+        [[ $tag_name =~ ^v[0-9] ]] && version="${tag_name:1}" || version="$tag_name"
         msg_info "Fetching GitLab release: $app ($version)"
         for u in $(_gl_asset_urls "$json"); do
           filename_candidate="${u##*/}"
@@ -9382,7 +9382,7 @@ function fetch_and_deploy_gl_release() {
       fi
     fi
 
-    [[ -z "$asset_url" ]] && {
+    [[ -z $asset_url ]] && {
       msg_error "No asset matching '$pattern' found"
       rm -rf "$tmpdir"
       return 1
@@ -9393,7 +9393,7 @@ function fetch_and_deploy_gl_release() {
 
     local use_filename="${USE_ORIGINAL_FILENAME:-false}"
     local target_file="$app"
-    [[ "$use_filename" == "true" ]] && target_file="$filename"
+    [[ $use_filename == "true" ]] && target_file="$filename"
 
     curl $download_timeout -fsSL "${header[@]}" -o "$target/$target_file" "$asset_url" || {
       msg_error "Download failed: $asset_url"
@@ -9401,7 +9401,7 @@ function fetch_and_deploy_gl_release() {
       return 1
     }
 
-    if [[ "$target_file" != *.jar && -f "$target/$target_file" ]]; then
+    if [[ $target_file != *.jar && -f "$target/$target_file" ]]; then
       chmod +x "$target/$target_file"
     fi
 
@@ -9449,7 +9449,7 @@ function setup_nltk() {
     local pkg_line subdir pkg_url do_unzip tmp_zip
 
     pkg_line=$(echo "$index_xml" | grep "id=\"${pkg}\"" | head -1)
-    if [[ -z "$pkg_line" ]]; then
+    if [[ -z $pkg_line ]]; then
       msg_error "NLTK package not found in index: $pkg"
       rc=1
       continue
@@ -9459,7 +9459,7 @@ function setup_nltk() {
     pkg_url=$(echo "$pkg_line" | grep -oP 'url="\K[^"]+')
     do_unzip=$(echo "$pkg_line" | grep -oP 'unzip="\K[^"]+')
 
-    if [[ -z "$subdir" || -z "$pkg_url" ]]; then
+    if [[ -z $subdir || -z $pkg_url ]]; then
       msg_error "Could not parse NLTK index entry for: $pkg"
       rc=1
       continue
@@ -9469,7 +9469,7 @@ function setup_nltk() {
     tmp_zip=$(mktemp --suffix=.zip)
 
     if CURL_TIMEOUT=120 curl_with_retry "$pkg_url" "$tmp_zip"; then
-      if [[ "$do_unzip" == "1" ]]; then
+      if [[ $do_unzip == "1" ]]; then
         $STD unzip -q -o "$tmp_zip" -d "${target_dir}/${subdir}/"
         rm -f "$tmp_zip"
       else
