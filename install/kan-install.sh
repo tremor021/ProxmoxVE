@@ -47,7 +47,7 @@ set -a && source /opt/kan/.env && set +a
 export NEXT_PUBLIC_USE_STANDALONE_OUTPUT=true NEXT_PUBLIC_BASE_URL BETTER_AUTH_TRUSTED_ORIGINS NEXT_PUBLIC_ALLOW_CREDENTIALS BETTER_AUTH_SECRET
 $STD pnpm install --ignore-scripts
 export CI=true
-sed -i 's|"@kan/tsconfig/internal-package.json"|"../../tooling/typescript/internal-package.json"|g' /opt/kan/packages/logger/tsconfig.json
+find /opt/kan/packages /opt/kan/apps -name 'tsconfig.json' -exec sed -i 's|"@kan/tsconfig/|"../../tooling/typescript/|g' {} +
 $STD pnpm build --filter=@kan/web
 unset NEXT_PUBLIC_USE_STANDALONE_OUTPUT CI
 msg_ok "Built Application"
