@@ -41,12 +41,12 @@ cat <<EOF >/etc/caddy/Caddyfile
 }
 EOF
 usermod -aG www-data caddy
-msg_ok "Configured Caddy"
-
 systemctl enable -q --now php${PHP_VER}-fpm
 systemctl restart caddy
+msg_ok "Configured Caddy"
 
 msg_info "Automating Webtrees Setup"
+cd /opt/webtrees
 WT_ADMIN_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c15)
 $STD sudo -u www-data php /opt/webtrees/index.php config-ini \
   --dbhost=127.0.0.1 \
