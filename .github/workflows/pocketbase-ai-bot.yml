@@ -2,10 +2,10 @@ name: PocketBase AI Bot
 
 # Natural-language companion to pocketbase-bot.yml.
 # Mention the bot in plain English, e.g.:
-#   @pocketbase change RAM to 4096 on zigbee2mqtt
-#   @pocketbase disable script Nextcloud because upstream is broken
+#   @pocketbase-bot change RAM to 4096 on zigbee2mqtt
+#   @pocketbase-bot disable script Nextcloud because upstream is broken
 # The bot parses the request with GitHub Models, replies with the exact change(s)
-# it understood, and only applies them after you reply "@pocketbase confirm".
+# it understood, and only applies them after you reply "@pocketbase-bot confirm".
 # The slash-command bot (/pocketbase ...) is unaffected; triggers do not overlap.
 
 on:
@@ -19,7 +19,7 @@ jobs:
   ai-bot:
     runs-on: self-hosted
     # Broad gate; the script does precise keyword + self-author checks.
-    if: contains(github.event.comment.body, '@pocketbase')
+    if: contains(github.event.comment.body, '@pocketbase-bot')
 
     steps:
       - name: Mint GitHub App token (bot identity)
@@ -33,6 +33,7 @@ jobs:
         env:
           # GitHub REST as the bot identity
           GH_APP_TOKEN: ${{ steps.app-token.outputs.token }}
+          PB_BOT_APP_ID: ${{ secrets.PB_BOT_APP_ID }}
           # GitHub Models inference uses the built-in token (needs models: read)
           MODELS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           AI_MODEL: openai/gpt-4o
@@ -154,16 +155,16 @@ jobs:
               await addReaction('-1');
               await postComment(
                 '❌ **PocketBase AI Bot**: @' + actor + ' is not authorized to use this command.\n' +
-                'Only org members (Contributors team) can use `@pocketbase`.'
+                'Only org members (Contributors team) can use `@pocketbase-bot`.'
               );
               return;
             }
 
-            // ── 3. Extract the instruction after the @pocketbase handle ────────
+            // ── 3. Extract the instruction after the @pocketbase-bot handle ────
             const commentBody = process.env.COMMENT_BODY || '';
-            const handleMatch = commentBody.match(/@pocketbase[\w-]*(\[bot\])?/i);
+            const handleMatch = commentBody.match(/@pocketbase-bot(\[bot\])?/i);
             if (!handleMatch) {
-              console.log('No @pocketbase handle found — ignoring.');
+              console.log('No @pocketbase-bot handle found — ignoring.');
               return;
             }
             const instruction = commentBody.slice(handleMatch.index + handleMatch[0].length).trim();
@@ -171,7 +172,7 @@ jobs:
               await addReaction('-1');
               await postComment(
                 'ℹ️ **PocketBase AI Bot**: Tell me what to do, e.g.\n' +
-                '`@pocketbase change RAM to 4096 on zigbee2mqtt` or `@pocketbase disable script Nextcloud`.'
+                '`@pocketbase-bot change RAM to 4096 on zigbee2mqtt` or `@pocketbase-bot disable script Nextcloud`.'
               );
               return;
             }
@@ -282,7 +283,7 @@ jobs:
               if (openPrs.length > 0) return { status: 'updated', prUrl: openPrs[0].html_url, updatedVars: updateResult.updatedVars };
               const createPrRes = await ghRequest('/repos/' + owner + '/' + repo + '/pulls', 'POST', {
                 title: 'chore(ct): sync ' + slugValue + ' defaults with PocketBase',
-                body: '## Summary\n- Sync default CT variables for `' + slugValue + '` after an `@pocketbase` update.\n- Updated vars: `' + updateResult.updatedVars.join('`, `') + '`.\n\n## Source\n- Triggered by @' + actor + ' via PocketBase AI bot.\n',
+                body: '## Summary\n- Sync default CT variables for `' + slugValue + '` after an `@pocketbase-bot` update.\n- Updated vars: `' + updateResult.updatedVars.join('`, `') + '`.\n\n## Source\n- Triggered by @' + actor + ' via PocketBase AI bot.\n',
                 head: branchName,
                 base: defaultBranch
               });
@@ -320,6 +321,29 @@ jobs:
               }
               if (type === 'nullable_string') return { value: rawVal === '' || rawVal == null ? null : String(rawVal) };
               return { value: String(rawVal) };
+            }
+
+            // ── Operation validation (used at propose AND confirm time) ────────
+            // Never trust raw operations: enforce the field/op allow-lists and
+            // re-cast values. Returns only well-formed, allowed operations.
+            function sanitizeOperations(ops) {
+              const validOps = [], problems = [];
+              for (const op of (Array.isArray(ops) ? ops : [])) {
+                if (op && op.kind === 'field') {
+                  const cast = castFieldValue(op.field, op.value);
+                  if (cast.error) { problems.push(cast.error); continue; }
+                  validOps.push({ kind: 'field', field: op.field, value: cast.value });
+                } else if (op && op.kind === 'note' && ['add', 'edit', 'remove'].includes(op.action)) {
+                  validOps.push({ kind: 'note', action: op.action, type: String(op.type || ''), text: op.text, newText: op.newText });
+                } else if (op && op.kind === 'method' && ['add', 'edit', 'remove'].includes(op.action)) {
+                  const changes = {};
+                  for (const [k, v] of Object.entries(op.changes || {})) { if (ALL_METHOD_KEYS[k]) changes[k] = v; }
+                  validOps.push({ kind: 'method', action: op.action, type: String(op.type || 'default'), changes });
+                } else {
+                  problems.push('Unsupported operation: `' + JSON.stringify(op) + '`');
+                }
+              }
+              return { validOps, problems };
             }
 
             // ── Executor: apply a validated {slug, operations} set ─────────────
@@ -416,10 +440,17 @@ jobs:
 
             if (isConfirm) {
               const comments = await listIssueComments();
+              const appId = String(process.env.PB_BOT_APP_ID || '');
               let pending = null, pendingComment = null;
               for (let i = comments.length - 1; i >= 0; i--) {
-                const m = comments[i].body && comments[i].body.match(PENDING_RE);
-                if (m) { pending = m[1]; pendingComment = comments[i]; break; }
+                const c = comments[i];
+                // Only trust a marker in a comment THIS bot app authored — otherwise a
+                // user could hand-craft a forged pocketbase-pending marker and confirm it.
+                const byBotApp = c.user && c.user.type === 'Bot' &&
+                  c.performed_via_github_app && String(c.performed_via_github_app.id) === appId;
+                if (!byBotApp) continue;
+                const m = c.body && c.body.match(PENDING_RE);
+                if (m) { pending = m[1]; pendingComment = c; break; }
               }
               if (!pending) {
                 await addReaction('confused');
@@ -429,6 +460,15 @@ jobs:
               let action;
               try { action = JSON.parse(Buffer.from(pending, 'base64').toString('utf8')); }
               catch (e) { await postComment('❌ **PocketBase AI Bot**: Could not decode the pending change.'); return; }
+
+              // Re-validate the decoded operations before applying (defense-in-depth).
+              const recheck = sanitizeOperations(action.operations);
+              if (!action.slug || recheck.validOps.length === 0) {
+                await addReaction('-1');
+                await postComment('❌ **PocketBase AI Bot**: The pending change is no longer valid. Please restate the request.');
+                return;
+              }
+              action.operations = recheck.validOps;
 
               let result;
               try { result = await applyOperations(action); }
@@ -514,30 +554,16 @@ jobs:
             const problems = [];
             if (parsed.clarification) problems.push(parsed.clarification);
             if (!parsed.slug || !knownSlugs.has(parsed.slug)) problems.push('I could not match the request to a known script.');
-            const ops = Array.isArray(parsed.operations) ? parsed.operations : [];
-            const validOps = [];
-            for (const op of ops) {
-              if (op.kind === 'field') {
-                const cast = castFieldValue(op.field, op.value);
-                if (cast.error) { problems.push(cast.error); continue; }
-                validOps.push({ kind: 'field', field: op.field, value: cast.value });
-              } else if (op.kind === 'note' && ['add', 'edit', 'remove'].includes(op.action)) {
-                validOps.push({ kind: 'note', action: op.action, type: op.type, text: op.text, newText: op.newText });
-              } else if (op.kind === 'method' && ['add', 'edit', 'remove'].includes(op.action)) {
-                const changes = {};
-                for (const [k, v] of Object.entries(op.changes || {})) { if (ALL_METHOD_KEYS[k]) changes[k] = v; }
-                validOps.push({ kind: 'method', action: op.action, type: op.type || 'default', changes });
-              } else {
-                problems.push('Unsupported operation: `' + JSON.stringify(op) + '`');
-              }
-            }
+            const sanitized = sanitizeOperations(parsed.operations);
+            const validOps = sanitized.validOps;
+            problems.push.apply(problems, sanitized.problems);
             if (validOps.length === 0) problems.push('No concrete, supported change was found.');
 
             if (problems.length) {
               await addReaction('confused');
               await postComment(
                 '🤔 **PocketBase AI Bot**: I need a bit more to act on that.\n\n- ' + problems.join('\n- ') +
-                '\n\nTry naming the script and the exact change, e.g. `@pocketbase set RAM to 4096 on zigbee2mqtt`.'
+                '\n\nTry naming the script and the exact change, e.g. `@pocketbase-bot set RAM to 4096 on zigbee2mqtt`.'
               );
               return;
             }
@@ -555,7 +581,7 @@ jobs:
               '🤖 **PocketBase AI Bot** — please confirm\n\n' +
               (parsed.human_summary ? '> ' + parsed.human_summary + '\n\n' : '') +
               '**Target:** `' + action.slug + '`\n**Proposed changes:**\n' + bullets + '\n\n' +
-              'Reply **`@pocketbase confirm`** to apply, or restate the request to adjust.\n' + marker
+              'Reply **`@pocketbase-bot confirm`** to apply, or restate the request to adjust.\n' + marker
             );
           })().catch(function (e) {
             console.error('Fatal error:', e && (e.message || e));
