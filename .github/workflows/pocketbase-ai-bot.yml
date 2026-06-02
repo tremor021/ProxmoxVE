@@ -14,6 +14,8 @@ on:
 
 permissions:
   models: read # lets the built-in GITHUB_TOKEN call GitHub Models inference
+  contents: write # built-in token opens the CT-defaults sync PR (like the slash bot)
+  pull-requests: write
 
 jobs:
   ai-bot:
@@ -36,6 +38,8 @@ jobs:
           PB_BOT_APP_ID: ${{ secrets.PB_BOT_APP_ID }}
           # GitHub Models inference uses the built-in token (needs models: read)
           MODELS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Built-in token for git/PR ops (CT-defaults sync), mirroring the slash bot
+          GH_DEFAULT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           AI_MODEL: openai/gpt-4o
           # PocketBase
           POCKETBASE_URL: ${{ secrets.POCKETBASE_URL }}
@@ -106,6 +110,20 @@ jobs:
             function ghRequest(path, method, body) {
               const headers = {
                 'Authorization': 'Bearer ' + process.env.GH_APP_TOKEN,
+                'Accept': 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28',
+                'User-Agent': 'PocketBase-AI-Bot'
+              };
+              const bodyStr = body ? JSON.stringify(body) : undefined;
+              if (bodyStr) headers['Content-Type'] = 'application/json';
+              return request('https://api.github.com' + path, { method: method || 'GET', headers, body: bodyStr });
+            }
+
+            // Same as ghRequest but authenticated with the built-in GITHUB_TOKEN.
+            // Used for the CT-defaults sync branch/PR (the App token lacks contents:write).
+            function ghDefault(path, method, body) {
+              const headers = {
+                'Authorization': 'Bearer ' + process.env.GH_DEFAULT_TOKEN,
                 'Accept': 'application/vnd.github+json',
                 'X-GitHub-Api-Version': '2022-11-28',
                 'User-Agent': 'PocketBase-AI-Bot'
@@ -243,6 +261,7 @@ jobs:
               return { nextText, updatedVars, unchangedVars };
             }
             async function ensureBranch(defaultBranch, branchName) {
+              const ghRequest = ghDefault; // git ops run as the built-in token
               const branchRefRes = await ghRequest('/repos/' + owner + '/' + repo + '/git/ref/heads/' + encodeURIComponent(branchName));
               if (branchRefRes.ok) return;
               const defaultRefRes = await ghRequest('/repos/' + owner + '/' + repo + '/git/ref/heads/' + encodeURIComponent(defaultBranch));
@@ -252,6 +271,7 @@ jobs:
               if (!createBranchRes.ok) throw new Error('Could not create branch: ' + createBranchRes.body);
             }
             async function upsertCtDefaultsPr(slugValue, varChanges) {
+              const ghRequest = ghDefault; // contents/PR ops run as the built-in token
               const wantedEntries = Object.entries(varChanges || {}).filter(function ([, v]) { return v !== undefined && v !== null && String(v) !== ''; });
               if (wantedEntries.length === 0) return { status: 'skipped', reason: 'No mapped CT defaults changed.' };
               const repoRes = await ghRequest('/repos/' + owner + '/' + repo);
