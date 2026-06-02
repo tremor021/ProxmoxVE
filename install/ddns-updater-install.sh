@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: reptil1990
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -34,10 +33,12 @@ msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/ddns-updater.service
 [Unit]
 Description=DDNS-Updater
-After=network.target
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
+ExecStartPre=/bin/bash -c 'for i in \$(seq 1 30); do curl -sf --max-time 5 https://1.1.1.1 >/dev/null 2>&1 && break || sleep 2; done'
 ExecStart=/opt/ddns-updater/ddns-updater
 Environment=DATADIR=/opt/ddns-updater/data
 Environment=LISTENING_ADDRESS=:8000
