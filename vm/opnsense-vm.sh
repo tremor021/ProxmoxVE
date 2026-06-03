@@ -39,8 +39,8 @@ DGN=$(echo "\033[32m")
 CL=$(echo "\033[m")
 BFR="\\r\\033[K"
 HOLD="-"
-CM="${GN}?${CL}"
-CROSS="${RD}?${CL}"
+CM="${GN}âœ“${CL}"
+CROSS="${RD}âœ—${CL}"
 set -Eeo pipefail
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
@@ -207,17 +207,17 @@ function msg_error() {
 }
 
 # This function checks the version of Proxmox Virtual Environment (PVE) and exits if the version is not supported.
-# Supported: Proxmox VE 8.0.x – 8.9.x, 9.0 and 9.2
+# Supported: Proxmox VE 8.0.x ï¿½ 8.9.x, 9.0 and 9.2
 pve_check() {
   local PVE_VER
   PVE_VER="$(pveversion | awk -F'/' '{print $2}' | awk -F'-' '{print $1}')"
 
-  # Check for Proxmox VE 8.x: allow 8.0–8.9
+  # Check for Proxmox VE 8.x: allow 8.0ï¿½8.9
   if [[ "$PVE_VER" =~ ^8\.([0-9]+) ]]; then
     local MINOR="${BASH_REMATCH[1]}"
     if ((MINOR < 0 || MINOR > 9)); then
       msg_error "This version of Proxmox VE is not supported."
-      msg_error "Supported: Proxmox VE version 8.0 – 8.9"
+      msg_error "Supported: Proxmox VE version 8.0 ï¿½ 8.9"
       exit 105
     fi
     return 0
@@ -228,7 +228,7 @@ pve_check() {
     local MINOR="${BASH_REMATCH[1]}"
     if ((MINOR < 0 || MINOR > 2)); then
       msg_error "This version of Proxmox VE is not supported."
-      msg_error "Supported: Proxmox VE version 9.0 – 9.2"
+      msg_error "Supported: Proxmox VE version 9.0 ï¿½ 9.2"
       exit 105
     fi
     return 0
@@ -236,7 +236,7 @@ pve_check() {
 
   # All other unsupported versions
   msg_error "This version of Proxmox VE is not supported."
-  msg_error "Supported versions: Proxmox VE 8.0 – 8.x or 9.0 – 9.2"
+  msg_error "Supported versions: Proxmox VE 8.0 ï¿½ 8.x or 9.0 ï¿½ 9.2"
   exit 105
 }
 
