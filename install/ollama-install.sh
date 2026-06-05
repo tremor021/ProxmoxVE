@@ -69,6 +69,13 @@ if ! fetch_and_deploy_gh_release "ollama-com" "ollama/ollama" "prebuild" "latest
   msg_error "Failed to download or deploy Ollama – check network connectivity and GitHub API availability"
   exit 250
 fi
+# If /dev/kfd exists assume an AMD GPU is installed, and install ROCM support for ollama
+if [[ -e /dev/kfd ]]; then
+  if ! fetch_and_deploy_gh_release "ollama-rocm-com" "ollama/ollama" "prebuild" "latest" "$OLLAMA_INSTALL_DIR/lib" "ollama-linux-amd64-rocm.tar.zst"; then
+    msg_error "Failed to download or deploy Ollama AMD ROCM suport – check network connectivity and GitHub API availability"
+    exit 250
+  fi
+fi
 ln -sf "$OLLAMA_INSTALL_DIR/bin/ollama" "$BINDIR/ollama"
 msg_ok "Installed Ollama"
 
@@ -102,6 +109,10 @@ RestartSec=3
 [Install]
 WantedBy=multi-user.target
 EOF
+if [[ -e /dev/kfd ]]; then
+  sed -i '/Environment=OLLAMA_INTEL_GPU=true/a Environment=OLLAMA_IGPU_ENABLE=1' \
+      /etc/systemd/system/ollama.service
+fi
 systemctl enable -q --now ollama
 msg_ok "Created Service"
 
