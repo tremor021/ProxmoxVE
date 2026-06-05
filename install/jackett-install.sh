@@ -15,6 +15,10 @@ update_os
 
 fetch_and_deploy_gh_release "jackett" "Jackett/Jackett" "prebuild" "latest" "/opt/Jackett" "Jackett.Binaries.LinuxAMDx64.tar.gz"
 
+cat <<EOF >/opt/.env
+DisableRootWarning=true
+EOF
+
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/jackett.service
 [Unit]
