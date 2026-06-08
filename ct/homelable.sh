@@ -38,6 +38,9 @@ function update_script() {
     msg_info "Backing up Configuration and Data"
     cp /opt/homelable/backend/.env /opt/homelable.env.bak
     cp -r /opt/homelable/data /opt/homelable_data_bak
+    if [[ -f /opt/homelable/mcp/.env ]]; then
+      cp -a /opt/homelable/mcp/.env /opt/homelable-mcp.env.bak
+    fi
     msg_ok "Backed up Configuration and Data"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "homelable" "Pouzor/homelable" "tarball" "latest" "/opt/homelable"
@@ -60,6 +63,19 @@ function update_script() {
     rm -f /opt/homelable.env.bak
     rm -rf /opt/homelable_data_bak
     msg_ok "Restored Configuration and Data"
+
+    if [[ -f /opt/homelable-mcp.env.bak ]]; then
+      msg_info "Restoring MCP Server"
+      cp -a /opt/homelable-mcp.env.bak /opt/homelable/mcp/.env
+      rm -f /opt/homelable-mcp.env.bak
+      MCP_OWNER=$(stat -c '%U' /opt/homelable/mcp/.env)
+      cd /opt/homelable/mcp
+      $STD uv venv --clear /opt/homelable/mcp/.venv
+      $STD uv pip install --python /opt/homelable/mcp/.venv/bin/python -r requirements.txt
+      chown -R "$MCP_OWNER":"$MCP_OWNER" /opt/homelable/mcp
+      systemctl restart homelable-mcp
+      msg_ok "Restored MCP Server"
+    fi
 
     msg_info "Starting Service"
     systemctl start homelable
