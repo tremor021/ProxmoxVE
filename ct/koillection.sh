@@ -43,10 +43,9 @@ function update_script() {
     fetch_and_deploy_gh_release "koillection" "benjaminjonard/koillection" "tarball"
 
     msg_info "Updating Koillection"
-    cd /opt/koillection 
     cp -r /opt/koillection-backup/.env.local /opt/koillection
     cp -r /opt/koillection-backup/public/uploads/. /opt/koillection/public/uploads/
-    
+
     # Ensure APP_RUNTIME is in .env.local for CLI commands (upgrades from older versions)
     if ! grep -q "APP_RUNTIME" /opt/koillection/.env.local 2>/dev/null; then
       # Ensure file ends with newline before appending to avoid concatenation
@@ -54,12 +53,13 @@ function update_script() {
       echo 'APP_RUNTIME="Symfony\Component\Runtime\SymfonyRuntime"' >>/opt/koillection/.env.local
     fi
     NODE_VERSION="26" NODE_MODULE="yarn" setup_nodejs
+    cd /opt/koillection
     export COMPOSER_ALLOW_SUPERUSER=1
     export APP_RUNTIME='Symfony\Component\Runtime\SymfonyRuntime'
     $STD composer install --no-dev -o --no-interaction --classmap-authoritative
     $STD php bin/console doctrine:migrations:migrate --no-interaction
     $STD php bin/console app:translations:dump
-    cd assets/ 
+    cd assets/
     $STD yarn install
     $STD yarn build
     mkdir -p /opt/koillection/public/uploads
@@ -67,7 +67,7 @@ function update_script() {
     chown -R www-data:www-data /opt/koillection/var/log
     chown -R www-data:www-data /opt/koillection/public/uploads
     rm -r /opt/koillection-backup
-    
+
     # Ensure APP_RUNTIME is set in Apache config (for upgrades from older versions)
     if ! grep -q "APP_RUNTIME" /etc/apache2/sites-available/koillection.conf 2>/dev/null; then
       sed -i '/<VirtualHost/a\    SetEnv APP_RUNTIME "Symfony\\Component\\Runtime\\SymfonyRuntime"' /etc/apache2/sites-available/koillection.conf
