@@ -1,3 +1,4 @@
+```yml
 name: Script request
 description: Request a new script for Proxmox VE Helper-Scripts
 title: "[Script request]: "
@@ -76,7 +77,7 @@ body:
       required: true
 
   - type: textarea
-    id: description
+    id: app-description
     attributes:
       label: Description
       description: Explain what the application does and why it should be added to Proxmox VE Helper-Scripts.
@@ -91,7 +92,7 @@ body:
     id: installation-notes
     attributes:
       label: Installation / Deployment Notes
-      description: Add any relevant installation details, dependencies, build requirements, ports, databases, services, or known limitations.
+      description: Add relevant installation details, dependencies, build requirements, ports, databases, services, or known limitations.
       placeholder: |
         Example:
         - Requires Python, Node.js, PostgreSQL, Redis, etc.
@@ -119,9 +120,9 @@ body:
       label: Due Diligence
       description: Please confirm the following before submitting your request.
       options:
-        - label: "I have searched existing [scripts](https://community-scripts.github.io/Proxmox/scripts) and found no duplicate."
+        - label: "I have searched existing scripts and found no duplicate."
           required: true
-        - label: "I have searched existing [discussions](https://github.com/community-scripts/ProxmoxVE/discussions?discussions_q=) and found no duplicate request."
+        - label: "I have searched existing discussions and found no duplicate request."
           required: true
         - label: "The application has an official public source repository."
           required: true
@@ -145,3 +146,4 @@ body:
       value: |
         Thanks for submitting your request.
         The team will review it and may ask for more information if needed.
+```
