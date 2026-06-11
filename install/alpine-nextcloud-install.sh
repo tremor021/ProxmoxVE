@@ -136,7 +136,7 @@ server {
 EOF
 sed -i -e 's|memory_limit = 128M|memory_limit = 512M|; $aapc.enable_cli=1' /etc/php85/php.ini
 sed -i -e 's|upload_max_file_size = 2M|upload_max_file_size = 16G|' /etc/php85/php.ini
-sed -i -E '/^php_admin_(flag|value)\[opcache/s/^/;/' /etc/php85/fpm.d/nextcloud.conf
+#sed -i -E '/^php_admin_(flag|value)\[opcache/s/^/;/' /etc/php85/fpm.d/nextcloud.conf
 sed -i -e 's| js;| mjs js;|' /etc/nginx/mime.types
 msg_ok "Installed Nextcloud"
 
