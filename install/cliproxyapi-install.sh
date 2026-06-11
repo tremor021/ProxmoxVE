@@ -38,6 +38,10 @@ quota-exceeded:
 routing:
   strategy: "round-robin"
 EOF
+
+cat <<EOF >~/cliproxy.creds
+Management Password: ${MANAGEMENT_PASSWORD}
+EOF
 msg_ok "Configured CLIProxyAPI"
 
 msg_info "Creating Service"
