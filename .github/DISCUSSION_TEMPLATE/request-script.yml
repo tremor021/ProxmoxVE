@@ -1,7 +1,8 @@
 name: Script request
 description: Request a new script for Proxmox VE Helper-Scripts
 title: "[Script request]: "
-labels: ["enhancement"]
+labels:
+  - enhancement
 
 body:
   - type: markdown
@@ -70,7 +71,7 @@ body:
     id: stars-or-adoption
     attributes:
       label: Stars / Adoption
-      description: Enter the current star count or another public adoption metric. The repository should have at least 1,000 stars or a clearly comparable public adoption signal.
+      description: Enter the current star count or another public adoption metric. The repository should have at least 1,000 stars or a comparable public adoption signal.
       placeholder: "e.g., 75k GitHub stars"
     validations:
       required: true
@@ -119,25 +120,25 @@ body:
       label: Due Diligence
       description: Please confirm the following before submitting your request.
       options:
-        - label: "I have searched existing scripts and found no duplicate."
+        - label: I have searched existing scripts and found no duplicate.
           required: true
-        - label: "I have searched existing discussions and found no duplicate request."
+        - label: I have searched existing discussions and found no duplicate request.
           required: true
-        - label: "The application has an official public source repository."
+        - label: The application has an official public source repository.
           required: true
-        - label: "The application has official releases, tags, or release tarballs."
+        - label: The application has official releases, tags, or release tarballs.
           required: true
-        - label: "The latest official release or tag is not older than 6 months."
+        - label: The latest official release or tag is not older than 6 months.
           required: true
-        - label: "The project itself is at least 6 months old."
+        - label: The project itself is at least 6 months old.
           required: true
-        - label: "The project has at least 1,000 stars or a comparable public adoption signal."
+        - label: The project has at least 1,000 stars or a comparable public adoption signal.
           required: true
-        - label: "The application is actively maintained."
+        - label: The application is actively maintained.
           required: true
-        - label: "The application is self-hosted and suitable for Proxmox VE Helper-Scripts."
+        - label: The application is self-hosted and suitable for Proxmox VE Helper-Scripts.
           required: true
-        - label: "I understand that requests outside the project scope may be closed without an extensive explanation."
+        - label: I understand that requests outside the project scope may be closed without an extensive explanation.
           required: true
 
   - type: markdown
