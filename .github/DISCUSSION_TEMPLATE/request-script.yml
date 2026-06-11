@@ -1,4 +1,3 @@
-```yml
 name: Script request
 description: Request a new script for Proxmox VE Helper-Scripts
 title: "[Script request]: "
@@ -146,4 +145,3 @@ body:
       value: |
         Thanks for submitting your request.
         The team will review it and may ask for more information if needed.
-```
