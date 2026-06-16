@@ -11,5 +11,5 @@ color
 
 msg_error "This script is no longer available in community-scripts."
 msg_error "This script was removed and cannot be installed or updated."
-msg_info "More info: https://community-scripts.org/scripts/litellm"
+msg_warn "More info: https://community-scripts.org/scripts/litellm"
 exit 1

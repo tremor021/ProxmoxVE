@@ -3677,7 +3677,7 @@ runtime_script_status_guard() {
     msg_error "This script is no longer available in community-scripts."
     [[ -n "$deleted_message" ]] && msg_error "$deleted_message"
     [[ -z "$deleted_message" ]] && msg_error "This script was removed and cannot be installed or updated."
-    msg_info "More info: ${info_url}"
+    msg_warn "More info: ${info_url}"
     return 1
   fi
 
@@ -3685,7 +3685,7 @@ runtime_script_status_guard() {
     msg_error "This script is currently disabled in community-scripts."
     [[ -n "$disable_message" ]] && msg_error "$disable_message"
     [[ -z "$disable_message" ]] && msg_error "Updates and installs are temporarily disabled for this script."
-    msg_info "More info: ${info_url}"
+    msg_warn "More info: ${info_url}"
     return 1
   fi
 

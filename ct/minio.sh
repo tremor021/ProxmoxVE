@@ -11,5 +11,5 @@ color
 
 msg_error "This script is no longer available in community-scripts."
 msg_error "Repository is archived. Minio is gone"
-msg_info "More info: https://community-scripts.org/scripts/minio"
+msg_warn "More info: https://community-scripts.org/scripts/minio"
 exit 1

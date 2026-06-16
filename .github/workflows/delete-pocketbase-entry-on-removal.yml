@@ -279,7 +279,7 @@ color
 
 msg_error "This script is no longer available in community-scripts."
 msg_error "${deletedMessage.replace(/"/g, '\\"')}"
-msg_info "More info: https://community-scripts.org/scripts/${slug}"
+msg_warn "More info: https://community-scripts.org/scripts/${slug}"
 exit 1
 `;
               fs.writeFileSync(stubPath, content);
