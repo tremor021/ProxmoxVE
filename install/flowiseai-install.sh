@@ -20,7 +20,7 @@ $STD apt install -y \
 msg_ok "Installed Dependencies"
 
 PYTHON_VERSION="3.11" setup_uv
-NODE_VERSION="24" setup_nodejs
+NODE_VERSION="22" setup_nodejs #needed because better-sql break
 
 msg_info "Installing FlowiseAI (Patience)"
 PYTHON_BIN="$(uv python find 3.11)"
