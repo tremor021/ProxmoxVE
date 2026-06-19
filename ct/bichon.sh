@@ -12,7 +12,7 @@ var_ram="${var_ram:-1024}"
 var_disk="${var_disk:-4}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
-var_arm64="${var_arm64:-no}"
+var_arm64="${var_arm64:-yes}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -68,16 +68,16 @@ function update_script() {
     create_backup /opt/bichon/bichon.env
 
     if [ "$MIGRATE_V1" -eq 1 ] && [ "$CURRENT_VERSION" != "0.3.7" ]; then
-      CLEAN_INSTALL=1 fetch_and_deploy_gh_release "bichon" "rustmailer/bichon" "prebuild" "v0.3.7" "/opt/bichon" "bichon-*-x86_64-unknown-linux-gnu.tar.gz"
-      restore_backup
       msg_info "Updating to intermediate version v0.3.7"
+      CLEAN_INSTALL=1 fetch_and_deploy_gh_release "bichon" "rustmailer/bichon" "prebuild" "v0.3.7" "/opt/bichon" "bichon-*-$(arch_resolve "x86_64" "aarch64")-unknown-linux-gnu.tar.gz"
+      restore_backup
       systemctl start bichon
       sleep 30
       systemctl stop bichon
       msg_ok "Intermediate update completed"
     fi
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "bichon" "rustmailer/bichon" "prebuild" "latest" "/opt/bichon" "bichon-*-x86_64-unknown-linux-gnu.tar.gz"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "bichon" "rustmailer/bichon" "prebuild" "latest" "/opt/bichon" "bichon-*-$(arch_resolve "x86_64" "aarch64")-unknown-linux-gnu.tar.gz"
     restore_backup
 
     if [ "$MIGRATE_V1" -eq 1 ]; then
