@@ -30,6 +30,8 @@ function update_script() {
     exit 1
   fi
 
+  NODE_VERSION="24" NODE_MODULE="corepack" setup_nodejs
+
   if check_for_gh_release "plane" "makeplane/plane"; then
     msg_info "Stopping Services"
     systemctl stop plane-api plane-worker plane-beat plane-live plane-space
@@ -49,7 +51,7 @@ function update_script() {
     cd /opt/plane
     export NODE_OPTIONS="--max-old-space-size=4096"
     export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-    $STD corepack enable pnpm
+
     $STD pnpm install --frozen-lockfile
     $STD pnpm turbo run build --filter=web --filter=admin --filter=space --filter=live
     msg_ok "Rebuilt Frontend"
