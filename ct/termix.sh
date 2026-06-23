@@ -206,9 +206,25 @@ EOF
       sed -i 's|/app/html|/opt/termix/html|g' /etc/nginx/nginx.conf
       sed -i 's|/app/nginx|/opt/termix/nginx|g' /etc/nginx/nginx.conf
       sed -i 's|listen ${PORT};|listen 80;|g' /etc/nginx/nginx.conf
-
       rm -f /etc/systemd/system/nginx.service.d/pidfile.conf
       rm -f /etc/tmpfiles.d/nginx-termix.conf
+      
+      if [ ! -d /tmp/nginx ]; then
+        mkdir -p /tmp/nginx
+      fi
+
+      if [ ! -f /etc/tmpfiles.d/nginx-termix.conf ]; then
+        echo "d /tmp/nginx 0755 nobody nogroup -" >/etc/tmpfiles.d/nginx-termix.conf
+      fi
+
+      if [ ! -f /etc/systemd/system/nginx.service.d/pidfile.conf ]; then
+        mkdir -p /etc/systemd/system/nginx.service.d/
+        cat <<'EOF' >/etc/systemd/system/nginx.service.d/pidfile.conf
+[Service]
+PIDFile=/tmp/nginx/nginx.pid
+EOF
+      fi
+      
       systemctl daemon-reload
       nginx -t && systemctl restart nginx
       msg_ok "Updated Nginx Configuration"
