@@ -1270,6 +1270,9 @@ load_vars_file() {
         var_sdn_vnet)
           if [[ -n "$var_val" ]] && ! validate_sdn_vnet "$var_val"; then
             msg_warn "SDN vnet '$var_val' from $file not found, ignoring"
+            continue
+          fi
+          ;;
         var_http_proxy)
           if [[ -n "$var_val" ]] && ! [[ "$var_val" =~ ^https?://[^[:space:]]+(:[0-9]+)?/?$ ]]; then
             msg_warn "Invalid HTTP proxy URL '$var_val' in $file, ignoring"
@@ -3749,7 +3752,6 @@ run_addon_updates() {
   done
 }
 
-
 runtime_script_status_guard() {
   local script_slug="${SCRIPT_SLUG:-${NSAPP:-}}"
   script_slug="$(echo "$script_slug" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')"
@@ -5634,10 +5636,10 @@ check_storage_health() {
 
   [[ -z "$total_kb" || "$total_kb" == "0" || -z "$avail_kb" ]] && return 0
 
-  used_pct=$(( (total_kb - avail_kb) * 100 / total_kb ))
+  used_pct=$(((total_kb - avail_kb) * 100 / total_kb))
   free_gb_fmt=$(numfmt --to=iec --from-unit=1024 --suffix=B --format %.1f "$avail_kb" 2>/dev/null || echo "${avail_kb}KB")
 
-  if (( used_pct >= 95 )); then
+  if ((used_pct >= 95)); then
     msg_warn "Storage '${storage}' (${storage_type}) is ${used_pct}% full (${free_gb_fmt} free)"
     if ! is_unattended && command -v whiptail >/dev/null 2>&1 && [[ -t 0 ]]; then
       if ! whiptail --backtitle "Proxmox VE Helper Scripts" \
@@ -5646,11 +5648,11 @@ check_storage_health() {
         msg_error "Installation cancelled – storage nearly full"
         exit 214
       fi
-    elif (( used_pct >= 98 )); then
+    elif ((used_pct >= 98)); then
       msg_error "Storage '${storage}' is ${used_pct}% full – refusing install in unattended mode"
       exit 214
     fi
-  elif (( used_pct >= 85 )); then
+  elif ((used_pct >= 85)); then
     msg_warn "Storage '${storage}' (${storage_type}) is ${used_pct}% full (${free_gb_fmt} free)"
   fi
 
@@ -5989,17 +5991,17 @@ create_lxc_container() {
   # Maps OS type + version to the release variant name used by ARM64 template sources.
   arm64_template_variant() {
     case "$1:$2" in
-      debian:12) echo "bookworm" ;;
-      debian:13) echo "trixie" ;;
-      debian:) echo "$DEBIAN_DEFAULT_CODENAME" ;;
+    debian:12) echo "bookworm" ;;
+    debian:13) echo "trixie" ;;
+    debian:) echo "$DEBIAN_DEFAULT_CODENAME" ;;
 
-      ubuntu:24.04) echo "noble" ;;
-      ubuntu:26.04) echo "questing" ;;
-      ubuntu:) echo "$UBUNTU_DEFAULT_CODENAME" ;;
+    ubuntu:24.04) echo "noble" ;;
+    ubuntu:26.04) echo "questing" ;;
+    ubuntu:) echo "$UBUNTU_DEFAULT_CODENAME" ;;
 
-      alpine:*) echo "${2:-$ALPINE_DEFAULT_VERSION}" ;;
+    alpine:*) echo "${2:-$ALPINE_DEFAULT_VERSION}" ;;
 
-      *) return 1 ;;
+    *) return 1 ;;
     esac
   }
 
