@@ -20,6 +20,11 @@ $STD apt install -y \
   potrace \
   libopenjp2-tools \
   libegl1 \
+  libgl1 \
+  libglib2.0-0 \
+  libsm6 \
+  libxext6 \
+  libxrender1 \
   libwayland-client0 \
   libwayland-cursor0 \
   libwayland-egl1 \
