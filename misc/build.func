@@ -5200,6 +5200,16 @@ EOF
     # TSTP = Ctrl+Z, TTIN = bg read from tty, TTOU = bg write to tty (tostop)
     trap '' TSTP TTIN TTOU
 
+    # lxc-attach takes the controlling terminal while the install runs and does
+    # not hand it back, leaving us in a background process group. Reading from
+    # the terminal then returns EIO instead of blocking, because SIGTTIN is
+    # ignored above - so every recovery prompt fails before the user can answer.
+    # Redirecting to /dev/tty does not help: the rule applies to the terminal,
+    # not the file descriptor. Claim the foreground group back; SIGTTOU is
+    # ignored too, so tcsetpgrp() succeeds instead of stopping us. No-op when we
+    # already are in the foreground. perl is a hard dependency of Proxmox VE.
+    perl -e 'use POSIX; open(my $t, "+<", "/dev/tty") or exit 1; POSIX::tcsetpgrp(fileno($t), getpgrp()) or exit 1;' 2>/dev/null || true
+
     msg_error "Installation failed in container ${CTID} (exit code: ${install_exit_code})"
 
     # Copy install log from container BEFORE API call so get_error_text() can read it
