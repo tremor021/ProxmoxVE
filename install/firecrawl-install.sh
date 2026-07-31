@@ -15,6 +15,7 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
+  build-essential \
   cmake \
   git \
   nftables \
@@ -42,7 +43,6 @@ FDB_ARCH="$(get_system_arch)"
 [[ "$FDB_ARCH" == "arm64" ]] && FDB_ARCH="aarch64"
 fetch_and_deploy_gh_release "foundationdb-clients" "apple/foundationdb" "binary" "$FDB_VERSION" "/opt/foundationdb-clients" "foundationdb-clients_${FDB_VERSION}-1_${FDB_ARCH}.deb"
 msg_ok "Configured FDB"
-
 
 PG_DB_NAME="firecrawl" PG_DB_USER="firecrawl" PG_DB_EXTENSIONS="pgcrypto,pg_cron" PG_DB_CREDS_FILE="/dev/null" setup_postgresql_db
 

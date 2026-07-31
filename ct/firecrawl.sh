@@ -30,6 +30,8 @@ function update_script() {
     exit
   fi
 
+  ensure_dependencies build-essential
+
   if check_for_gh_release "firecrawl" "firecrawl/firecrawl"; then
     msg_info "Stopping Services"
     systemctl stop firecrawl firecrawl-playwright
@@ -40,7 +42,7 @@ function update_script() {
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "firecrawl" "firecrawl/firecrawl" "tarball" "latest" "/opt/firecrawl"
 
     restore_backup
-    
+
     FDB_VERSION="$(awk -F= '/^ARG FDB_VERSION=/{print $2; exit}' /opt/firecrawl/apps/api/Dockerfile)"
     if [[ -z "$FDB_VERSION" ]]; then
       msg_error "FDB_VERSION pin not found in upstream Dockerfile"
