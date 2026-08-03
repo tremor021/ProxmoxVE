@@ -143,7 +143,7 @@ EOF
     fi
     msg_ok "Migrated Configuration"
 
-    create_backup /opt/termix/data /opt/termix/uploads
+    create_backup /opt/termix/data /opt/termix/uploads /opt/termix/.env
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "termix" "Termix-SSH/Termix" "tarball"
 
