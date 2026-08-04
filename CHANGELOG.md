@@ -537,6 +537,10 @@ Exercise vigilance regarding copycat or coat-tailing sites that seek to exploit 
 
     - Opencloud: Pin version to 7.4.0 [@vhsdream](https://github.com/vhsdream) ([#16257](https://github.com/community-scripts/ProxmoxVE/pull/16257))
 
+  - #### 🔧 Refactor
+
+    - Bump NodeJS Versions of several scripts [@MickLesk](https://github.com/MickLesk) ([#16230](https://github.com/community-scripts/ProxmoxVE/pull/16230))
+
 ### 💾 Core
 
   - #### 🐞 Bug Fixes
