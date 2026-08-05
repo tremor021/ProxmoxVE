@@ -1043,6 +1043,39 @@ ensure_tput() {
 }
 
 # ------------------------------------------------------------------------------
+# reclaim_tty()
+#
+# - Reclaims the controlling terminal's foreground process group
+# - lxc-attach takes the terminal and does not hand it back, leaving us in a
+#   background process group. Reading from the terminal then returns EIO
+#   instead of blocking, because SIGTTIN is ignored during recovery - so the
+#   prompt fails before the user can answer and their keystroke leaks into the
+#   parent shell. Redirecting to /dev/tty does not help: the rule applies to
+#   the terminal, not to the file descriptor.
+# - pct exec/pull/enter use lxc-attach internally, so the terminal can be taken
+#   away again at any point. Call this immediately before each interactive
+#   read, not once after the install.
+# - SIGTTOU is ignored inside perl so tcsetpgrp() succeeds instead of stopping
+#   us. No-op when we already are in the foreground or there is no terminal.
+#   perl is a hard dependency of Proxmox VE.
+# ------------------------------------------------------------------------------
+reclaim_tty() {
+  command -v perl >/dev/null 2>&1 || return 0
+  [[ -e /dev/tty ]] || return 0
+
+  local pgid
+  pgid=$(ps -o pgid= -p $$ 2>/dev/null | tr -d ' ') || true
+
+  perl -e '
+    use POSIX;
+    $SIG{TTOU} = "IGNORE";
+    my $pgid = $ARGV[0] || POSIX::getpgrp();
+    open(my $t, "+<", "/dev/tty") or exit 1;
+    POSIX::tcsetpgrp(fileno($t), $pgid) or exit 1;
+  ' "${pgid:-0}" 2>/dev/null || true
+}
+
+# ------------------------------------------------------------------------------
 # is_alpine()
 #
 # - Detects if running on Alpine Linux

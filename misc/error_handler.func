@@ -499,6 +499,7 @@ error_handler() {
 
       local response=""
       local read_rc
+      declare -f reclaim_tty >/dev/null 2>&1 && reclaim_tty
       read -t 60 -r response </dev/tty
       read_rc=$?
       if [[ $read_rc -eq 0 ]]; then
