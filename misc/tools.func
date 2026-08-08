@@ -7706,6 +7706,10 @@ setup_nodejs() {
     fi
   fi
 
+  if [[ "$(npm -v 2>/dev/null | cut -d. -f1)" -ge 11 ]]; then
+    $STD npm config set dangerously-allow-all-scripts true --location=global 2>/dev/null || true
+  fi
+
   # Set a safe default heap limit for Node.js builds if not explicitly provided.
   # Priority:
   #   1) NODE_OPTIONS (caller/user override)
