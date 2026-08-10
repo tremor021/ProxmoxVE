@@ -172,8 +172,19 @@ dev_mode="trace,keep" bash -c "$(curl -fsSL https://raw.githubusercontent.com/co
 | `pause`      | Pauses execution at key points before customization          |
 | `breakpoint` | Drops to a shell at hardcoded `breakpoint` calls in scripts  |
 | `logs`       | Saves detailed build logs to `/var/log/community-scripts/`   |
-| `dryrun`     | Bypasses actual container creation (limited support)         |
 | `motd`       | Forces an update of the Message of the Day                   |
+| `net`        | Logs every engine fetch: HTTP status, duration and URL       |
+| `timing`     | Times each step and lists the slowest ones at the end        |
+
+Any flag also prints the resolved context first — where the engine came from,
+both roots and URLs, the app, platform and versions — and repaints the greens
+red, so a dev run is never mistaken for a normal install.
+
+Setting `dev_mode` without naming a flag (`dev_mode=`, `=1`, `=ask`) opens a
+picker before the install menu.
+
+`dryrun` was removed: it only intercepted the `silent()` wrapper, so `pct
+create` still ran and the container was still built.
 
 ---
 
