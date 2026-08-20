@@ -30,9 +30,35 @@ function update_script() {
     exit
   fi
 
+  if [[ ! -f /etc/systemd/system/bgutil-provider.service ]]; then
+    msg_info "Adding BgUtil POT Provider"
+    ensure_dependencies ffmpeg libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev pkg-config
+    fetch_and_deploy_gh_release "bgutil-ytdlp-pot-provider" "Brainicism/bgutil-ytdlp-pot-provider" "tarball"
+    cd /opt/bgutil-ytdlp-pot-provider/server
+    $STD npm ci
+    $STD npx tsc
+    cat <<EOF >/etc/systemd/system/bgutil-provider.service
+[Unit]
+Description=BgUtil YT-DLP POT Provider
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/bgutil-ytdlp-pot-provider/server
+ExecStart=/usr/bin/node build/main.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    systemctl enable -q --now bgutil-provider
+    msg_ok "Added BgUtil POT Provider"
+  fi
+
   if check_for_gh_release "tubearchivist" "tubearchivist/tubearchivist"; then
     msg_info "Stopping Services"
-    systemctl stop tubearchivist tubearchivist-celery tubearchivist-beat
+    systemctl stop bgutil-provider tubearchivist tubearchivist-celery tubearchivist-beat
     msg_ok "Stopped Services"
 
     create_backup \
@@ -58,7 +84,16 @@ function update_script() {
       mkdir -p /opt/yt_plugins/bgutil
       $STD uv pip install --python /opt/tubearchivist/.venv/bin/python --target /opt/yt_plugins/bgutil -r /opt/tubearchivist/backend/requirements.plugins.txt
     fi
+    $STD uv pip install --python /opt/tubearchivist/.venv/bin/python -U --prerelease allow "yt-dlp[default]"
     msg_ok "Rebuilt Tube Archivist"
+
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "bgutil-ytdlp-pot-provider" "Brainicism/bgutil-ytdlp-pot-provider" "tarball"
+
+    msg_info "Rebuilding BgUtil POT Provider"
+    cd /opt/bgutil-ytdlp-pot-provider/server
+    $STD npm ci
+    $STD npx tsc
+    msg_ok "Rebuilt BgUtil POT Provider"
 
     msg_info "Restoring Configuration"
     sed -i 's|^TA_APP_DIR=/opt/tubearchivist$|TA_APP_DIR=/opt/tubearchivist/backend|' /opt/tubearchivist/.env
@@ -76,7 +111,7 @@ function update_script() {
     msg_ok "Restored Configuration"
 
     msg_info "Starting Services"
-    systemctl start tubearchivist tubearchivist-celery tubearchivist-beat
+    systemctl start bgutil-provider tubearchivist tubearchivist-celery tubearchivist-beat
     systemctl reload nginx
     msg_ok "Started Services"
     msg_ok "Updated successfully!"
